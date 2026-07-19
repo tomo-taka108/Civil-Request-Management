@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>新規登録 | 土木事務所 苦情・要望管理システム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="mock-banner">モックアップ（表示イメージ確認用・実データではありません）</div>
+<header class="app-header">
+  <div class="brand">苦情・要望管理システム</div>
+  <nav>
+    <a href="list.html">案件一覧</a>
+    <a href="#">地図表示</a>
+    <a class="active" href="register.html">新規登録</a>
+  </nav>
+  <div class="user">〇〇土木事務所 道路課 山田　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
+</header>
+
+<main class="app-main">
+  <h1 class="page-title">新規登録</h1>
+
+  <form class="card">
+    <div class="section-heading">管理情報</div>
+    <div class="form-grid">
+      <label class="required">受付日時</label>
+      <div style="display:flex; gap:8px;">
+        <input type="date" value="2026-07-19" style="flex:1;">
+        <input type="time" value="09:00" style="flex:1;">
+      </div>
+
+      <label class="required">受付方法</label>
+      <div>
+        <select onchange="document.getElementById('reception-method-other').style.display = (this.value === 'その他') ? 'block' : 'none';">
+          <option>窓口</option>
+          <option>電話</option>
+          <option>メール</option>
+          <option>要望書</option>
+          <option>FAX</option>
+          <option>職員パトロール</option>
+          <option>その他</option>
+        </select>
+        <input type="text" id="reception-method-other" placeholder="その他の場合は具体的に入力" style="display:none; margin-top:8px;">
+      </div>
+
+      <label>登録者（受付職員）</label>
+      <input type="text" value="山田 太郎（ログインユーザー）" disabled>
+    </div>
+
+    <div class="section-heading">相手方情報</div>
+    <div class="form-grid">
+      <label class="required">区分</label>
+      <div class="radio-group">
+        <label><input type="radio" name="category" checked>個人</label>
+        <label><input type="radio" name="category">自治会</label>
+        <label><input type="radio" name="category">市町村</label>
+        <label><input type="radio" name="category">議員</label>
+        <label><input type="radio" name="category">匿名</label>
+        <label><input type="radio" name="category">職員パトロール</label>
+        <label><input type="radio" name="category">その他</label>
+      </div>
+
+      <label>要望者</label>
+      <div>
+        <input type="text" placeholder="氏名・団体名等を入力">
+        <div class="note">区分が「匿名」「職員パトロール」の場合は入力不要</div>
+      </div>
+    </div>
+
+    <div class="section-heading">案件情報</div>
+    <div class="form-grid">
+      <label class="required">対応部署</label>
+      <select>
+        <option>道路</option>
+        <option>河川</option>
+        <option>砂防</option>
+        <option>その他（土木事務所以外）</option>
+      </select>
+
+      <label class="required">種別</label>
+      <div class="radio-group">
+        <label><input type="radio" name="type" checked>苦情</label>
+        <label><input type="radio" name="type">要望</label>
+        <label><input type="radio" name="type">異常発見</label>
+      </div>
+
+      <label class="required">要望の内容</label>
+      <textarea placeholder="要望・苦情・異常発見の内容を入力"></textarea>
+
+      <label class="required">要望箇所（住所）</label>
+      <input type="text" placeholder="例：〇〇市△△町1丁目付近">
+
+      <label>要望箇所（地図）</label>
+      <div>
+        <div class="map-placeholder">地図クリックでピンを設置（緯度経度を自動取得）</div>
+        <div class="note">緯度: 未設定 / 経度: 未設定</div>
+      </div>
+    </div>
+
+    <div class="section-heading">対応情報</div>
+    <div class="form-grid">
+      <label class="required">対応の必要性</label>
+      <div class="radio-group">
+        <label><input type="radio" name="need" checked>あり</label>
+        <label><input type="radio" name="need">なし</label>
+        <label><input type="radio" name="need">不明</label>
+      </div>
+
+      <label class="required">緊急性</label>
+      <div class="radio-group">
+        <label><input type="radio" name="urgency">高</label>
+        <label><input type="radio" name="urgency" checked>中</label>
+        <label><input type="radio" name="urgency">低</label>
+      </div>
+
+      <label>対応方針</label>
+      <textarea placeholder="現時点での対応方針があれば入力（未定なら空欄可）"></textarea>
+
+      <label class="required">対応状況</label>
+      <select>
+        <option>未対応</option>
+        <option>対応中</option>
+        <option>対応完了</option>
+      </select>
+    </div>
+
+    <div class="btn-row">
+      <a class="btn btn-secondary" href="list.html">キャンセル</a>
+      <a class="btn btn-primary" href="detail.html">登録する</a>
+    </div>
+  </form>
+</main>
+</body>
+</html>

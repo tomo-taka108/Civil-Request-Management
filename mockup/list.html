@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>案件一覧 | 土木事務所 苦情・要望管理システム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="mock-banner">モックアップ（表示イメージ確認用・実データではありません）</div>
+<header class="app-header">
+  <div class="brand">苦情・要望管理システム</div>
+  <nav>
+    <a class="active" href="list.html">案件一覧</a>
+    <a href="#">地図表示</a>
+    <a href="register.html">新規登録</a>
+  </nav>
+  <div class="user">〇〇土木事務所 道路課 山田　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
+</header>
+
+<main class="app-main">
+  <h1 class="page-title">案件一覧</h1>
+
+  <div class="card">
+    <form class="search-form">
+      <div class="field">
+        <label>受付日時（期間）</label>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <input type="date" value="2026-06-01">
+          <span>〜</span>
+          <input type="date" value="2026-07-19">
+        </div>
+      </div>
+      <div class="field">
+        <label>対応部署</label>
+        <select>
+          <option>指定なし</option>
+          <option>道路</option>
+          <option>河川</option>
+          <option>砂防</option>
+          <option>その他（土木事務所以外）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>対応状況</label>
+        <select>
+          <option>指定なし</option>
+          <option>未対応</option>
+          <option>対応中</option>
+          <option>対応完了</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>緊急性</label>
+        <select>
+          <option>指定なし</option>
+          <option>高</option>
+          <option>中</option>
+          <option>低</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>地区・場所</label>
+        <input type="text" placeholder="住所の一部を入力">
+      </div>
+      <div class="field">
+        <label>キーワード</label>
+        <input type="text" placeholder="要望内容の全文検索">
+      </div>
+      <div class="field span-3" style="display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="btn btn-secondary">条件をクリア</button>
+        <button type="button" class="btn btn-primary">検索</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div class="note">検索結果：42件中 1〜20件を表示</div>
+      <button type="button" class="btn btn-secondary">CSV出力</button>
+    </div>
+
+    <table class="list-table">
+      <thead>
+        <tr>
+          <th>受付番号</th>
+          <th>受付日時</th>
+          <th>対応部署</th>
+          <th>種別</th>
+          <th>要望箇所</th>
+          <th>要望の内容</th>
+          <th>緊急性</th>
+          <th>対応状況</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0142</td>
+          <td>2026-07-18 09:15</td>
+          <td>道路</td>
+          <td>苦情</td>
+          <td>〇〇市△△町1丁目付近</td>
+          <td>県道○○線の路面にポットホール（穴ぼこ）があり危険</td>
+          <td><span class="badge badge-urgency-高">高</span></td>
+          <td><span class="badge badge-status-未対応">未対応</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0141</td>
+          <td>2026-07-17 14:02</td>
+          <td>河川</td>
+          <td>要望</td>
+          <td>□□川 □□橋上流側</td>
+          <td>護岸の草刈りをしてほしい</td>
+          <td><span class="badge badge-urgency-低">低</span></td>
+          <td><span class="badge badge-status-対応中">対応中</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0140</td>
+          <td>2026-07-17 10:40</td>
+          <td>砂防</td>
+          <td>異常発見</td>
+          <td>◇◇山 砂防堰堤No.3</td>
+          <td>パトロール中に堆積土砂の増加を確認</td>
+          <td><span class="badge badge-urgency-中">中</span></td>
+          <td><span class="badge badge-status-対応中">対応中</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0139</td>
+          <td>2026-07-15 16:20</td>
+          <td>道路</td>
+          <td>要望</td>
+          <td>〇〇市××交差点</td>
+          <td>横断歩道の白線が消えかかっている</td>
+          <td><span class="badge badge-urgency-中">中</span></td>
+          <td><span class="badge badge-status-対応完了">対応完了</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0138</td>
+          <td>2026-07-14 08:55</td>
+          <td>道路</td>
+          <td>苦情</td>
+          <td>〇〇市△△町3丁目</td>
+          <td>街路樹の枝が歩道にはみ出し通行の妨げ</td>
+          <td><span class="badge badge-urgency-低">低</span></td>
+          <td><span class="badge badge-status-対応完了">対応完了</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0137</td>
+          <td>2026-07-13 11:10</td>
+          <td>河川</td>
+          <td>異常発見</td>
+          <td>△△川 □□排水機場</td>
+          <td>パトロール中にポンプの異音を確認</td>
+          <td><span class="badge badge-urgency-高">高</span></td>
+          <td><span class="badge badge-status-対応中">対応中</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0136</td>
+          <td>2026-07-12 09:30</td>
+          <td>砂防</td>
+          <td>要望</td>
+          <td>◇◇山 砂防指定地入口</td>
+          <td>案内看板が老朽化し文字が読めない</td>
+          <td><span class="badge badge-urgency-低">低</span></td>
+          <td><span class="badge badge-status-未対応">未対応</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0135</td>
+          <td>2026-07-11 15:45</td>
+          <td>道路</td>
+          <td>苦情</td>
+          <td>〇〇市□□町2丁目</td>
+          <td>道路照明灯が点灯しない箇所がある</td>
+          <td><span class="badge badge-urgency-中">中</span></td>
+          <td><span class="badge badge-status-対応完了">対応完了</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0134</td>
+          <td>2026-07-10 13:05</td>
+          <td>その他（土木事務所以外）</td>
+          <td>苦情</td>
+          <td>〇〇市××公園付近</td>
+          <td>用水路の管理者が不明で対応部署の確認が必要</td>
+          <td><span class="badge badge-urgency-低">低</span></td>
+          <td><span class="badge badge-status-対応中">対応中</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0133</td>
+          <td>2026-07-09 10:20</td>
+          <td>河川</td>
+          <td>要望</td>
+          <td>□□川 中流域左岸</td>
+          <td>不法投棄されたごみの撤去を希望</td>
+          <td><span class="badge badge-urgency-中">中</span></td>
+          <td><span class="badge badge-status-未対応">未対応</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0132</td>
+          <td>2026-07-08 08:40</td>
+          <td>道路</td>
+          <td>異常発見</td>
+          <td>〇〇市△△バイパス</td>
+          <td>パトロール中にガードレールの破損を確認</td>
+          <td><span class="badge badge-urgency-高">高</span></td>
+          <td><span class="badge badge-status-対応完了">対応完了</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0131</td>
+          <td>2026-07-07 16:55</td>
+          <td>砂防</td>
+          <td>苦情</td>
+          <td>◇◇山 砂防堰堤No.1</td>
+          <td>堰堤周辺の立木が越境し敷地に倒れそう</td>
+          <td><span class="badge badge-urgency-中">中</span></td>
+          <td><span class="badge badge-status-対応中">対応中</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0130</td>
+          <td>2026-07-06 09:15</td>
+          <td>道路</td>
+          <td>要望</td>
+          <td>〇〇市△△町5丁目</td>
+          <td>歩道の段差を解消してほしい</td>
+          <td><span class="badge badge-urgency-低">低</span></td>
+          <td><span class="badge badge-status-未対応">未対応</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0129</td>
+          <td>2026-07-05 14:30</td>
+          <td>河川</td>
+          <td>苦情</td>
+          <td>□□川 □□橋下流側</td>
+          <td>河川敷の雑草が伸び見通しが悪い</td>
+          <td><span class="badge badge-urgency-低">低</span></td>
+          <td><span class="badge badge-status-対応完了">対応完了</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0128</td>
+          <td>2026-07-04 11:00</td>
+          <td>道路</td>
+          <td>苦情</td>
+          <td>〇〇市××町交差点</td>
+          <td>信号待ちの車列が渋滞し危険という苦情</td>
+          <td><span class="badge badge-urgency-中">中</span></td>
+          <td><span class="badge badge-status-対応中">対応中</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0127</td>
+          <td>2026-07-03 09:50</td>
+          <td>砂防</td>
+          <td>異常発見</td>
+          <td>◇◇山 砂防堰堤No.2</td>
+          <td>パトロール中にひび割れを発見</td>
+          <td><span class="badge badge-urgency-高">高</span></td>
+          <td><span class="badge badge-status-未対応">未対応</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0126</td>
+          <td>2026-07-02 15:15</td>
+          <td>道路</td>
+          <td>要望</td>
+          <td>〇〇市△△町7丁目</td>
+          <td>カーブミラーの向きを調整してほしい</td>
+          <td><span class="badge badge-urgency-中">中</span></td>
+          <td><span class="badge badge-status-対応完了">対応完了</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0125</td>
+          <td>2026-07-01 10:05</td>
+          <td>河川</td>
+          <td>要望</td>
+          <td>△△川 上流域</td>
+          <td>増水時の水位情報を掲示してほしい</td>
+          <td><span class="badge badge-urgency-低">低</span></td>
+          <td><span class="badge badge-status-未対応">未対応</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0124</td>
+          <td>2026-06-30 13:40</td>
+          <td>道路</td>
+          <td>苦情</td>
+          <td>〇〇市□□町1丁目</td>
+          <td>路肩の陥没で自転車の通行が危険</td>
+          <td><span class="badge badge-urgency-高">高</span></td>
+          <td><span class="badge badge-status-対応中">対応中</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="pagination">
+      <span>&laquo;</span>
+      <span class="current">1</span>
+      <a href="#">2</a>
+      <a href="#">3</a>
+      <a href="#">&raquo;</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>
