@@ -1,4 +1,4 @@
-# データベース設計書 v0.1
+# データベース設計書 v0.2
 
 対象DB：MySQL（既存 `famigo-mysql` インスタンス内に新規スキーマを作成）。
 本設計は [要件定義書](requirements.md) の「3. 登録項目」「1.3 想定利用者・権限方針」を正規化したもの。
@@ -8,6 +8,7 @@
 | 日付 | version | 内容 | 作成者 |
 |---|---|---|---|
 | 2026-07-19 | 0.1 | 初版作成。offices / users / requests の3テーブル構成を確定 | - |
+| 2026-07-20 | 0.2 | 要件定義書の方針変更（担当部署・対応部署から「その他」区分を廃止し道路／河川／砂防の3種類に統一）に合わせ、`users.department` / `requests.department` のENUMから`other`を削除。あわせて`requests.last_updated_at`がLaravel標準の`updated_at`と役割が完全に重複していたため`last_updated_at`を削除し、`updated_at`を表示用「最終更新日時」として兼用する方針に変更 | - |
 
 ---
 
@@ -33,7 +34,7 @@ erDiagram
         varchar name
         varchar password_hash
         boolean must_change_password
-        enum department "road/river/sabo/other"
+        enum department "road/river/sabo"
         enum role "staff/admin"
         enum status "active/inactive"
         timestamp created_at
@@ -64,7 +65,6 @@ erDiagram
         text response_policy
         enum response_status
         date response_completed_date
-        timestamp last_updated_at
         timestamp created_at
         timestamp updated_at
         timestamp deleted_at "論理削除"
@@ -100,7 +100,7 @@ erDiagram
 | name | VARCHAR(100) | NOT NULL | 氏名 |
 | password_hash | VARCHAR(255) | NOT NULL | bcrypt等でハッシュ化して保持 |
 | must_change_password | BOOLEAN | NOT NULL, DEFAULT TRUE | 初期パスワードのままか。初回ログイン時の強制変更判定に使用 |
-| department | ENUM('road','river','sabo','other') | NOT NULL | 担当部署（道路／河川／砂防／その他）。編集・削除権限の判定に使用 |
+| department | ENUM('road','river','sabo') | NOT NULL | 担当部署（道路／河川／砂防）。編集・削除権限の判定に使用 |
 | role | ENUM('staff','admin') | NOT NULL, DEFAULT 'staff' | 権限区分（一般職員／システム管理者） |
 | status | ENUM('active','inactive') | NOT NULL, DEFAULT 'active' | アカウント状態（有効／無効化） |
 | created_at | TIMESTAMP | NOT NULL | |
@@ -132,7 +132,7 @@ erDiagram
 | registered_by | BIGINT UNSIGNED | NOT NULL, FK → users.id | 登録者（受付職員）。ログインユーザーと連動 |
 | requester_category | ENUM('individual','neighborhood_association','municipality','council_member','anonymous','staff_patrol','other') | NOT NULL | 区分（個人／自治会／市町村／議員／匿名／職員パトロール／その他） |
 | requester_name | VARCHAR(255) | NULL | 要望者（氏名・団体名等）。区分が匿名／職員パトロールの場合は不要 |
-| department | ENUM('road','river','sabo','other') | NOT NULL | 対応部署。編集・削除権限の判定に使用 |
+| department | ENUM('road','river','sabo') | NOT NULL | 対応部署。編集・削除権限の判定に使用 |
 | content | TEXT | NOT NULL | 要望の内容 |
 | request_type | ENUM('complaint','request','anomaly') | NOT NULL | 種別（苦情／要望／異常発見） |
 | latitude | DECIMAL(9,6) | NULL | 要望箇所の緯度 |
@@ -143,9 +143,8 @@ erDiagram
 | response_policy | TEXT | NULL | 対応方針 |
 | response_status | ENUM('not_started','in_progress','completed') | NOT NULL, DEFAULT 'not_started' | 対応状況（未対応／対応中／対応完了） |
 | response_completed_date | DATE | NULL | 対応状況が「対応完了」になった日 |
-| last_updated_at | TIMESTAMP | NOT NULL | 表示用「最終更新日時」（要件定義書 2.1：変更履歴は保持しないが最終更新日時のみ表示） |
 | created_at | TIMESTAMP | NOT NULL | |
-| updated_at | TIMESTAMP | NOT NULL | |
+| updated_at | TIMESTAMP | NOT NULL | 表示用「最終更新日時」を兼ねる（要件定義書 2.1：変更履歴は保持しないが最終更新日時のみ表示。Laravel標準の自動更新カラムをそのまま画面表示に用い、専用カラムは持たない） |
 | deleted_at | TIMESTAMP | NULL | 論理削除（Laravel SoftDeletes を使用） |
 
 **インデックス**
