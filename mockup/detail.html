@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>案件詳細 | 土木事務所 苦情・要望管理システム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="mock-banner">モックアップ（表示イメージ確認用・実データではありません）</div>
+<header class="app-header">
+  <div class="brand">苦情・要望管理システム</div>
+  <nav>
+    <a href="list.html">案件一覧</a>
+    <a href="#">地図表示</a>
+    <a href="register.html">新規登録</a>
+  </nav>
+  <div class="user">〇〇土木事務所 道路課 山田　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
+</header>
+
+<main class="app-main">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1 class="page-title">案件詳細（受付番号：2026-0142）</h1>
+    <div style="display:flex; gap:10px;">
+      <a class="btn btn-secondary" href="list.html">一覧に戻る</a>
+      <a class="btn btn-primary" href="edit.html">編集する</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-heading">管理情報</div>
+    <dl class="detail-grid">
+      <dt>受付番号</dt><dd>2026-0142</dd>
+      <dt>受付日時</dt><dd>2026-07-18 09:15</dd>
+      <dt>受付方法</dt><dd>電話</dd>
+      <dt>登録者（受付職員）</dt><dd>山田 太郎</dd>
+      <dt>最終更新日時</dt><dd>2026-07-18 17:40</dd>
+    </dl>
+
+    <div class="section-heading">相手方情報</div>
+    <dl class="detail-grid">
+      <dt>区分</dt><dd>個人</dd>
+      <dt>要望者</dt><dd>近隣住民（サンプル太郎）</dd>
+    </dl>
+
+    <div class="section-heading">案件情報</div>
+    <dl class="detail-grid">
+      <dt>対応部署</dt><dd>道路</dd>
+      <dt>種別</dt><dd>苦情</dd>
+      <dt>要望の内容</dt><dd>県道○○線の路面にポットホール（穴ぼこ）があり、車両の通行に支障が出ている。早急に補修してほしい。</dd>
+      <dt>要望箇所</dt>
+      <dd>
+        〇〇市△△町1丁目付近（緯度: 35.1234, 経度: 136.9876）
+        <div class="map-placeholder" style="margin-top:8px;">地図表示エリア（ピン表示）</div>
+      </dd>
+    </dl>
+
+    <div class="section-heading">対応情報</div>
+    <dl class="detail-grid">
+      <dt>対応の必要性</dt><dd>あり</dd>
+      <dt>緊急性</dt><dd><span class="badge badge-urgency-高">高</span></dd>
+      <dt>対応方針</dt><dd>現地確認のうえ、応急措置として仮補修を実施予定</dd>
+      <dt>対応状況</dt><dd><span class="badge badge-status-未対応">未対応</span></dd>
+      <dt>対応完了日</dt><dd>-</dd>
+    </dl>
+  </div>
+</main>
+</body>
+</html>
