@@ -380,6 +380,7 @@ table.list-table tbody tr:hover {
   border: 2px solid #fff;
   box-shadow: 0 2px 6px rgba(43, 48, 64, 0.35);
   cursor: pointer;
+  text-decoration: none;
 }
 
 .map-pin::after {
