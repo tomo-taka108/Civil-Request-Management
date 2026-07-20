@@ -1,15 +1,9 @@
-# データベース設計書 v0.3
+# データベース設計書
+
+最終更新日: 2026-07-20
 
 対象DB：MySQL（既存 `famigo-mysql` インスタンス内に新規スキーマを作成）。
-本設計は [要件定義書](requirements.md) の「3. 登録項目」「1.3 想定利用者・権限方針」を正規化したもの。
-
-## 改訂履歴
-
-| 日付 | version | 内容 | 作成者 |
-|---|---|---|---|
-| 2026-07-19 | 0.1 | 初版作成。offices / users / requests の3テーブル構成を確定 | - |
-| 2026-07-20 | 0.2 | 要件定義書の方針変更（担当部署・対応部署から「その他」区分を廃止し道路／河川／砂防の3種類に統一）に合わせ、`users.department` / `requests.department` のENUMから`other`を削除。あわせて`requests.last_updated_at`がLaravel標準の`updated_at`と役割が完全に重複していたため`last_updated_at`を削除し、`updated_at`を表示用「最終更新日時」として兼用する方針に変更 | - |
-| 2026-07-20 | 0.3 | 要件定義書の検索仕様変更（対応部署・対応状況・緊急性を単一選択から複数選択に変更）を受け、`requests`テーブルのインデックス（2.3）に、複数選択検索は`whereIn`で実装しインデックス構成自体の変更は不要である旨を補記 | - |
+本設計は [要件定義書](requirements.md) の「3. 登録項目」「1.3 想定利用者・権限方針」を正規化したもの。変更履歴は`git log docs/database-design.md`を参照。
 
 ---
 
@@ -30,12 +24,12 @@ erDiagram
 
     users {
         bigint id PK
-        bigint office_id FK
-        varchar user_id UK "ログインID（事務所内一意）"
+        bigint office_id FK "NULL可：システム管理者は事務所非依存"
+        varchar user_id UK "ログインID（事務所内一意。管理者は全体で一意）"
         varchar name
         varchar password_hash
         boolean must_change_password
-        enum department "road/river/sabo"
+        enum department "road/river/sabo（一般職員のみ設定）"
         enum role "staff/admin"
         enum status "active/inactive"
         timestamp created_at
@@ -96,20 +90,23 @@ erDiagram
 | カラム名 | 型 | 制約 | 備考 |
 |---|---|---|---|
 | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
-| office_id | BIGINT UNSIGNED | NOT NULL, FK → offices.id | 所属事務所（ログイン時の事務所判定に使用） |
-| user_id | VARCHAR(50) | NOT NULL | ログインに使用。**事務所内で一意**（`UNIQUE(office_id, user_id)`） |
+| office_id | BIGINT UNSIGNED | **NULL可**, FK → offices.id | 所属事務所（ログイン時の事務所判定に使用）。**`role`が`admin`の場合はNULL**（要件定義書1.3：システム管理者は事務所非依存の全体管理ロール）。異動時はシステム管理者が更新できる。異動後は新しい事務所の案件のみ閲覧・編集対象になる（`requests.office_id`は登録時点の値で固定されるため、以前の事務所で登録した案件は異動後に見えなくなる） |
+| user_id | VARCHAR(50) | NOT NULL, UNIQUE | ログインに使用。**システム全体で一意**。入力ミスの訂正等のため登録後もシステム管理者が変更できる |
 | name | VARCHAR(100) | NOT NULL | 氏名 |
 | password_hash | VARCHAR(255) | NOT NULL | bcrypt等でハッシュ化して保持 |
 | must_change_password | BOOLEAN | NOT NULL, DEFAULT TRUE | 初期パスワードのままか。初回ログイン時の強制変更判定に使用 |
-| department | ENUM('road','river','sabo') | NOT NULL | 担当部署（道路／河川／砂防）。編集・削除権限の判定に使用 |
+| department | ENUM('road','river','sabo') | NULL可 | 担当部署（道路／河川／砂防）。編集・削除権限の判定に使用。**`role`が`admin`の場合はNULL**（管理者は担当部署によらず全案件を編集・削除できるため） |
 | role | ENUM('staff','admin') | NOT NULL, DEFAULT 'staff' | 権限区分（一般職員／システム管理者） |
 | status | ENUM('active','inactive') | NOT NULL, DEFAULT 'active' | アカウント状態（有効／無効化） |
 | created_at | TIMESTAMP | NOT NULL | |
 | updated_at | TIMESTAMP | NOT NULL | |
 
 **インデックス**
-- `UNIQUE(office_id, user_id)` — ログインID重複チェック（事務所単位）
-- `INDEX(office_id, status)` — ユーザー一覧の絞り込み用
+- `UNIQUE(user_id)` — ログインID重複チェック。`office_id`がNULL（管理者）になり得るため、事務所単位の複合ユニークではなく単一カラムのユニーク制約とする
+- `INDEX(office_id, status)` — 事務所ごとのユーザー一覧の絞り込み用（`office_id`がNULLの管理者はこのインデックスでは絞り込まれない。管理者一覧は`role = 'admin'`で別途取得）
+
+**制約**
+- `role = 'admin'` のとき `office_id IS NULL` かつ `department IS NULL`、`role = 'staff'` のとき両方 NOT NULL となることをアプリケーション層（バリデーション）で担保する。DBのCHECK制約による強制は行わない（MySQL 8のCHECK制約は列挙体との相性上、Laravel側での担保を基本方針とする）
 
 > ユーザー本人による新規登録は行わないため、メールアドレス等の登録経路は持たない（要件定義書 2.5参照）。
 
@@ -122,7 +119,7 @@ erDiagram
 | カラム名 | 型 | 制約 | 備考 |
 |---|---|---|---|
 | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | 内部キー |
-| office_id | BIGINT UNSIGNED | NOT NULL, FK → offices.id | データ分離用。案件は登録者の所属事務所に紐づく |
+| office_id | BIGINT UNSIGNED | NOT NULL, FK → offices.id | データ分離用。**登録時点**の登録者の所属事務所に固定される（登録後、登録者が異動して`users.office_id`が変わっても本カラムは追従しない） |
 | reception_number | VARCHAR(20) | NOT NULL | 表示用受付番号。例：`2026-0142`（`reception_year`+`reception_seq`から生成） |
 | reception_year | SMALLINT UNSIGNED | NOT NULL | 採番管理用（西暦） |
 | reception_seq | INT UNSIGNED | NOT NULL | 採番管理用（事務所・年ごとの連番） |
@@ -180,11 +177,12 @@ erDiagram
 
 | 要件 | DB上の対応 |
 |---|---|
-| 全職員が全案件を閲覧できる（自事務所内） | アプリケーション層で `WHERE office_id = ログインユーザーのoffice_id` を必ず付与 |
+| 一般職員は自事務所の全案件を閲覧できる | アプリケーション層で `WHERE office_id = ログインユーザーのoffice_id` を必ず付与 |
 | 編集・削除は対応部署の担当者のみ | アプリケーション層で `requests.department` とログインユーザーの `users.department` を比較して制御（DB制約では担保しない） |
 | 新規登録は部署によらず誰でも可能 | 制約なし（`registered_by` に登録者を記録するのみ） |
-| 事務所をまたいだ閲覧は不可 | 全クエリに `office_id` 条件を必須とする（アプリケーション層の責務。将来的にLaravelのグローバルスコープで一元化を検討） |
-| システム管理者のみユーザー管理可能 | アプリケーション層で `users.role = 'admin'` を確認 |
+| 一般職員は事務所をまたいだ閲覧は不可 | 全クエリに `office_id` 条件を必須とする（アプリケーション層の責務。将来的にLaravelのグローバルスコープで一元化を検討） |
+| システム管理者は全事務所の案件を担当部署によらず閲覧・編集・削除できる | アプリケーション層で `users.role = 'admin'` の場合、`office_id`スコープ・`department`一致判定の両方を適用しない例外ルートとする |
+| システム管理者のみユーザー管理可能（全事務所横断） | アプリケーション層で `users.role = 'admin'` を確認。管理者は`office_id`によるスコープを持たないため、全事務所のユーザーが対象になる |
 
 > DB制約（外部キー等）だけでは「同一事務所内のみ」「担当部署のみ編集可」という業務ルールを完全には表現できないため、アプリケーション層（Laravelのミドルウェア・ポリシー）での制御を前提とする。本設計書はデータ構造の定義に留め、アクセス制御の実装方針は基本設計（ルーティング・コントローラ設計）で別途詳細化する。
 
@@ -195,4 +193,5 @@ erDiagram
 - [ ] MySQLのFULLTEXT日本語全文検索の精度検証（Ngramパーサ設定等）。精度が不十分な場合は`LIKE`検索への切り替えも検討
 - [ ] 地図上の範囲指定検索（要件定義書 2.3）のクエリ方式（緯度経度の範囲指定 or 将来的な空間インデックス導入）
 - [ ] データ保存期間3年経過後の廃棄処理（バッチ削除）の実装方式
+- [ ] 初回のシステム管理者アカウント作成方法（DB seederを想定。誰も管理者がいない状態では管理者を登録できないため、初期構築時のみseeder等で1件作成する運用とする）
 - [ ] `offices` マスタの初期データ（事務所一覧）の投入方法（seeder等）

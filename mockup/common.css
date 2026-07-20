@@ -2,6 +2,7 @@
   --color-primary: #5b8def;
   --color-primary-2: #8b6ef2;
   --color-primary-dark: #3f68c9;
+  --color-primary-deep: #1d4ed8;
   --color-bg: #f5f8fe;
   --color-surface: #ffffff;
   --color-border: #e2e8f4;
@@ -43,17 +44,32 @@ a {
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--color-border);
   color: var(--color-text);
-  padding: 0 24px;
-  height: 60px;
+  padding: 8px 24px;
+  min-height: 60px;
 }
 
 .app-header .brand {
-  font-size: 17px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.25;
+}
+
+.app-header .brand .brand-name {
+  font-size: 19px;
   font-weight: 800;
-  background: linear-gradient(120deg, var(--color-primary-dark), var(--color-primary-2));
+  letter-spacing: 0.03em;
+  background: linear-gradient(120deg, var(--color-primary-deep), var(--color-primary-2));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.app-header .brand .brand-sub {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-text-sub);
 }
 
 .app-header nav {
@@ -490,19 +506,29 @@ table.list-table tbody tr:hover {
 }
 
 .login-card h1 {
-  font-size: 24px;
+  font-size: 36px;
   font-weight: 800;
+  letter-spacing: 0.03em;
   text-align: center;
-  margin: 0 0 14px;
-  background: linear-gradient(120deg, var(--color-primary-dark), var(--color-primary-2));
+  margin: 0 0 10px;
+  background: linear-gradient(120deg, var(--color-primary-deep), var(--color-primary-2));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
+.login-card .tagline {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-primary-deep);
+  margin-bottom: 20px;
+}
+
 .login-card .subtitle {
   text-align: center;
-  font-size: 15px;
+  font-size: 13px;
   color: var(--color-text-sub);
   margin-bottom: 28px;
 }

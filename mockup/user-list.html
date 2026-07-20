@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ユーザー一覧 | CivilTrack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="mock-banner">モックアップ（表示イメージ確認用・実データではありません）</div>
+<header class="app-header">
+  <div class="brand">
+    <span class="brand-name">CivilTrack</span>
+    <span class="brand-sub">土木施設要望・対応管理システム</span>
+  </div>
+  <nav>
+    <a href="list.html">案件一覧</a>
+    <a href="map.html">地図表示</a>
+    <a href="register.html">新規登録</a>
+    <a class="active" href="user-list.html">ユーザー管理</a>
+  </nav>
+  <div class="user">システム管理者 佐藤 健一　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
+</header>
+
+<main class="app-main">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1 class="page-title">ユーザー一覧</h1>
+    <a class="btn btn-primary" href="user-register.html">ユーザーを登録する</a>
+  </div>
+
+  <div class="note" style="margin-bottom:16px;">この画面は「システム管理者」権限を持つユーザーのみ利用できます。システム管理者は事務所に紐づかないため、全事務所のユーザーが表示対象です。</div>
+
+  <div class="card">
+    <form class="search-form" style="grid-template-columns: 1fr 2fr;">
+      <div class="field">
+        <label>所属事務所</label>
+        <select>
+          <option>すべて表示</option>
+          <option>〇〇土木事務所</option>
+          <option>△△土木事務所</option>
+          <option>□□土木事務所</option>
+        </select>
+      </div>
+      <div class="field" style="display:flex; align-items:flex-end; justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary">絞り込み</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <table class="list-table">
+      <thead>
+        <tr>
+          <th>ユーザーID</th>
+          <th>氏名</th>
+          <th>所属事務所</th>
+          <th>担当部署</th>
+          <th>権限区分</th>
+          <th>アカウント状態</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr onclick="location.href='user-edit.html'">
+          <td>sato_k</td>
+          <td>佐藤 健一</td>
+          <td>-</td>
+          <td>-</td>
+          <td>システム管理者</td>
+          <td><span class="badge badge-status-対応完了">有効</span></td>
+        </tr>
+        <tr onclick="location.href='user-edit.html'">
+          <td>yamada_t</td>
+          <td>山田 太郎</td>
+          <td>〇〇土木事務所</td>
+          <td>道路</td>
+          <td>一般職員</td>
+          <td><span class="badge badge-status-対応完了">有効</span></td>
+        </tr>
+        <tr onclick="location.href='user-edit.html'">
+          <td>suzuki_h</td>
+          <td>鈴木 花子</td>
+          <td>〇〇土木事務所</td>
+          <td>河川</td>
+          <td>一般職員</td>
+          <td><span class="badge badge-status-対応完了">有効</span></td>
+        </tr>
+        <tr onclick="location.href='user-edit.html'">
+          <td>takahashi_m</td>
+          <td>高橋 美咲</td>
+          <td>△△土木事務所</td>
+          <td>道路</td>
+          <td>一般職員</td>
+          <td><span class="badge badge-status-対応完了">有効</span></td>
+        </tr>
+        <tr onclick="location.href='user-edit.html'" style="opacity:0.55;">
+          <td>ito_s</td>
+          <td>伊藤 誠</td>
+          <td>□□土木事務所</td>
+          <td>河川</td>
+          <td>一般職員</td>
+          <td><span class="badge badge-status-未対応">無効化済み</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+</body>
+</html>

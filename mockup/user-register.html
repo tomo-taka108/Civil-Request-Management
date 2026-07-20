@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ユーザー登録 | 土木事務所 苦情・要望管理システム</title>
+<title>ユーザー登録 | CivilTrack</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
@@ -11,20 +11,23 @@
 <body>
 <div class="mock-banner">モックアップ（表示イメージ確認用・実データではありません）</div>
 <header class="app-header">
-  <div class="brand">苦情・要望管理システム</div>
+  <div class="brand">
+    <span class="brand-name">CivilTrack</span>
+    <span class="brand-sub">土木施設要望・対応管理システム</span>
+  </div>
   <nav>
     <a href="list.html">案件一覧</a>
     <a href="map.html">地図表示</a>
     <a href="register.html">新規登録</a>
-    <a class="active" href="user-register.html">ユーザー管理</a>
+    <a class="active" href="user-list.html">ユーザー管理</a>
   </nav>
-  <div class="user">〇〇土木事務所 システム管理者　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
+  <div class="user">システム管理者 佐藤 健一　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
 </header>
 
 <main class="app-main">
   <div style="display:flex; justify-content:space-between; align-items:center;">
     <h1 class="page-title">ユーザー登録</h1>
-    <a class="btn btn-secondary" href="#">ユーザー一覧に戻る</a>
+    <a class="btn btn-secondary" href="user-list.html">ユーザー一覧に戻る</a>
   </div>
 
   <div class="note" style="margin-bottom:16px;">この画面は「システム管理者」権限を持つユーザーのみ利用できます。</div>
@@ -50,38 +53,35 @@
 
     <div class="section-heading">所属・権限</div>
     <div class="form-grid">
-      <label class="required">所属事務所</label>
-      <select>
-        <option>〇〇土木事務所</option>
-        <option>△△土木事務所</option>
-        <option>□□土木事務所</option>
-      </select>
-
-      <label class="required">担当部署</label>
-      <div class="radio-group">
-        <label><input type="radio" name="dept" checked>道路</label>
-        <label><input type="radio" name="dept">河川</label>
-        <label><input type="radio" name="dept">砂防</label>
-      </div>
-      <div style="grid-column:2;" class="note">担当部署に応じて、該当案件の編集・削除権限が付与されます（閲覧は全職員が可能）</div>
-
       <label class="required">権限区分</label>
       <div class="radio-group">
-        <label><input type="radio" name="role" checked>一般職員</label>
-        <label><input type="radio" name="role">システム管理者</label>
+        <label><input type="radio" name="role" checked onchange="document.getElementById('staff-fields').style.display='contents'; document.getElementById('admin-note').style.display='none';">一般職員</label>
+        <label><input type="radio" name="role" onchange="document.getElementById('staff-fields').style.display='none'; document.getElementById('admin-note').style.display='block';">システム管理者</label>
       </div>
-      <div style="grid-column:2;" class="note">システム管理者はユーザー登録・編集・無効化が可能です</div>
+      <div style="grid-column:2;" class="note">システム管理者は特定の事務所に所属せず、全事務所のユーザー管理・全案件の編集/削除が可能です（要件定義書1.3参照）</div>
 
-      <label>アカウント状態</label>
-      <div class="radio-group">
-        <label><input type="radio" name="status" checked>有効</label>
-        <label><input type="radio" name="status">無効化（異動・退職時）</label>
+      <div id="staff-fields" style="display:contents;">
+        <label class="required">所属事務所</label>
+        <select>
+          <option>〇〇土木事務所</option>
+          <option>△△土木事務所</option>
+          <option>□□土木事務所</option>
+        </select>
+
+        <label class="required">担当部署</label>
+        <div class="radio-group">
+          <label><input type="radio" name="dept" checked>道路</label>
+          <label><input type="radio" name="dept">河川</label>
+          <label><input type="radio" name="dept">砂防</label>
+        </div>
+        <div style="grid-column:2;" class="note">担当部署に応じて、該当案件の編集・削除権限が付与されます（閲覧は自事務所の全案件が可能）</div>
       </div>
     </div>
+    <div class="note" id="admin-note" style="display:none; margin-top:-6px;">「システム管理者」を選択したため、所属事務所・担当部署の入力は不要です。</div>
 
     <div class="btn-row">
-      <a class="btn btn-secondary" href="#">キャンセル</a>
-      <a class="btn btn-primary" href="#">登録する</a>
+      <a class="btn btn-secondary" href="user-list.html">キャンセル</a>
+      <a class="btn btn-primary" href="user-list.html">登録する</a>
     </div>
   </form>
 </main>
