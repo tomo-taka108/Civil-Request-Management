@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ユーザー編集 | CivilTrack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="mock-banner">モックアップ（表示イメージ確認用・実データではありません）</div>
+<header class="app-header">
+  <div class="brand">
+    <span class="brand-name">CivilTrack</span>
+    <span class="brand-sub">土木施設要望・対応管理システム</span>
+  </div>
+  <nav>
+    <a href="list.html">案件一覧</a>
+    <a href="map.html">地図表示</a>
+    <a href="register.html">新規登録</a>
+    <a class="active" href="user-list.html">ユーザー管理</a>
+  </nav>
+  <div class="user">システム管理者 佐藤 健一　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
+</header>
+
+<main class="app-main">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1 class="page-title">ユーザー編集</h1>
+    <a class="btn btn-secondary" href="user-list.html">ユーザー一覧に戻る</a>
+  </div>
+
+  <div class="note" style="margin-bottom:16px;">この画面は「システム管理者」権限を持つユーザーのみ利用できます。</div>
+
+  <form class="card">
+    <div class="section-heading">アカウント情報</div>
+    <div class="form-grid">
+      <label class="required">ユーザーID</label>
+      <div>
+        <input type="text" value="yamada_t">
+        <div class="note">ログイン時に使用します。入力ミスの訂正等で変更できますが、システム全体で一意である必要があります</div>
+      </div>
+
+      <label class="required">氏名</label>
+      <input type="text" value="山田 太郎">
+
+      <label>パスワード</label>
+      <div>
+        <button type="button" class="btn btn-secondary">初期パスワードを再発行する</button>
+        <div class="note">本人がパスワードを忘れた場合、システム管理者が初期パスワードを再発行し、次回ログイン時に本人が再設定します</div>
+      </div>
+    </div>
+
+    <div class="section-heading">所属・権限</div>
+    <div class="form-grid">
+      <label class="required">権限区分</label>
+      <div class="radio-group">
+        <label><input type="radio" name="role" checked onchange="document.getElementById('staff-fields').style.display='grid'; document.getElementById('admin-note').style.display='none';">一般職員</label>
+        <label><input type="radio" name="role" onchange="document.getElementById('staff-fields').style.display='none'; document.getElementById('admin-note').style.display='block';">システム管理者</label>
+      </div>
+      <div style="grid-column:2;" class="note">システム管理者は特定の事務所に所属せず、全事務所のユーザー管理・全案件の編集/削除が可能です（要件定義書1.3参照）</div>
+    </div>
+
+    <div class="form-grid" id="staff-fields">
+      <label class="required">所属事務所</label>
+      <div>
+        <select>
+          <option selected>〇〇土木事務所</option>
+          <option>△△土木事務所</option>
+          <option>□□土木事務所</option>
+        </select>
+        <div class="note">異動時はここで変更してください。案件は登録時点の事務所に残るため、異動後は新しい事務所の案件のみ閲覧・編集できるようになります（以前の事務所の案件は見えなくなります）</div>
+      </div>
+
+      <label class="required">担当部署</label>
+      <div class="radio-group">
+        <label><input type="radio" name="dept" checked>道路</label>
+        <label><input type="radio" name="dept">河川</label>
+        <label><input type="radio" name="dept">砂防</label>
+      </div>
+      <div style="grid-column:2;" class="note">担当部署に応じて、該当案件の編集・削除権限が付与されます（閲覧は自事務所の全案件が可能）</div>
+    </div>
+    <div class="note" id="admin-note" style="display:none;">「システム管理者」を選択したため、所属事務所・担当部署の入力は不要です。</div>
+
+    <div class="btn-row">
+      <a class="btn btn-secondary" href="user-list.html">キャンセル</a>
+      <a class="btn btn-primary" href="user-list.html">更新する</a>
+    </div>
+  </form>
+
+  <div class="card" style="border-color:var(--color-danger);">
+    <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger);">アカウント状態</div>
+    <div class="form-grid">
+      <label>現在の状態</label>
+      <div><span class="badge badge-status-対応完了">有効</span></div>
+
+      <label>無効化</label>
+      <div>
+        <button type="button" class="btn btn-danger">このアカウントを無効化する</button>
+        <div class="note">異動・退職等で本システムを利用しなくなる場合に無効化してください。無効化したユーザーはログインできなくなりますが、登録済み案件の登録者としての表示は残ります</div>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>
