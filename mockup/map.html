@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>地図表示 | 土木事務所 苦情・要望管理システム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="mock-banner">モックアップ（表示イメージ確認用・実データではありません）</div>
+<header class="app-header">
+  <div class="brand">苦情・要望管理システム</div>
+  <nav>
+    <a href="list.html">案件一覧</a>
+    <a class="active" href="map.html">地図表示</a>
+    <a href="register.html">新規登録</a>
+  </nav>
+  <div class="user">〇〇土木事務所 道路課 山田　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
+</header>
+
+<main class="app-main" style="max-width:1300px;">
+  <h1 class="page-title">地図表示</h1>
+
+  <div class="card">
+    <form class="search-form">
+      <div class="field">
+        <label>対応部署</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" checked>道路</label>
+          <label><input type="checkbox" checked>河川</label>
+          <label><input type="checkbox" checked>砂防</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>対応状況</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" checked>未対応</label>
+          <label><input type="checkbox" checked>対応中</label>
+          <label><input type="checkbox">対応完了</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>緊急性</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" checked>高</label>
+          <label><input type="checkbox" checked>中</label>
+          <label><input type="checkbox">低</label>
+        </div>
+      </div>
+      <div class="field span-3" style="display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="btn btn-secondary">条件をクリア</button>
+        <button type="button" class="btn btn-primary">地図に反映</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card" style="padding:0; overflow:hidden;">
+    <div style="display:flex;">
+
+      <!-- 地図エリア -->
+      <div class="map-placeholder" style="flex:1; height:520px; margin:0; border:none; border-radius:0; position:relative;">
+        地図表示エリア（国土地理院地図タイル + ピン表示）
+
+        <!-- サンプルピン（表示イメージ確認用）：クリックで詳細画面へ遷移 -->
+        <a class="map-pin map-pin-urgency-高" href="detail.html" data-number="1" style="top:28%; left:34%;" title="2026-07-18 09:15：路面のポットホール"></a>
+        <a class="map-pin map-pin-urgency-中" href="detail.html" data-number="2" style="top:52%; left:58%;" title="2026-07-15 10:30：道路照明灯が点灯しない"></a>
+        <a class="map-pin map-pin-urgency-低" href="detail.html" data-number="3" style="top:64%; left:22%;" title="2026-07-10 13:05：用水路の管理者不明"></a>
+        <a class="map-pin map-pin-urgency-高" href="detail.html" data-number="4" style="top:40%; left:70%;" title="2026-07-12 08:50：護岸の一部崩落"></a>
+      </div>
+
+      <!-- ピン一覧（地図と連動） -->
+      <div style="width:300px; border-left:1px solid var(--color-border); max-height:520px; overflow-y:auto;">
+        <div class="note" style="padding:12px 14px 4px;">検索結果：4件をピン表示中</div>
+
+        <div class="map-pin-list-item">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="pin-number pin-number-高">1</span>
+            <span class="badge badge-urgency-高">高</span>
+          </div>
+          <div class="pin-title"><a href="detail.html">2026-07-18 09:15</a></div>
+          <div class="pin-desc">県道○○線の路面にポットホールがあり通行に支障</div>
+          <div class="note">道路／〇〇市△△町1丁目付近</div>
+        </div>
+
+        <div class="map-pin-list-item">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="pin-number pin-number-中">2</span>
+            <span class="badge badge-urgency-中">中</span>
+          </div>
+          <div class="pin-title"><a href="detail.html">2026-07-15 10:30</a></div>
+          <div class="pin-desc">道路照明灯が点灯しない箇所がある</div>
+          <div class="note">道路／〇〇市□□町2丁目</div>
+        </div>
+
+        <div class="map-pin-list-item">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="pin-number pin-number-低">3</span>
+            <span class="badge badge-urgency-低">低</span>
+          </div>
+          <div class="pin-title"><a href="detail.html">2026-07-10 13:05</a></div>
+          <div class="pin-desc">用水路の管理者が不明で対応部署の確認が必要</div>
+          <div class="note">河川／〇〇市××公園付近</div>
+        </div>
+
+        <div class="map-pin-list-item">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="pin-number pin-number-高">4</span>
+            <span class="badge badge-urgency-高">高</span>
+          </div>
+          <div class="pin-title"><a href="detail.html">2026-07-12 08:50</a></div>
+          <div class="pin-desc">護岸の一部が崩落し増水時に危険</div>
+          <div class="note">河川／〇〇市◇◇川右岸</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+</body>
+</html>
