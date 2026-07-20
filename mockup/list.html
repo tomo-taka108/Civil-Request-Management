@@ -14,7 +14,7 @@
   <div class="brand">苦情・要望管理システム</div>
   <nav>
     <a class="active" href="list.html">案件一覧</a>
-    <a href="#">地図表示</a>
+    <a href="map.html">地図表示</a>
     <a href="register.html">新規登録</a>
   </nav>
   <div class="user">〇〇土木事務所 道路課 山田　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
@@ -35,30 +35,27 @@
       </div>
       <div class="field">
         <label>対応部署</label>
-        <select>
-          <option>指定なし</option>
-          <option>道路</option>
-          <option>河川</option>
-          <option>砂防</option>
-        </select>
+        <div class="checkbox-group">
+          <label><input type="checkbox" checked>道路</label>
+          <label><input type="checkbox" checked>河川</label>
+          <label><input type="checkbox" checked>砂防</label>
+        </div>
       </div>
       <div class="field">
         <label>対応状況</label>
-        <select>
-          <option>指定なし</option>
-          <option>未対応</option>
-          <option>対応中</option>
-          <option>対応完了</option>
-        </select>
+        <div class="checkbox-group">
+          <label><input type="checkbox" checked>未対応</label>
+          <label><input type="checkbox" checked>対応中</label>
+          <label><input type="checkbox">対応完了</label>
+        </div>
       </div>
       <div class="field">
         <label>緊急性</label>
-        <select>
-          <option>指定なし</option>
-          <option>高</option>
-          <option>中</option>
-          <option>低</option>
-        </select>
+        <div class="checkbox-group">
+          <label><input type="checkbox" checked>高</label>
+          <label><input type="checkbox" checked>中</label>
+          <label><input type="checkbox">低</label>
+        </div>
       </div>
       <div class="field">
         <label>地区・場所</label>
