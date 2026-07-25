@@ -1,0 +1,71 @@
+# ローカル開発用 Docker Compose 構成
+# 本番（EC2上 /opt/civil/docker-compose.yml、famigoと完全分離）の
+# Nginx + PHP-FPM 2コンテナ構成に極力寄せる（infrastructure-design.md 3.2節）。
+# mysql コンテナはローカル専用（本番は famigo-mysql 相乗りのため存在しない）。
+#
+# DB認証情報は Laravel の .env を単一の出所とし、env_file で読み込んで
+# mysql コンテナの環境変数に展開する（.env と compose の二重管理・ずれを防ぐ）。
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8081:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+    networks:
+      - civil-network
+
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - ./:/var/www/html
+      # vendor/ と storage/framework をホストのバインドマウントから切り離し
+      # 名前付きボリューム（Linuxネイティブ）に載せる。Windows+Docker Desktopでは
+      # バインドマウント経由の大量ファイルI/O（vendor配下は数千ファイル）が極端に遅く、
+      # 1リクエスト/1 artisanコマンドで数秒〜十数秒かかるため。
+      - civil-vendor:/var/www/html/vendor
+      - civil-storage-framework:/var/www/html/storage/framework
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/zz-custom.ini:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - civil-network
+    # ポートは公開しない（本番同様、nginx からのみ到達可能にする）
+
+  mysql:
+    image: mysql:8.4
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3307:3306"  # ローカルPCの3306衝突回避（DBクライアントでの直接接続用）
+    volumes:
+      - civil-mysql-data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - civil-network
+
+volumes:
+  civil-mysql-data:
+  civil-vendor:
+  civil-storage-framework:
+
+networks:
+  civil-network:
+    driver: bridge
