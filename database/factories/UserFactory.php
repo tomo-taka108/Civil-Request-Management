@@ -3,11 +3,12 @@
 namespace Database\Factories;
 
 use App\Models\Office;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<User>
  *
  * users テーブルの現行スキーマ（user_id / password_hash / role / status 等）に対応。
  * 既定は「一般職員（staff）」。管理者は admin() ステートを使う。

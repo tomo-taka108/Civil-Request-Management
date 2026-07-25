@@ -1,0 +1,16 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    # 解析対象。アプリのコード・DB定義・ルート定義を対象とする。
+    paths:
+        - app
+        - database
+        - routes
+
+    # 解析の厳格度（0〜10）。導入初期は 5 から始め、コードの成熟に合わせて段階的に上げる。
+    level: 5
+
+    # 除外パス（自動生成・キャッシュ等）
+    excludePaths:
+        - bootstrap/cache

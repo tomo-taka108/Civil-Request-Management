@@ -99,11 +99,13 @@ gh pr create --title "docs: 要件定義書を作成" --base main
 ```
 1. gh issue create でIssueを作成し、Issue番号を確認する
 2. git checkout -b feature/<Issue番号>-<作業内容>
-3. 実装・コミット（Conventional Commits形式）
-4. git push origin feature/<ブランチ名>
-5. gh pr create でPRを作成する
-6. PRをマージする
-7. git branch -d feature/<ブランチ名> でローカルブランチを削除する
+3. 実装する（実装前に関連する docs/ の設計書と突き合わせる。7章参照）
+4. 品質チェックを実施する（quality-check スキル。Pint / PHPStan / PHPUnit が緑になること）
+5. コミット（Conventional Commits形式）
+6. git push origin feature/<ブランチ名>
+7. gh pr create でPRを作成する
+8. PRをマージする（マージはユーザーが行う）
+9. git branch -d feature/<ブランチ名> でローカルブランチを削除する
 ```
 
 ---
@@ -115,3 +117,30 @@ gh pr create --title "docs: 要件定義書を作成" --base main
 - サンプルデータ・テストデータには実在の個人・団体名を使用しないこと
 - ログや一時ファイルに要望者情報を出力しないよう注意すること
 - 技術スタック・環境構成は本ファイルではなく、要件定義書・基本設計書・READMEに記載する
+
+---
+
+## 7. 品質チェックと設計整合（実装時に必ず確認）
+
+### 7.1 品質チェック（コミット前に必須）
+
+実装後・コミット前に、`quality-check` スキルで以下を実行し、すべて緑にすること。
+
+- **Pint**（コード整形）: `docker compose exec -T php ./vendor/bin/pint --test`
+- **PHPStan/Larastan**（静的解析）: `docker compose exec -T php ./vendor/bin/phpstan analyse --memory-limit=512M`
+- **PHPUnit**（テスト）: `docker compose exec -T php php artisan test`
+
+環境の起動・DBリセット・トラブル対処は `dev-environment` スキルを参照する。
+
+### 7.2 設計書との突き合わせ（実装前・実装中）
+
+実装対象に関わる設計書（`docs/`）を実装前に確認し、実装が設計と一致しているか都度検証する。
+
+- **DB設計**（[docs/database-design.md](docs/database-design.md)）: カラム名・型・制約・enum値・インデックスが設計どおりか
+- **画面設計**（[docs/screen-design.md](docs/screen-design.md)）: ルーティング名・権限制御・コントローラ対応が設計どおりか
+- **要件定義**（[docs/requirements.md](docs/requirements.md)）: 業務ルール（権限・事務所スコープ・採番等）を満たすか
+- **モックアップ**（`mockup/`）との整合: 画面実装時にモックと突き合わせる。**食い違いがあれば「どちらが正しいか」を都度判断して両者を一致させる**（モックが古い想定だった場合はモックを、実装漏れの場合は実装を修正する）。モックは「完璧な手本」として維持する
+
+### 7.3 レビュー指摘の記録
+
+レビューで見つかった「今すぐ直さないが後で対応する」指摘は、対応漏れを防ぐため Issue 化するか関連する設計書の「今後検討」に追記する（会話ログだけに残さない）。

@@ -8,3 +8,15 @@
 ALTER DATABASE civil_request_management
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_ja_0900_as_cs;
+
+-- テスト専用データベース。
+-- 自動テスト（PHPUnit）は実行のたびにテーブルを作り直す・消すため、
+-- 開発用DB（civil_request_management）とは別のこのDBを使う（データ破壊の回避）。
+-- 開発用DBと同じ照合順序で作成し、アプリユーザーに権限を付与する。
+CREATE DATABASE IF NOT EXISTS civil_request_management_testing
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_ja_0900_as_cs;
+
+GRANT ALL PRIVILEGES ON civil_request_management_testing.*
+    TO 'civil_request_app'@'%';
+FLUSH PRIVILEGES;
