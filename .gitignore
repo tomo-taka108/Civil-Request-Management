@@ -21,3 +21,7 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Claude Code のローカル/一時ファイル（共有しない）
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
