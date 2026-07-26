@@ -19,12 +19,18 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
     Route::get('/password/change', [PasswordController::class, 'edit'])->name('password.edit');
     Route::put('/password/change', [PasswordController::class, 'update'])->name('password.update');
 
-    // 案件（苦情・要望・異常箇所）。一覧・検索・新規登録・詳細。
-    // 編集・削除は次フェーズで追加する（create を show より前に定義すること）。
+    // 案件（苦情・要望・異常箇所）。一覧・検索・新規登録・詳細・編集・削除。
+    // create / edit は {request} の show より前に定義すること。
     Route::get('/requests', [RequestController::class, 'index'])->name('requests.index');
     Route::get('/requests/create', [RequestController::class, 'create'])->name('requests.create');
     Route::post('/requests', [RequestController::class, 'store'])->name('requests.store');
     Route::get('/requests/{request}', [RequestController::class, 'show'])->name('requests.show');
+    Route::get('/requests/{request}/edit', [RequestController::class, 'edit'])
+        ->middleware('can:update,request')->name('requests.edit');
+    Route::put('/requests/{request}', [RequestController::class, 'update'])
+        ->middleware('can:update,request')->name('requests.update');
+    Route::delete('/requests/{request}', [RequestController::class, 'destroy'])
+        ->middleware('can:delete,request')->name('requests.destroy');
 
     // 地図・ユーザー管理などの各画面は次フェーズで追加する。
     // 認証後のトップは案件一覧にリダイレクトする。
