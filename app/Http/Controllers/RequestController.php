@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\SearchRequestRequest;
 use App\Http\Requests\StoreRequestRequest;
+use App\Http\Requests\UpdateRequestRequest;
 use App\Models\Request;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -156,5 +157,45 @@ class RequestController extends Controller
         // 登録後は一覧へ遷移する（案件詳細 requests.show 実装後に詳細へ差し替え予定）。
         return redirect()->route('requests.index')
             ->with('status', "受付番号 {$created->reception_number} で登録しました。");
+    }
+
+    /**
+     * 編集フォーム（画面設計書 画面#6）。
+     *
+     * 権限はルートの can:update ミドルウェアで担保済み（担当部署一致の一般職員
+     * または管理者）。事務所スコープにより他事務所案件はバインディング段階で404。
+     */
+    public function edit(Request $request): View
+    {
+        return view('requests.edit', ['request' => $request]);
+    }
+
+    /**
+     * 更新（画面設計書 画面#6）。
+     *
+     * 採番系・登録者・事務所（office_id / reception_* / registered_by）は
+     * 更新対象外（fillable に含まれないため validated() にも現れない）。
+     * 登録時点の値が維持される。
+     */
+    public function update(UpdateRequestRequest $form, Request $request): RedirectResponse
+    {
+        $request->update($form->validated());
+
+        return redirect()->route('requests.show', $request)
+            ->with('status', "受付番号 {$request->reception_number} を更新しました。");
+    }
+
+    /**
+     * 削除（論理削除。要件定義書 2.1 / データベース設計書 2.3 SoftDeletes）。
+     *
+     * 権限はルートの can:delete ミドルウェアで担保済み。
+     */
+    public function destroy(Request $request): RedirectResponse
+    {
+        $number = $request->reception_number;
+        $request->delete();
+
+        return redirect()->route('requests.index')
+            ->with('status', "受付番号 {$number} を削除しました。");
     }
 }
