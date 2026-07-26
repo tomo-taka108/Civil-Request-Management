@@ -96,6 +96,20 @@ class RequestController extends Controller
         return str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $value);
     }
 
+    /**
+     * 案件詳細（画面設計書 画面#4）。
+     *
+     * ルートモデルバインディングで解決する。Request モデルには OfficeScope が
+     * 適用されるため、一般職員が他事務所の案件IDを直接指定した場合はバインディング
+     * 段階で見つからず 404 になる（screen-design.md 3.1）。管理者はスコープ対象外。
+     */
+    public function show(Request $request): View
+    {
+        $request->load(['office', 'registeredBy']);
+
+        return view('requests.show', ['request' => $request]);
+    }
+
     public function create(): View
     {
         // 登録は一般職員のみ（管理者は不可）。RequestPolicy::create で判定し、不許可なら403。
