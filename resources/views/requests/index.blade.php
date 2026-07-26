@@ -96,8 +96,7 @@
             </thead>
             <tbody>
                 @forelse ($requests as $request)
-                    {{-- 行クリックによる詳細遷移は詳細画面（requests.show）実装後に有効化する --}}
-                    <tr>
+                    <tr onclick="location.href='{{ route('requests.show', $request) }}'" style="cursor:pointer;">
                         <td>{{ $request->reception_number }}</td>
                         <td>{{ $request->reception_date->format('Y-m-d') }} {{ \Illuminate\Support\Str::substr($request->reception_time, 0, 5) }}</td>
                         <td>{{ $departments[$request->department] ?? $request->department }}</td>
