@@ -47,4 +47,19 @@ class StoreRequestRequest extends FormRequest
             'response_completed_date' => ['nullable', 'date'],
         ];
     }
+
+    /**
+     * 項目固有のエラーメッセージ。
+     *
+     * required_if の標準メッセージは条件値（other 等の内部値）がそのまま出て
+     * 不自然になるため、対象項目は専用メッセージで上書きする。
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'reception_method_other.required_if' => '受付方法で「その他」を選択した場合は、具体的な内容を入力してください。',
+        ];
+    }
 }
