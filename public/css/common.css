@@ -593,7 +593,8 @@ table.list-table tbody tr:hover {
   border: 1px solid #b7e0c9;
 }
 
-.field .error {
+/* フィールド別のバリデーションエラー（.field 内・フォームグリッド内どちらでも効く） */
+.error {
   color: var(--color-danger);
   font-size: 12px;
   margin-top: 4px;

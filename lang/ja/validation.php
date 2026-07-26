@@ -179,9 +179,27 @@ return [
         'current_password' => '現在のパスワード',
         'name' => '氏名',
         'office_id' => '所属事務所',
-        'department' => '担当部署',
+        'department' => '対応部署',
         'role' => '権限区分',
         'status' => 'アカウント状態',
+
+        // 案件（苦情・要望・異常箇所）
+        'reception_date' => '受付日',
+        'reception_time' => '受付時刻',
+        'reception_method' => '受付方法',
+        'reception_method_other' => '受付方法（その他）',
+        'requester_category' => '区分',
+        'requester_name' => '要望者',
+        'content' => '要望の内容',
+        'request_type' => '種別',
+        'address' => '住所',
+        'latitude' => '緯度',
+        'longitude' => '経度',
+        'response_necessity' => '対応の必要性',
+        'urgency' => '緊急性',
+        'response_policy' => '対応方針',
+        'response_status' => '対応状況',
+        'response_completed_date' => '対応完了日',
     ],
 
 ];
