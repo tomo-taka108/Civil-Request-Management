@@ -88,7 +88,7 @@ class RequestControllerTest extends TestCase
         $user = $this->actingAsStaff();
 
         $this->post(route('requests.store'), $this->validPayload())
-            ->assertRedirect(route('requests.create'))
+            ->assertRedirect(route('requests.index'))
             ->assertSessionHas('status');
 
         $this->assertDatabaseCount('requests', 1);
