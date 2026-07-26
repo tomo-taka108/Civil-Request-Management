@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\OfficeScope;
 use Database\Factories\RequestFactory;
+use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +20,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *
  * enum カラムは PHP Enum にはキャストせず DB の文字列のまま保持する
  * （既存の User モデルが role/status/department を string 扱いにしているのと一貫）。
+ *
+ * 事務所スコープ（OfficeScope）をグローバルスコープとして適用し、一般職員の
+ * 全クエリに自事務所の条件を自動付与する（画面設計書 3.1）。管理者・未認証時は
+ * 適用されない。スコープを外して全事務所を対象にしたい場合は withoutGlobalScope。
  */
+#[ScopedBy(OfficeScope::class)]
 class Request extends Model
 {
     /** @use HasFactory<RequestFactory> */

@@ -19,14 +19,13 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
     Route::get('/password/change', [PasswordController::class, 'edit'])->name('password.edit');
     Route::put('/password/change', [PasswordController::class, 'update'])->name('password.update');
 
-    // 案件（苦情・要望・異常箇所）。今回は新規登録のみ。
-    // 一覧・詳細・編集・削除は次フェーズで追加する（create を show より前に定義すること）。
+    // 案件（苦情・要望・異常箇所）。一覧・検索・新規登録。
+    // 詳細・編集・削除は次フェーズで追加する（create を show より前に定義すること）。
+    Route::get('/requests', [RequestController::class, 'index'])->name('requests.index');
     Route::get('/requests/create', [RequestController::class, 'create'])->name('requests.create');
     Route::post('/requests', [RequestController::class, 'store'])->name('requests.store');
 
-    // 案件・地図・ユーザー管理などの各画面は次フェーズで追加する。
-    // 認証後のトップ（暫定）。requests.index 実装後に置き換える。
-    Route::get('/', function () {
-        return view('welcome');
-    })->name('home');
+    // 地図・ユーザー管理などの各画面は次フェーズで追加する。
+    // 認証後のトップは案件一覧にリダイレクトする。
+    Route::get('/', fn () => redirect()->route('requests.index'))->name('home');
 });
