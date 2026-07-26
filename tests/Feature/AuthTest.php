@@ -137,4 +137,12 @@ class AuthTest extends TestCase
 
         $this->assertGuest();
     }
+
+    public function test_バリデーションメッセージが日本語で表示される(): void
+    {
+        // 属性名（user_id→ユーザーID）とメッセージ（required→〜は必須です。）の
+        // 両方が日本語化されていること（lang/ja/validation.php）を確認する。
+        $this->post('/login', ['user_id' => '', 'password' => ''])
+            ->assertSessionHasErrors(['user_id' => 'ユーザーIDは必須です。']);
+    }
 }
