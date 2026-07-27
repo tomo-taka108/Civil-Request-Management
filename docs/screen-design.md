@@ -76,6 +76,10 @@ Route::middleware('auth')->group(function () {
 **設計メモ**
 - 案件のURLは `/requests` に統一（受付番号ではなく内部ID `{request}` でルーティングし、表示上は受付番号を使う）
 - CSV出力は一覧検索と同じ条件を引き継ぐため、`GET /requests-export` にクエリパラメータで検索条件を渡す設計とする
+  - **文字コード**：BOM付きUTF-8（Excelでの文字化け対策）。`Content-Type: text/csv; charset=UTF-8`、ファイル名は `requests_YYYYMMDD_HHMMSS.csv`
+  - **出力カラム**（詳細画面の全項目＋事務所名。この順）：受付番号／事務所／受付日／受付時刻／受付方法／受付方法（その他）／区分／要望者／対応部署／種別／要望の内容／要望箇所（住所）／緯度／経度／対応の必要性／緊急性／対応方針／対応状況／対応完了日／登録者／最終更新日時
+  - enum値（受付方法・区分・対応部署・種別・対応の必要性・緊急性・対応状況）は日本語ラベルに変換して出力する（`App\Support\RequestLabels`）
+  - 件数が多くてもメモリを圧迫しないよう、`streamDownload` ＋ `chunk` で1件ずつ書き出す。事務所スコープ・並び順は一覧（index）と同一（`RequestController::searchQuery` を共用）
 - 地図のピン取得はページ本体（`/map`）とは別に非同期エンドポイント（`/map/pins`）を用意し、検索結果のフィルタ表示（要件2.4）に対応する
 - 対応部署・対応状況・緊急性は複数選択検索（要件定義書2.3）に対応するため、クエリパラメータは配列形式（例：`?department[]=road&department[]=river`）とし、コントローラ側で`whereIn`により絞り込む。`/map/pins`も同じクエリパラメータ形式を共有し、一覧画面と地図画面で検索条件を揃える
 
@@ -172,5 +176,4 @@ Route::middleware('auth')->group(function () {
 
 - 地図ピン取得APIの詳細設計（GeoJSON等のレスポンス形式、`/map/pins`のフィールド定義）。モックアップは`mockup/map.html`として作成済み、クエリパラメータ方針（2章）は確定済み
 - パスワード再発行フロー（`mockup/user-edit.html`の「初期パスワードを再発行する」）の詳細：再発行後の通知方法（画面表示のみ想定、メール等は対象外）、再発行時に`must_change_password`を`true`に戻す仕様の確認
-- CSV出力の文字コード（Excelでの文字化け対策としてBOM付きUTF-8を想定）・出力カラムの確定
 - バリデーションルール（各項目の文字数上限・必須/任意の詳細）の設計
