@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
  * 案件（苦情・要望・異常箇所）。データベース設計書 2.3 / 要件定義書 3章。
@@ -24,6 +25,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * 事務所スコープ（OfficeScope）をグローバルスコープとして適用し、一般職員の
  * 全クエリに自事務所の条件を自動付与する（画面設計書 3.1）。管理者・未認証時は
  * 適用されない。スコープを外して全事務所を対象にしたい場合は withoutGlobalScope。
+ *
+ * @property Carbon $reception_date
+ * @property Carbon|null $response_completed_date
+ * @property Carbon|null $updated_at
+ * @property-read Office $office
+ * @property-read User $registeredBy
  */
 #[ScopedBy(OfficeScope::class)]
 class Request extends Model

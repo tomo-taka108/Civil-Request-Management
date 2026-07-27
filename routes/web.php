@@ -22,6 +22,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
     // 案件（苦情・要望・異常箇所）。一覧・検索・新規登録・詳細・編集・削除。
     // create / edit は {request} の show より前に定義すること。
     Route::get('/requests', [RequestController::class, 'index'])->name('requests.index');
+    // CSV出力は一覧検索と同じ条件を引き継ぐ（画面設計書 2章の設計メモ）。
+    Route::get('/requests-export', [RequestController::class, 'exportCsv'])->name('requests.export');
     Route::get('/requests/create', [RequestController::class, 'create'])->name('requests.create');
     Route::post('/requests', [RequestController::class, 'store'])->name('requests.store');
     Route::get('/requests/{request}', [RequestController::class, 'show'])->name('requests.show');

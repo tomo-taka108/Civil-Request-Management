@@ -78,7 +78,8 @@
                     検索結果：0件
                 @endif
             </div>
-            {{-- CSV出力は別Issueで実装予定 --}}
+            {{-- 現在の検索条件（クエリ文字列）を引き継いでCSV出力する（画面設計書 2章） --}}
+            <a class="btn btn-secondary" href="{{ route('requests.export', request()->query()) }}">CSV出力</a>
         </div>
 
         <table class="list-table">

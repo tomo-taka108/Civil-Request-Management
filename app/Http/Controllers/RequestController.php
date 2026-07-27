@@ -7,11 +7,14 @@ use App\Http\Requests\StoreRequestRequest;
 use App\Http\Requests\UpdateRequestRequest;
 use App\Models\Request;
 use App\Models\User;
+use App\Support\RequestLabels;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * 案件（苦情・要望・異常箇所）。画面設計書 2章・4章・5章。
@@ -36,11 +39,8 @@ class RequestController extends Controller
     {
         $filters = $request->validated();
 
-        $requests = Request::query()
+        $requests = $this->searchQuery($filters)
             ->with('office')
-            ->tap(fn (Builder $query) => $this->applyFilters($query, $filters))
-            ->orderByDesc('reception_date')
-            ->orderByDesc('reception_time')
             ->paginate(self::PER_PAGE)
             ->withQueryString();
 
@@ -48,6 +48,23 @@ class RequestController extends Controller
             'requests' => $requests,
             'filters' => $filters,
         ]);
+    }
+
+    /**
+     * 一覧・CSV出力で共通の検索クエリ（絞り込み＋並び順）を構築する。
+     *
+     * 事務所スコープは OfficeScope が自動適用する。検索条件・並び順を一覧と
+     * CSVで完全に一致させるため、両者はこのメソッドを起点にする。
+     *
+     * @param  array<string, mixed>  $filters
+     * @return Builder<Request>
+     */
+    private function searchQuery(array $filters): Builder
+    {
+        return Request::query()
+            ->tap(fn (Builder $query) => $this->applyFilters($query, $filters))
+            ->orderByDesc('reception_date')
+            ->orderByDesc('reception_time');
     }
 
     /**
@@ -109,6 +126,88 @@ class RequestController extends Controller
         $request->load(['office', 'registeredBy']);
 
         return view('requests.show', ['request' => $request]);
+    }
+
+    /**
+     * 案件検索結果のCSV出力（画面設計書 2章・要件定義書 2.3）。
+     *
+     * 一覧（index）と同一の検索条件・並び順・事務所スコープを適用する。
+     * Excel での文字化けを避けるため BOM 付き UTF-8 で出力し、件数が多くても
+     * メモリを圧迫しないよう streamDownload で1件ずつ書き出す（chunk）。
+     * enum 値は日本語ラベルに変換する（RequestLabels）。
+     */
+    public function exportCsv(SearchRequestRequest $request): StreamedResponse
+    {
+        $filters = $request->validated();
+        $query = $this->searchQuery($filters)->with(['office', 'registeredBy']);
+
+        $filename = 'requests_'.now()->format('Ymd_His').'.csv';
+
+        return response()->streamDownload(function () use ($query) {
+            $handle = fopen('php://output', 'w');
+
+            // BOM（UTF-8）。Excel で開いた際の文字化け対策。
+            fwrite($handle, "\xEF\xBB\xBF");
+
+            fputcsv($handle, $this->csvHeader());
+
+            $query->chunk(500, function ($requests) use ($handle) {
+                foreach ($requests as $request) {
+                    fputcsv($handle, $this->csvRow($request));
+                }
+            });
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * CSVのヘッダ行（詳細画面の項目に事務所名を加えたもの）。
+     *
+     * @return list<string>
+     */
+    private function csvHeader(): array
+    {
+        return [
+            '受付番号', '事務所', '受付日', '受付時刻', '受付方法', '受付方法（その他）',
+            '区分', '要望者', '対応部署', '種別', '要望の内容', '要望箇所（住所）',
+            '緯度', '経度', '対応の必要性', '緊急性', '対応方針', '対応状況',
+            '対応完了日', '登録者', '最終更新日時',
+        ];
+    }
+
+    /**
+     * 1案件をCSVの1行（ヘッダ順）に変換する。enum は日本語ラベルに変換する。
+     *
+     * @return list<string>
+     */
+    private function csvRow(Request $request): array
+    {
+        return [
+            (string) $request->reception_number,
+            (string) $request->office->name,
+            $request->reception_date->format('Y-m-d'),
+            Str::substr((string) $request->reception_time, 0, 5),
+            RequestLabels::label(RequestLabels::RECEPTION_METHODS, $request->reception_method),
+            (string) ($request->reception_method_other ?? ''),
+            RequestLabels::label(RequestLabels::REQUESTER_CATEGORIES, $request->requester_category),
+            (string) ($request->requester_name ?? ''),
+            RequestLabels::label(RequestLabels::DEPARTMENTS, $request->department),
+            RequestLabels::label(RequestLabels::REQUEST_TYPES, $request->request_type),
+            (string) $request->content,
+            (string) ($request->address ?? ''),
+            $request->latitude !== null ? (string) $request->latitude : '',
+            $request->longitude !== null ? (string) $request->longitude : '',
+            RequestLabels::label(RequestLabels::NECESSITIES, $request->response_necessity),
+            RequestLabels::label(RequestLabels::URGENCIES, $request->urgency),
+            (string) ($request->response_policy ?? ''),
+            RequestLabels::label(RequestLabels::STATUSES, $request->response_status),
+            $request->response_completed_date?->format('Y-m-d') ?? '',
+            (string) $request->registeredBy->name,
+            $request->updated_at?->format('Y-m-d H:i') ?? '',
+        ];
     }
 
     public function create(): View
