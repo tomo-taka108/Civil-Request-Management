@@ -31,17 +31,17 @@ class SampleStaffSeeder extends Seeder
      * @var array<string, list<array{user_id: string, name: string, department: string}>>
      */
     private const STAFF_BY_OFFICE = [
-        'サンプル第一土木事務所' => [
-            ['user_id' => 'staff101', 'name' => '山田 太郎', 'department' => 'road'],
+        'みどり土木事務所' => [
+            ['user_id' => 'staff101', 'name' => '岡田 修', 'department' => 'road'],
             ['user_id' => 'staff102', 'name' => '佐藤 花子', 'department' => 'river'],
             ['user_id' => 'staff103', 'name' => '鈴木 一郎', 'department' => 'sabo'],
         ],
-        'サンプル第二土木事務所' => [
+        'つばき土木事務所' => [
             ['user_id' => 'staff201', 'name' => '田中 健太', 'department' => 'road'],
             ['user_id' => 'staff202', 'name' => '高橋 美咲', 'department' => 'river'],
             ['user_id' => 'staff203', 'name' => '伊藤 大輔', 'department' => 'sabo'],
         ],
-        'サンプル第三土木事務所' => [
+        'こはく土木事務所' => [
             ['user_id' => 'staff301', 'name' => '渡辺 千尋', 'department' => 'road'],
             ['user_id' => 'staff302', 'name' => '中村 直樹', 'department' => 'river'],
             ['user_id' => 'staff303', 'name' => '小林 由美', 'department' => 'sabo'],

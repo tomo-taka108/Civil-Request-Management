@@ -10,6 +10,7 @@
     $statuses = ['not_started' => '未対応', 'in_progress' => '対応中', 'completed' => '対応完了'];
 
     // 検索条件の選択状態（複数選択はチェックボックスの checked 判定に使う）
+    $selectedOffices = array_map('strval', (array) ($filters['office'] ?? []));
     $selectedDepartments = (array) ($filters['department'] ?? []);
     $selectedStatuses = (array) ($filters['response_status'] ?? []);
     $selectedUrgencies = (array) ($filters['urgency'] ?? []);
@@ -20,6 +21,17 @@
 
     <div class="card">
         <form class="search-form" method="GET" action="{{ route('requests.index') }}">
+            @if ($offices->isNotEmpty())
+                {{-- 事務所での絞り込みは管理者のみ（全事務所が混在するため）。単独で1行に置く。 --}}
+                <div class="field span-3">
+                    <label>事務所</label>
+                    <div class="checkbox-group">
+                        @foreach ($offices as $office)
+                            <label><input type="checkbox" name="office[]" value="{{ $office->id }}" @checked(in_array((string) $office->id, $selectedOffices, true))>{{ $office->name }}</label>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
             <div class="field">
                 <label>受付日時（期間）</label>
                 <div style="display:flex; gap:6px; align-items:center;">
@@ -96,7 +108,19 @@
                 </tr>
             </thead>
             <tbody>
+                @php
+                    // 管理者の一覧は「事務所ID → 受付日時降順」で取得済み（RequestController
+                    // ::searchQuery）。ページをまたいでも事務所がまとまるので、ここでは
+                    // 事務所が変わったら見出し行を挟むだけでよい（再ソート不要）。
+                    $currentOfficeId = null;
+                @endphp
                 @forelse ($requests as $request)
+                    @if ($groupByOffice && $request->office_id !== $currentOfficeId)
+                        @php $currentOfficeId = $request->office_id; @endphp
+                        <tr class="group-row">
+                            <th colspan="8">{{ $request->office->name }}</th>
+                        </tr>
+                    @endif
                     <tr onclick="location.href='{{ route('requests.show', $request) }}'" style="cursor:pointer;">
                         <td>{{ $request->reception_number }}</td>
                         <td>{{ $request->reception_date->format('Y-m-d') }} {{ \Illuminate\Support\Str::substr($request->reception_time, 0, 5) }}</td>

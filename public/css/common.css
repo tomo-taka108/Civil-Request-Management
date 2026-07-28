@@ -259,6 +259,20 @@ table.list-table tbody tr:hover {
   cursor: pointer;
 }
 
+/* 事務所グループ見出し行（管理者の一覧のみ） */
+table.list-table tbody tr.group-row:hover {
+  background: transparent;
+  cursor: default;
+}
+
+table.list-table tbody tr.group-row th {
+  background: var(--color-primary-dark);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 12px;
+}
+
 /* バッジ */
 .badge {
   display: inline-block;
