@@ -75,7 +75,39 @@ class RequestIndexTest extends TestCase
         $this->get(route('requests.index'))
             ->assertOk()
             ->assertSee($a->reception_number)
-            ->assertSee($b->reception_number);
+            ->assertSee($b->reception_number)
+            // 管理者の一覧は事務所ごとにグループ表示するため、事務所名が見出しに出る。
+            ->assertSee($officeA->name)
+            ->assertSee($officeB->name);
+    }
+
+    public function test_一般職員の一覧には事務所グループ見出しを表示しない(): void
+    {
+        $office = Office::factory()->create();
+        $request = Request::factory()->create(['office_id' => $office->id]);
+        $this->actingAsStaff($office);
+
+        // 一般職員は自事務所のみのため、グループ見出し（group-row）は出さない。
+        $this->get(route('requests.index'))
+            ->assertOk()
+            ->assertSee($request->reception_number)
+            ->assertDontSee('group-row');
+    }
+
+    public function test_管理者は事務所で絞り込める(): void
+    {
+        $officeA = Office::factory()->create();
+        $officeB = Office::factory()->create();
+        $a = Request::factory()->create(['office_id' => $officeA->id]);
+        $b = Request::factory()->create(['office_id' => $officeB->id]);
+
+        $admin = User::factory()->admin()->create(['must_change_password' => false]);
+        $this->actingAs($admin);
+
+        $this->get(route('requests.index', ['office' => [$officeA->id]]))
+            ->assertOk()
+            ->assertSee($a->reception_number)
+            ->assertDontSee($b->reception_number);
     }
 
     public function test_対応部署で複数選択検索できる(): void

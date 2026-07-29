@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\SearchRequestRequest;
 use App\Http\Requests\StoreRequestRequest;
 use App\Http\Requests\UpdateRequestRequest;
+use App\Models\Office;
 use App\Models\Request;
 use App\Models\User;
 use App\Support\RequestLabels;
@@ -39,7 +40,12 @@ class RequestController extends Controller
     {
         $filters = $request->validated();
 
-        $requests = $this->searchQuery($filters)
+        // 管理者は全事務所の案件が混在するため、一覧を事務所ごとにグループ表示し、
+        // 事務所での絞り込みも可能にする。一般職員は自事務所のみ（グループ・
+        // 事務所フィルタとも不要）。
+        $isAdmin = ($request->user()->role ?? null) === 'admin';
+
+        $requests = $this->searchQuery($filters, $isAdmin)
             ->with('office')
             ->paginate(self::PER_PAGE)
             ->withQueryString();
@@ -47,6 +53,9 @@ class RequestController extends Controller
         return view('requests.index', [
             'requests' => $requests,
             'filters' => $filters,
+            'groupByOffice' => $isAdmin,
+            // 管理者のみ事務所での絞り込みを提供する。一般職員には空配列を渡す。
+            'offices' => $isAdmin ? Office::orderBy('id')->get() : collect(),
         ]);
     }
 
@@ -56,13 +65,23 @@ class RequestController extends Controller
      * 事務所スコープは OfficeScope が自動適用する。検索条件・並び順を一覧と
      * CSVで完全に一致させるため、両者はこのメソッドを起点にする。
      *
+     * $groupByOffice が true のときは、事務所ごとにまとめて（事務所内は受付日時の
+     * 降順）並べる。管理者の一覧で事務所ごとのグループ表示がページをまたいでも
+     * 崩れないようにするための並び順。
+     *
      * @param  array<string, mixed>  $filters
      * @return Builder<Request>
      */
-    private function searchQuery(array $filters): Builder
+    private function searchQuery(array $filters, bool $groupByOffice = false): Builder
     {
-        return Request::query()
-            ->tap(fn (Builder $query) => $this->applyFilters($query, $filters))
+        $query = Request::query()
+            ->tap(fn (Builder $query) => $this->applyFilters($query, $filters));
+
+        if ($groupByOffice) {
+            $query->orderBy('office_id');
+        }
+
+        return $query
             ->orderByDesc('reception_date')
             ->orderByDesc('reception_time');
     }
@@ -81,6 +100,12 @@ class RequestController extends Controller
         }
         if (! empty($filters['reception_date_to'])) {
             $query->where('reception_date', '<=', $filters['reception_date_to']);
+        }
+
+        // 事務所（複数選択＝OR。管理者のみ画面に表示。一般職員は事務所スコープで
+        // 自事務所に限定されるため、指定されても実質的な影響はない）。
+        if (! empty($filters['office'])) {
+            $query->whereIn($query->getModel()->getTable().'.office_id', $filters['office']);
         }
 
         // 対応部署・対応状況・緊急性（複数選択＝OR。whereIn）

@@ -77,7 +77,9 @@ class RequestShowTest extends TestCase
 
         $this->get(route('requests.show', $request))
             ->assertOk()
-            ->assertSee($request->reception_number);
+            ->assertSee($request->reception_number)
+            // 管理者は事務所が混在するため、詳細でどの事務所の案件か分かること。
+            ->assertSee($office->name);
     }
 
     public function test_受付方法がその他の場合は詳細が併記される(): void

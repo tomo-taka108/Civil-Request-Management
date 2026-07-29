@@ -30,6 +30,7 @@
     <div class="card">
         <div class="section-heading">管理情報</div>
         <dl class="detail-grid">
+            <dt>事務所</dt><dd>{{ $request->office->name }}</dd>
             <dt>受付番号</dt><dd>{{ $request->reception_number }}</dd>
             <dt>受付日時</dt><dd>{{ $request->reception_date->format('Y-m-d') }} {{ \Illuminate\Support\Str::substr($request->reception_time, 0, 5) }}</dd>
             <dt>受付方法</dt>

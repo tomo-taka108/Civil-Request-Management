@@ -16,9 +16,9 @@ class OfficeSeeder extends Seeder
     public function run(): void
     {
         $names = [
-            'サンプル第一土木事務所',
-            'サンプル第二土木事務所',
-            'サンプル第三土木事務所',
+            'みどり土木事務所',
+            'つばき土木事務所',
+            'こはく土木事務所',
         ];
 
         foreach ($names as $name) {

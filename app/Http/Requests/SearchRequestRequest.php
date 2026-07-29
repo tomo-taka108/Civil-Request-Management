@@ -28,6 +28,11 @@ class SearchRequestRequest extends FormRequest
             'reception_date_from' => ['nullable', 'date'],
             'reception_date_to' => ['nullable', 'date', 'after_or_equal:reception_date_from'],
 
+            // 事務所（複数選択）。管理者のみ画面に表示するが、送られてきても
+            // 一般職員は事務所スコープにより自事務所以外はヒットしないため無害。
+            'office' => ['nullable', 'array'],
+            'office.*' => ['integer', 'exists:offices,id'],
+
             'department' => ['nullable', 'array'],
             'department.*' => [Rule::in(['road', 'river', 'sabo'])],
 
@@ -50,6 +55,7 @@ class SearchRequestRequest extends FormRequest
         return [
             'reception_date_from' => '受付日時（開始）',
             'reception_date_to' => '受付日時（終了）',
+            'office' => '事務所',
             'department' => '対応部署',
             'response_status' => '対応状況',
             'urgency' => '緊急性',
