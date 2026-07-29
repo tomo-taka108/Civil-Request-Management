@@ -9,7 +9,7 @@ use App\Models\Office;
 use App\Models\Request;
 use App\Models\User;
 use App\Support\RequestLabels;
-use Illuminate\Database\Eloquent\Builder;
+use App\Support\RequestSearch;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -45,7 +45,7 @@ class RequestController extends Controller
         // 事務所フィルタとも不要）。
         $isAdmin = ($request->user()->role ?? null) === 'admin';
 
-        $requests = $this->searchQuery($filters, $isAdmin)
+        $requests = RequestSearch::query($filters, $isAdmin)
             ->with('office')
             ->paginate(self::PER_PAGE)
             ->withQueryString();
@@ -57,86 +57,6 @@ class RequestController extends Controller
             // 管理者のみ事務所での絞り込みを提供する。一般職員には空配列を渡す。
             'offices' => $isAdmin ? Office::orderBy('id')->get() : collect(),
         ]);
-    }
-
-    /**
-     * 一覧・CSV出力で共通の検索クエリ（絞り込み＋並び順）を構築する。
-     *
-     * 事務所スコープは OfficeScope が自動適用する。検索条件・並び順を一覧と
-     * CSVで完全に一致させるため、両者はこのメソッドを起点にする。
-     *
-     * $groupByOffice が true のときは、事務所ごとにまとめて（事務所内は受付日時の
-     * 降順）並べる。管理者の一覧で事務所ごとのグループ表示がページをまたいでも
-     * 崩れないようにするための並び順。
-     *
-     * @param  array<string, mixed>  $filters
-     * @return Builder<Request>
-     */
-    private function searchQuery(array $filters, bool $groupByOffice = false): Builder
-    {
-        $query = Request::query()
-            ->tap(fn (Builder $query) => $this->applyFilters($query, $filters));
-
-        if ($groupByOffice) {
-            $query->orderBy('office_id');
-        }
-
-        return $query
-            ->orderByDesc('reception_date')
-            ->orderByDesc('reception_time');
-    }
-
-    /**
-     * 検索条件をクエリに適用する（項目間はAND、複数選択項目内はOR）。
-     *
-     * @param  Builder<Request>  $query
-     * @param  array<string, mixed>  $filters
-     */
-    private function applyFilters(Builder $query, array $filters): void
-    {
-        // 受付日（期間指定）
-        if (! empty($filters['reception_date_from'])) {
-            $query->where('reception_date', '>=', $filters['reception_date_from']);
-        }
-        if (! empty($filters['reception_date_to'])) {
-            $query->where('reception_date', '<=', $filters['reception_date_to']);
-        }
-
-        // 事務所（複数選択＝OR。管理者のみ画面に表示。一般職員は事務所スコープで
-        // 自事務所に限定されるため、指定されても実質的な影響はない）。
-        if (! empty($filters['office'])) {
-            $query->whereIn($query->getModel()->getTable().'.office_id', $filters['office']);
-        }
-
-        // 対応部署・対応状況・緊急性（複数選択＝OR。whereIn）
-        if (! empty($filters['department'])) {
-            $query->whereIn('department', $filters['department']);
-        }
-        if (! empty($filters['response_status'])) {
-            $query->whereIn('response_status', $filters['response_status']);
-        }
-        if (! empty($filters['urgency'])) {
-            $query->whereIn('urgency', $filters['urgency']);
-        }
-
-        // 地区・場所（住所の部分一致）。LIKE のワイルドカードはエスケープする。
-        if (! empty($filters['address'])) {
-            $query->where('address', 'like', '%'.$this->escapeLike($filters['address']).'%');
-        }
-
-        // キーワード（要望内容の部分一致）。FULLTEXT精度検証は今後の課題のため
-        // まずは LIKE で確実に部分一致させる（database-design.md 5章）。
-        if (! empty($filters['keyword'])) {
-            $query->where('content', 'like', '%'.$this->escapeLike($filters['keyword']).'%');
-        }
-    }
-
-    /**
-     * LIKE 検索用に特殊文字（\ % _）をエスケープする。
-     */
-    private function escapeLike(string $value): string
-    {
-        return str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $value);
     }
 
     /**
@@ -156,7 +76,8 @@ class RequestController extends Controller
     /**
      * 案件検索結果のCSV出力（画面設計書 2章・要件定義書 2.3）。
      *
-     * 一覧（index）と同一の検索条件・並び順・事務所スコープを適用する。
+     * 一覧（index）と同一の検索条件・並び順・事務所スコープを適用する
+     * （RequestSearch::query を共用）。
      * Excel での文字化けを避けるため BOM 付き UTF-8 で出力し、件数が多くても
      * メモリを圧迫しないよう streamDownload で1件ずつ書き出す（chunk）。
      * enum 値は日本語ラベルに変換する（RequestLabels）。
@@ -164,7 +85,7 @@ class RequestController extends Controller
     public function exportCsv(SearchRequestRequest $request): StreamedResponse
     {
         $filters = $request->validated();
-        $query = $this->searchQuery($filters)->with(['office', 'registeredBy']);
+        $query = RequestSearch::query($filters)->with(['office', 'registeredBy']);
 
         $filename = 'requests_'.now()->format('Ymd_His').'.csv';
 

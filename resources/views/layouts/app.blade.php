@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ versioned_asset('css/common.css') }}">
+{{-- ページ個別の <head> 追加（例：地図画面の Leaflet CSS） --}}
+@stack('head')
 </head>
 <body>
 <header class="app-header">
@@ -51,5 +53,7 @@
 
     @yield('content')
 </main>
+{{-- ページ個別のスクリプト（例：地図画面の Leaflet JS） --}}
+@stack('scripts')
 </body>
 </html>
