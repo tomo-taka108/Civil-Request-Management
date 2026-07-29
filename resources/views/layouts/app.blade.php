@@ -26,7 +26,10 @@
             <a href="{{ route('map.index') }}" class="@yield('nav-map')">地図表示</a>
         @endif
         <a href="{{ route('requests.create') }}" class="@yield('nav-create')">新規登録</a>
-        {{-- ユーザー管理リンクは次フェーズ（ユーザー管理実装時）に @can('admin') で追加する（画面設計書3.3） --}}
+        {{-- ユーザー管理はシステム管理者のみ表示（画面設計書 3.3） --}}
+        @can('admin')
+            <a href="{{ route('users.index') }}" class="@yield('nav-users')">ユーザー管理</a>
+        @endcan
     </nav>
     <div class="user">
         @php
@@ -49,6 +52,9 @@
 <main class="app-main">
     @if (session('status'))
         <div class="alert alert-success">{{ session('status') }}</div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
 
     @yield('content')

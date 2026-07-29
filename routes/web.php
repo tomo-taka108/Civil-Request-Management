@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\RequestController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 // 認証（未ログインユーザー向け）
@@ -39,7 +40,18 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
     Route::get('/map', [MapController::class, 'index'])->name('map.index');
     Route::get('/map/pins', [MapController::class, 'pins'])->name('map.pins');
 
-    // ユーザー管理などの各画面は次フェーズで追加する。
+    // ユーザー管理（システム管理者限定。画面設計書 3.3）。
+    Route::middleware('can:admin')->group(function () {
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::put('/users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
+        // パスワード再発行（画面#10。設計書6章の残課題を実装）。
+        Route::put('/users/{user}/reissue-password', [UserController::class, 'reissuePassword'])->name('users.reissue-password');
+    });
+
     // 認証後のトップは案件一覧にリダイレクトする。
     Route::get('/', fn () => redirect()->route('requests.index'))->name('home');
 });
