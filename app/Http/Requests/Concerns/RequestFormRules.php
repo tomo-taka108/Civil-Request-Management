@@ -28,8 +28,11 @@ trait RequestFormRules
             'department' => ['required', Rule::in(['road', 'river', 'sabo'])],
             'content' => ['required', 'string'],
             'request_type' => ['required', Rule::in(['complaint', 'request', 'anomaly'])],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            // 緯度・経度は地図クリックで両方同時にセットされる。片方だけの座標は
+            // 地図に表示できず不整合になるため、「両方揃う or 両方空」を要求する
+            // （required_with で相互に必須化）。
+            'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
             'address' => ['nullable', 'string', 'max:255'],
             'response_necessity' => ['required', Rule::in(['yes', 'no', 'unknown'])],
             'urgency' => ['required', Rule::in(['high', 'medium', 'low'])],
@@ -54,6 +57,8 @@ trait RequestFormRules
     {
         return [
             'reception_method_other.required_if' => '受付方法で「その他」を選択した場合は、具体的な内容を入力してください。',
+            'latitude.required_with' => '要望箇所の位置は、緯度・経度の両方を設定してください（地図で地点を選択してください）。',
+            'longitude.required_with' => '要望箇所の位置は、緯度・経度の両方を設定してください（地図で地点を選択してください）。',
             'response_completed_date.required_if' => '対応状況が「対応完了」の場合は、対応完了日を入力してください。',
             'response_completed_date.prohibited_unless' => '対応完了日は、対応状況が「対応完了」の場合のみ入力できます。',
         ];

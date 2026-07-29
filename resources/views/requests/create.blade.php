@@ -110,11 +110,16 @@
 
             <label>要望箇所（地図）</label>
             <div>
-                {{-- 地図（Leaflet）でのピン設置は次フェーズ。緯度経度は hidden で用意しておき、
-                     次フェーズで地図クリック→座標セットを差し込む（データベース設計上 NULL 可）。 --}}
-                <div class="map-placeholder">地図でのピン設置は今後対応予定（現在は住所テキストで登録）</div>
-                <input type="hidden" name="latitude" value="{{ old('latitude') }}">
-                <input type="hidden" name="longitude" value="{{ old('longitude') }}">
+                {{-- 地図クリックで緯度経度を hidden にセットする（データベース設計上 NULL 可）。
+                     バリデーションエラー時は old() を初期値に復元する。 --}}
+                @include('requests.partials.location-map', [
+                    'mapId' => 'create-map',
+                    'editable' => true,
+                    'latitude' => old('latitude'),
+                    'longitude' => old('longitude'),
+                ])
+                @error('latitude')<div class="error">{{ $message }}</div>@enderror
+                @error('longitude')<div class="error">{{ $message }}</div>@enderror
             </div>
         </div>
 
