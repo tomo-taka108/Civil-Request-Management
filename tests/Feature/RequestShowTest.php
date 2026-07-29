@@ -104,4 +104,37 @@ class RequestShowTest extends TestCase
 
         $this->get(route('requests.show', 999999))->assertNotFound();
     }
+
+    public function test_緯度経度がある案件の詳細には地図が表示される(): void
+    {
+        $office = Office::factory()->create();
+        $request = Request::factory()->create([
+            'office_id' => $office->id,
+            'latitude' => 35.681200,
+            'longitude' => 139.767100,
+        ]);
+
+        $this->actingAsStaff($office);
+
+        $this->get(route('requests.show', $request))
+            ->assertOk()
+            ->assertSee('vendor/leaflet/leaflet.js')
+            ->assertSee('detail-map');
+    }
+
+    public function test_緯度経度がない案件の詳細には地図を表示しない(): void
+    {
+        $office = Office::factory()->create();
+        $request = Request::factory()->create([
+            'office_id' => $office->id,
+            'latitude' => null,
+            'longitude' => null,
+        ]);
+
+        $this->actingAsStaff($office);
+
+        $this->get(route('requests.show', $request))
+            ->assertOk()
+            ->assertDontSee('detail-map');
+    }
 }

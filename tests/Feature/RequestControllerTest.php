@@ -176,4 +176,55 @@ class RequestControllerTest extends TestCase
         $this->assertSame($user->office_id, $request->office_id);
         $this->assertSame($user->id, $request->registered_by);
     }
+
+    public function test_地図で選択した緯度経度が保存される(): void
+    {
+        $this->actingAsStaff();
+
+        $this->post(route('requests.store'), $this->validPayload([
+            'latitude' => '35.681200',
+            'longitude' => '139.767100',
+        ]))->assertSessionHasNoErrors();
+
+        $request = Request::first();
+        $this->assertSame('35.681200', $request->latitude);
+        $this->assertSame('139.767100', $request->longitude);
+    }
+
+    public function test_緯度だけ入力すると経度も必須になる(): void
+    {
+        $this->actingAsStaff();
+
+        // 片方だけの座標は地図に表示できないため弾く（both-or-neither）。
+        $this->post(route('requests.store'), $this->validPayload([
+            'latitude' => '35.681200',
+            'longitude' => '',
+        ]))->assertSessionHasErrors('longitude');
+
+        $this->assertDatabaseCount('requests', 0);
+    }
+
+    public function test_緯度経度が両方空なら位置なしで登録できる(): void
+    {
+        $this->actingAsStaff();
+
+        $this->post(route('requests.store'), $this->validPayload([
+            'latitude' => '',
+            'longitude' => '',
+        ]))->assertSessionHasNoErrors();
+
+        $request = Request::first();
+        $this->assertNull($request->latitude);
+        $this->assertNull($request->longitude);
+    }
+
+    public function test_登録画面に地図が埋め込まれている(): void
+    {
+        $this->actingAsStaff();
+
+        $this->get(route('requests.create'))
+            ->assertOk()
+            ->assertSee('vendor/leaflet/leaflet.js')
+            ->assertSee('create-map');
+    }
 }

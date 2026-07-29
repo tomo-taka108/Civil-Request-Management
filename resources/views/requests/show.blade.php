@@ -60,8 +60,14 @@
                 {{ $request->address ?: '（住所未登録）' }}
                 @if ($request->latitude !== null && $request->longitude !== null)
                     （緯度: {{ $request->latitude }}, 経度: {{ $request->longitude }}）
-                    {{-- 地図（Leaflet）でのピン表示は次フェーズ（#7） --}}
-                    <div class="map-placeholder" style="margin-top:8px;">地図でのピン表示は今後対応予定</div>
+                    <div style="margin-top:8px;">
+                        @include('requests.partials.location-map', [
+                            'mapId' => 'detail-map',
+                            'editable' => false,
+                            'latitude' => $request->latitude,
+                            'longitude' => $request->longitude,
+                        ])
+                    </div>
                 @endif
             </dd>
         </dl>

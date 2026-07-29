@@ -113,6 +113,59 @@ class RequestEditTest extends TestCase
         $this->assertSame('更新しました。', $request->fresh()->content);
     }
 
+    public function test_編集画面に地図が埋め込まれ既存の座標が初期表示される(): void
+    {
+        $office = Office::factory()->create();
+        $this->actingAsStaff($office, 'road');
+        $request = Request::factory()->create([
+            'office_id' => $office->id,
+            'department' => 'road',
+            'latitude' => 35.681200,
+            'longitude' => 139.767100,
+        ]);
+
+        $this->get(route('requests.edit', $request))
+            ->assertOk()
+            ->assertSee('vendor/leaflet/leaflet.js')
+            ->assertSee('edit-map')
+            // 初期表示用にJSへ座標が渡っていること。
+            ->assertSee('35.6812')
+            ->assertSee('139.7671');
+    }
+
+    public function test_編集で地図の座標を更新できる(): void
+    {
+        $office = Office::factory()->create();
+        $this->actingAsStaff($office, 'road');
+        $request = Request::factory()->create([
+            'office_id' => $office->id,
+            'department' => 'road',
+            'latitude' => 35.000000,
+            'longitude' => 139.000000,
+        ]);
+
+        $this->put(route('requests.update', $request), $this->validPayload([
+            'latitude' => '36.100000',
+            'longitude' => '140.200000',
+        ]))->assertSessionHasNoErrors();
+
+        $fresh = $request->fresh();
+        $this->assertSame('36.100000', $fresh->latitude);
+        $this->assertSame('140.200000', $fresh->longitude);
+    }
+
+    public function test_編集で片方だけの座標はエラーになる(): void
+    {
+        $office = Office::factory()->create();
+        $this->actingAsStaff($office, 'road');
+        $request = Request::factory()->create(['office_id' => $office->id, 'department' => 'road']);
+
+        $this->put(route('requests.update', $request), $this->validPayload([
+            'latitude' => '',
+            'longitude' => '139.767100',
+        ]))->assertSessionHasErrors('latitude');
+    }
+
     public function test_更新しても事務所_登録者_受付番号は変わらない(): void
     {
         $office = Office::factory()->create();

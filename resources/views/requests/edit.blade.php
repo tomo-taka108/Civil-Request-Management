@@ -121,13 +121,16 @@
 
             <label>要望箇所（地図）</label>
             <div>
-                {{-- 地図（Leaflet）でのピン再設置は次フェーズ（#7）。緯度経度は hidden で維持する。 --}}
-                <div class="map-placeholder">地図でのピン設置は今後対応予定（現在は住所テキストで登録）</div>
-                @if ($request->latitude !== null && $request->longitude !== null)
-                    <div class="note">緯度: {{ $request->latitude }} / 経度: {{ $request->longitude }}</div>
-                @endif
-                <input type="hidden" name="latitude" value="{{ old('latitude', $request->latitude) }}">
-                <input type="hidden" name="longitude" value="{{ old('longitude', $request->longitude) }}">
+                {{-- 既存の緯度経度をピンで初期表示し、クリック/ドラッグで再設定・クリアできる。
+                     バリデーションエラー時は old() を優先する。 --}}
+                @include('requests.partials.location-map', [
+                    'mapId' => 'edit-map',
+                    'editable' => true,
+                    'latitude' => old('latitude', $request->latitude),
+                    'longitude' => old('longitude', $request->longitude),
+                ])
+                @error('latitude')<div class="error">{{ $message }}</div>@enderror
+                @error('longitude')<div class="error">{{ $message }}</div>@enderror
             </div>
         </div>
 
