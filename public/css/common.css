@@ -426,6 +426,15 @@ table.list-table tbody tr.group-row th {
 .map-pin-urgency-中 { background: var(--color-warning); }
 .map-pin-urgency-低 { background: #9aa5b1; }
 
+/* Leaflet の DivIcon 内で使う雫型ピン。Leaflet が位置を決めるため、
+   モックの絶対配置（.map-pin の position:absolute / translate）は打ち消し、
+   回転による雫型の見た目だけを使う。 */
+.map-pin-static {
+  position: static;
+  transform: rotate(-45deg);
+  margin: 0;
+}
+
 .map-pin-list-item {
   padding: 12px 14px;
   border-bottom: 1px solid var(--color-border);

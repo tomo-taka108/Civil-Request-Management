@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\MapController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\RequestController;
 use Illuminate\Support\Facades\Route;
@@ -34,7 +35,11 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
     Route::delete('/requests/{request}', [RequestController::class, 'destroy'])
         ->middleware('can:delete,request')->name('requests.destroy');
 
-    // 地図・ユーザー管理などの各画面は次フェーズで追加する。
+    // 地図表示（画面設計書 画面#7）。pins は非同期でピン（GeoJSON）を返す。
+    Route::get('/map', [MapController::class, 'index'])->name('map.index');
+    Route::get('/map/pins', [MapController::class, 'pins'])->name('map.pins');
+
+    // ユーザー管理などの各画面は次フェーズで追加する。
     // 認証後のトップは案件一覧にリダイレクトする。
     Route::get('/', fn () => redirect()->route('requests.index'))->name('home');
 });
