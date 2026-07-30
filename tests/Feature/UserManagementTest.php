@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Office;
+use App\Models\Request;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -271,5 +272,114 @@ class UserManagementTest extends TestCase
 
         $this->put(route('users.deactivate', $target))->assertForbidden();
         $this->put(route('users.reissue-password', $target))->assertForbidden();
+    }
+
+    // --- 再有効化 ---
+
+    public function test_管理者は無効化済みユーザーを再有効化できる(): void
+    {
+        $this->actingAsAdmin();
+        $user = User::factory()->inactive()->create();
+
+        $this->put(route('users.activate', $user))
+            ->assertRedirect(route('users.index'))
+            ->assertSessionHas('status');
+
+        $this->assertSame('active', $user->fresh()->status);
+    }
+
+    public function test_再有効化したユーザーはログインできる(): void
+    {
+        $office = Office::factory()->create();
+        $user = User::factory()->inactive()->create([
+            'office_id' => $office->id,
+            'user_id' => 'revived',
+            'password_hash' => Hash::make('password123'),
+            'must_change_password' => false,
+        ]);
+
+        // 無効化中はログイン不可 → 再有効化 → ログイン可、を通しで確認する。
+        $this->post('/login', ['user_id' => 'revived', 'password' => 'password123'])
+            ->assertSessionHasErrors();
+        $this->assertGuest();
+
+        $admin = User::factory()->admin()->create(['must_change_password' => false]);
+        $this->actingAs($admin);
+        $this->put(route('users.activate', $user));
+        $this->post('/logout');
+
+        $this->post('/login', ['user_id' => 'revived', 'password' => 'password123']);
+        $this->assertAuthenticatedAs($user->fresh());
+    }
+
+    public function test_一般職員は再有効化を実行できない(): void
+    {
+        $this->actingAsStaff();
+        $target = User::factory()->inactive()->create();
+
+        $this->put(route('users.activate', $target))->assertForbidden();
+    }
+
+    // --- 物理削除 ---
+
+    public function test_案件を持たないユーザーは物理削除できる(): void
+    {
+        $this->actingAsAdmin();
+        $user = User::factory()->create(['user_id' => 'orphan']);
+
+        $this->delete(route('users.destroy', $user))
+            ->assertRedirect(route('users.index'))
+            ->assertSessionHas('status');
+
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+    }
+
+    public function test_案件を登録済みのユーザーは物理削除できない(): void
+    {
+        $this->actingAsAdmin();
+        $office = Office::factory()->create();
+        $user = User::factory()->create(['office_id' => $office->id, 'department' => 'road']);
+        Request::factory()->create(['office_id' => $office->id, 'registered_by' => $user->id]);
+
+        $this->delete(route('users.destroy', $user))
+            ->assertRedirect(route('users.edit', $user))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+    }
+
+    public function test_案件が論理削除済みでもユーザーは物理削除できない(): void
+    {
+        $this->actingAsAdmin();
+        $office = Office::factory()->create();
+        $user = User::factory()->create(['office_id' => $office->id, 'department' => 'road']);
+        $request = Request::factory()->create(['office_id' => $office->id, 'registered_by' => $user->id]);
+        // 案件を論理削除しても、登録者表示のため参照は残る → 削除は拒否。
+        $request->delete();
+
+        $this->delete(route('users.destroy', $user))
+            ->assertRedirect(route('users.edit', $user))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+    }
+
+    public function test_自分自身は物理削除できない(): void
+    {
+        $admin = $this->actingAsAdmin();
+
+        $this->delete(route('users.destroy', $admin))
+            ->assertRedirect(route('users.edit', $admin))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('users', ['id' => $admin->id]);
+    }
+
+    public function test_一般職員は物理削除を実行できない(): void
+    {
+        $this->actingAsStaff();
+        $target = User::factory()->create();
+
+        $this->delete(route('users.destroy', $target))->assertForbidden();
     }
 }

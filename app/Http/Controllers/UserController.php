@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\Office;
+use App\Models\Request as CivilRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -88,9 +89,17 @@ class UserController extends Controller
      */
     public function edit(User $user): View
     {
+        // 物理削除の可否表示に使う（案件を登録済みなら削除不可＝無効化で対応）。
+        // 論理削除済みの案件も登録者表示のため残るので withTrashed で数える。
+        $hasRequests = CivilRequest::withoutGlobalScopes()
+            ->withTrashed()
+            ->where('registered_by', $user->id)
+            ->exists();
+
         return view('users.edit', [
             'user' => $user,
             'offices' => Office::orderBy('id')->get(),
+            'hasRequests' => $hasRequests,
         ]);
     }
 
@@ -135,6 +144,54 @@ class UserController extends Controller
 
         return redirect()->route('users.index')
             ->with('status', "ユーザー「{$user->user_id}」を無効化しました。");
+    }
+
+    /**
+     * アカウント再有効化（画面#10）。
+     *
+     * 無効化（status=inactive）したアカウントを active に戻す。異動からの復帰や
+     * 誤って無効化した場合の復旧に使う。無効化の対（deactivate の逆操作）。
+     */
+    public function activate(User $user): RedirectResponse
+    {
+        $user->update(['status' => 'active']);
+
+        return redirect()->route('users.index')
+            ->with('status', "ユーザー「{$user->user_id}」を再有効化しました。");
+    }
+
+    /**
+     * アカウントの物理削除（誤登録アカウントの掃除用）。
+     *
+     * 案件を1件でも登録している場合は削除できない。案件の登録者（registered_by）
+     * としての表示を保つためで、案件が論理削除済みでも参照は残るため、
+     * 論理削除も含めて（withTrashed）1件でもあれば拒否する（要件定義書 2.5：
+     * 登録者としての表示は残す）。案件を持たない＝実質未使用のアカウントのみ
+     * 完全に削除できる。自分自身は削除できない。
+     */
+    public function destroy(Request $request, User $user): RedirectResponse
+    {
+        if ($user->id === $request->user()->id) {
+            return redirect()->route('users.edit', $user)
+                ->with('error', '自分自身のアカウントは削除できません。');
+        }
+
+        // 事務所スコープを外し、論理削除済みも含めて登録案件の有無を確認する。
+        $hasRequests = CivilRequest::withoutGlobalScopes()
+            ->withTrashed()
+            ->where('registered_by', $user->id)
+            ->exists();
+
+        if ($hasRequests) {
+            return redirect()->route('users.edit', $user)
+                ->with('error', 'このユーザーは案件を登録しているため削除できません。利用を停止する場合は「無効化」してください。');
+        }
+
+        $userId = $user->user_id;
+        $user->delete();
+
+        return redirect()->route('users.index')
+            ->with('status', "ユーザー「{$userId}」を削除しました。");
     }
 
     /**

@@ -69,19 +69,37 @@
                 @endif
             </div>
 
-            @if ($user->status === 'active')
-                <label>無効化</label>
+            @php $isSelf = $user->id === auth()->id(); @endphp
+
+            <label>有効／無効</label>
+            <div>
+                @if ($isSelf)
+                    <button type="button" class="btn btn-danger" disabled>このアカウントを無効化する</button>
+                    <div class="note">自分自身のアカウントは無効化・削除できません。</div>
+                @elseif ($user->status === 'active')
+                    <button type="submit" form="deactivate-form" class="btn btn-danger"
+                            onclick="return confirm('このアカウントを無効化します。無効化するとログインできなくなります。よろしいですか？');">このアカウントを無効化する</button>
+                    <div class="note">異動・退職等で本システムを利用しなくなる場合に無効化してください。登録済み案件の登録者としての表示は残ります。あとで再有効化できます。</div>
+                @else
+                    <button type="submit" form="activate-form" class="btn btn-primary"
+                            onclick="return confirm('このアカウントを再有効化します。よろしいですか？');">このアカウントを再有効化する</button>
+                    <div class="note">再有効化すると、このユーザーは再びログインできるようになります。</div>
+                @endif
+            </div>
+
+            @unless ($isSelf)
+                <label>削除</label>
                 <div>
-                    @if ($user->id === auth()->id())
-                        <button type="button" class="btn btn-danger" disabled>このアカウントを無効化する</button>
-                        <div class="note">自分自身のアカウントは無効化できません。</div>
+                    @if ($hasRequests)
+                        <button type="button" class="btn btn-danger" disabled>このアカウントを完全に削除する</button>
+                        <div class="note">このユーザーは案件を登録しているため削除できません（登録者表示を保つため）。利用を停止する場合は「無効化」してください。</div>
                     @else
-                        <button type="submit" form="deactivate-form" class="btn btn-danger"
-                                onclick="return confirm('このアカウントを無効化します。無効化するとログインできなくなります。よろしいですか？');">このアカウントを無効化する</button>
-                        <div class="note">異動・退職等で本システムを利用しなくなる場合に無効化してください。登録済み案件の登録者としての表示は残ります。</div>
+                        <button type="submit" form="delete-user-form" class="btn btn-danger"
+                                onclick="return confirm('このアカウントを完全に削除します。この操作は取り消せません。よろしいですか？');">このアカウントを完全に削除する</button>
+                        <div class="note">案件を登録していない誤登録アカウント等の掃除に使います。完全に削除され、元に戻せません。</div>
                     @endif
                 </div>
-            @endif
+            @endunless
         </div>
     </div>
 
@@ -89,10 +107,23 @@
         @csrf
         @method('PUT')
     </form>
-    @if ($user->status === 'active' && $user->id !== auth()->id())
-        <form id="deactivate-form" method="POST" action="{{ route('users.deactivate', $user) }}" style="display:none;">
-            @csrf
-            @method('PUT')
-        </form>
-    @endif
+    @unless ($isSelf)
+        @if ($user->status === 'active')
+            <form id="deactivate-form" method="POST" action="{{ route('users.deactivate', $user) }}" style="display:none;">
+                @csrf
+                @method('PUT')
+            </form>
+        @else
+            <form id="activate-form" method="POST" action="{{ route('users.activate', $user) }}" style="display:none;">
+                @csrf
+                @method('PUT')
+            </form>
+        @endif
+        @unless ($hasRequests)
+            <form id="delete-user-form" method="POST" action="{{ route('users.destroy', $user) }}" style="display:none;">
+                @csrf
+                @method('DELETE')
+            </form>
+        @endunless
+    @endunless
 @endsection
