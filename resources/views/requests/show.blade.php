@@ -27,6 +27,16 @@
         </div>
     </div>
 
+    {{-- 編集できない一般職員には、その理由を明示する（画面設計書 3.2：編集・削除は
+         対応部署が一致する担当者のみ）。管理者・担当部署一致の職員には表示しない。 --}}
+    @cannot('update', $request)
+        @if (auth()->user()->role === 'staff')
+            <div class="alert alert-info">
+                この案件の対応部署は「{{ $departments[$request->department] ?? $request->department }}」です。対応部署が異なるため、案件情報の編集・削除はできません（閲覧のみ可能）。編集は対応部署の担当職員または管理者が行えます。
+            </div>
+        @endif
+    @endcannot
+
     <div class="card">
         <div class="section-heading">管理情報</div>
         <dl class="detail-grid">

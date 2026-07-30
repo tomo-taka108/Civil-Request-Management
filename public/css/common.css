@@ -268,9 +268,11 @@ table.list-table tbody tr.group-row:hover {
 table.list-table tbody tr.group-row th {
   background: var(--color-primary-dark);
   color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 8px 12px;
+  /* 事務所名の見出し行を、下の案件データ行と明確に区別できるよう大きめ・太字にする。 */
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 10px 12px;
 }
 
 /* バッジ */
@@ -298,16 +300,30 @@ table.list-table tbody tr.group-row th {
   margin-bottom: 14px;
 }
 
-.search-form .field label {
+/* 項目名（事務所・対応状況 等）＝各 .field の直下の label のみを見出しとして
+   強調する。チェックボックスの選択肢ラベル（.checkbox-group 内の label）は
+   直下ではないため対象外で、通常フォントのまま（項目と条件の見た目を分ける）。 */
+.search-form .field > label {
   display: block;
-  font-size: 12px;
-  color: var(--color-text-sub);
-  margin-bottom: 4px;
-  font-weight: bold;
+  font-size: 14px;
+  color: var(--color-text);
+  margin-bottom: 6px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border-left: 3px solid var(--color-primary, #2b6cb0);
+  padding-left: 8px;
 }
 
 .search-form .field.span-3 {
   grid-column: span 3;
+}
+
+/* 事務所（管理者のみ・重要な絞り込み）は、下に区切り線と余白を入れて
+   他の検索条件と視覚的に分ける。 */
+.search-form .field.field-office {
+  padding-bottom: 14px;
+  margin-bottom: 6px;
+  border-bottom: 1px dashed var(--color-border);
 }
 
 .checkbox-group {
@@ -614,6 +630,12 @@ table.list-table tbody tr.group-row th {
   background: #e8f5ee;
   color: var(--color-success);
   border: 1px solid #b7e0c9;
+}
+
+.alert-info {
+  background: #eef3fe;
+  color: var(--color-primary-dark);
+  border: 1px solid #cdddfb;
 }
 
 /* フィールド別のバリデーションエラー（.field 内・フォームグリッド内どちらでも効く） */
