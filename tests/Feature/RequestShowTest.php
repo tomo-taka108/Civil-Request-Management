@@ -137,4 +137,42 @@ class RequestShowTest extends TestCase
             ->assertOk()
             ->assertDontSee('detail-map');
     }
+
+    public function test_対応部署が異なる職員には編集できない理由が表示される(): void
+    {
+        $office = Office::factory()->create();
+        // 河川担当の職員が、道路案件の詳細を見る（編集不可）。
+        $this->actingAsStaff($office, 'river');
+        $request = Request::factory()->create(['office_id' => $office->id, 'department' => 'road']);
+
+        $this->get(route('requests.show', $request))
+            ->assertOk()
+            ->assertSee('対応部署が異なるため')
+            ->assertDontSee('編集する');
+    }
+
+    public function test_対応部署が一致する職員には編集不可の理由を表示しない(): void
+    {
+        $office = Office::factory()->create();
+        $this->actingAsStaff($office, 'road');
+        $request = Request::factory()->create(['office_id' => $office->id, 'department' => 'road']);
+
+        $this->get(route('requests.show', $request))
+            ->assertOk()
+            ->assertSee('編集する')
+            ->assertDontSee('対応部署が異なるため');
+    }
+
+    public function test_管理者には編集不可の理由を表示しない(): void
+    {
+        $office = Office::factory()->create();
+        $request = Request::factory()->create(['office_id' => $office->id, 'department' => 'road']);
+
+        $admin = User::factory()->admin()->create(['must_change_password' => false]);
+        $this->actingAs($admin);
+
+        $this->get(route('requests.show', $request))
+            ->assertOk()
+            ->assertDontSee('対応部署が異なるため');
+    }
 }

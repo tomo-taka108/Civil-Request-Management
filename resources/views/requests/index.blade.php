@@ -22,8 +22,9 @@
     <div class="card">
         <form class="search-form" method="GET" action="{{ route('requests.index') }}">
             @if ($offices->isNotEmpty())
-                {{-- 事務所での絞り込みは管理者のみ（全事務所が混在するため）。単独で1行に置く。 --}}
-                <div class="field span-3">
+                {{-- 事務所での絞り込みは管理者のみ（全事務所が混在するため）。重要な条件のため
+                     単独で1行に置き、下に区切りと余白を設けて他条件と視覚的に分ける。 --}}
+                <div class="field span-3 field-office">
                     <label>事務所</label>
                     <div class="checkbox-group">
                         @foreach ($offices as $office)

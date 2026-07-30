@@ -27,7 +27,7 @@
              サーバは同条件でピン(GeoJSON)を返す（画面設計書 2章）。 --}}
         <form class="search-form" method="GET" action="{{ route('map.index') }}">
             @if ($offices->isNotEmpty())
-                <div class="field span-3">
+                <div class="field span-3 field-office">
                     <label>事務所</label>
                     <div class="checkbox-group">
                         @foreach ($offices as $office)
