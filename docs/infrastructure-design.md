@@ -227,3 +227,66 @@ ALB自体は既にfamigo用として稼働しており、本システムの相�
 - [ ] Terraform tfstateの保管方式確定
 - [ ] EC2上のアプリ切り替え・デプロイ手順の確定（famigoのGitHub Actions + SSM RunCommand方式を踏襲する方向で、本システム用のワークフローを具体化）
 - [x] Laravel側`/health`エンドポイントの実装（「3.5 ALB相乗り方式」参照）→ 実装済み（`routes/web.php`。認証なしで`200 OK`を返す。DB等の外部依存は見ない）
+
+---
+
+## 6. デプロイ時チェックリスト（アプリ側の必須設定）
+
+インフラ（Terraform）とは別に、**アプリを本番で正しく動かすためにデプロイ時に必ず行う設定**をまとめる。特に「ALB(HTTPS)配下でLaravelを動かす」ことに起因する設定は、ローカル開発では顕在化せず本番で初めて問題になるため、ハマりどころとして先に明文化しておく。
+
+### 6.1 ALB(HTTPS)終端に伴う必須設定（TrustProxies）
+
+- **`bootstrap/app.php` で `trustProxies` を設定する。** ALBがHTTPSを終端し、EC2へはHTTPで転送する構成のため、Laravelはこの設定がないと自分がHTTP接続だと誤認する。結果、`url()`/`route()` が `http://` を生成する・`secure` cookie が送出されない・httpsリダイレクトループが起きる等の不具合につながる。
+  ```php
+  ->withMiddleware(function (Middleware $middleware) {
+      // ALB配下のため、転送元プロキシを信頼して X-Forwarded-* を反映する
+      $middleware->trustProxies(at: '*', headers:
+          Illuminate\Http\Request::HEADER_X_FORWARDED_FOR
+          | Illuminate\Http\Request::HEADER_X_FORWARDED_HOST
+          | Illuminate\Http\Request::HEADER_X_FORWARDED_PORT
+          | Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
+      );
+  })
+  ```
+  - `at: '*'` は「ALBのみがEC2の対象ポートに到達できる」ことをSG（3.5でALB SGからのみ許可）で担保している前提。SGで到達元を絞っているため、プロキシIPを固定しなくても安全。
+
+### 6.2 本番 `.env`（開発用の値のままにしない）
+
+`.env.example` は開発用（`APP_DEBUG=true` 等）。本番では最低限以下を設定する。
+
+| 変数 | 本番値 | 理由 |
+|---|---|---|
+| `APP_ENV` | `production` | 本番モード |
+| `APP_DEBUG` | `false` | **必須。** trueだと例外画面に環境変数・スタックトレースが露出する |
+| `APP_KEY` | `php artisan key:generate` で生成した値 | 未設定だと暗号化・セッションが動かない |
+| `APP_URL` | `https://<本番ドメイン>` | 生成URL・リダイレクトの基準 |
+| `DB_*` | RDS（`famigo-mysql`）の本システム用スキーマ・専用ユーザー（インフラ設計3.1） | — |
+| `SESSION_SECURE_COOKIE` | `true` | HTTPSでのみcookieを送る |
+| `SESSION_DRIVER` | `database` または `file` | EC2 1台構成のため`file`で可。将来スケール時は`database`等を検討 |
+| `LOG_LEVEL` | `warning` 等 | 本番の過剰ログを抑制 |
+
+### 6.3 デプロイ時に実行する artisan コマンド
+
+コンテナ起動・更新時（本番用 entrypoint / デプロイスクリプト）に実行する。
+
+```sh
+php artisan migrate --force        # 本番で対話プロンプトを出さずマイグレーション
+php artisan config:cache           # 設定キャッシュ（要 APP_KEY 等が確定済みであること）
+php artisan route:cache            # ルートキャッシュ
+php artisan view:cache             # Bladeビューのコンパイルキャッシュ
+```
+
+- 現状の `docker/php/entrypoint.sh` は開発用（storage初期化のみ）。**本番用は上記の最適化・migrateを含む別entrypoint（またはSSM RunCommand手順）を用意する**（コンテナ内部構成のためアプリリポジトリ側で管理。4.3参照）。
+- 初期データ投入：初回のみ `php artisan db:seed --class=OfficeSeeder`・`--class=AdminUserSeeder` を実行する（管理者は投入後すぐパスワード変更）。体験用サンプル（`SampleStaffSeeder`/`SampleRequestSeeder`）を本番に入れるかは運用方針次第。
+
+### 6.4 ヘルスチェックエンドポイントの使い分け
+
+- **`/health`**（本システムで追加・`routes/web.php`）：ALBターゲットグループのヘルスチェック用。認証なしで軽量に`200`を返し、DB等の外部依存は見ない（DB一時不調でALBから切り離され復旧しづらくなるのを防ぐ）。**ALBが叩くのはこちら**（3.5）。
+- **`/up`**（Laravel 11標準・`bootstrap/app.php` の `health: '/up'`）：フレームワーク標準の死活確認。用途が重複するが無害なため残す。ALBのヘルスチェックパスには`/up`ではなく`/health`を指定すること。
+
+### 6.5 デプロイ後の動作確認（スモークテスト）
+
+- `https://<本番ドメイン>/health` が `200 OK` を返す（ALBがhealthy判定になる）
+- ログイン → 案件一覧が表示される（HTTPSでcookieが維持される＝6.1・6.2が正しい）
+- 案件登録 → 受付番号が採番される（DB接続・書き込みOK）
+- 地図表示でピンが出る（国土地理院タイル・`/map/pins`が動作）
