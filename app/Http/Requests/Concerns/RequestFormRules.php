@@ -26,7 +26,9 @@ trait RequestFormRules
             'requester_category' => ['required', Rule::in(['individual', 'neighborhood_association', 'municipality', 'council_member', 'anonymous', 'staff_patrol', 'other'])],
             'requester_name' => ['nullable', 'string', 'max:255'],
             'department' => ['required', Rule::in(['road', 'river', 'sabo'])],
-            'content' => ['required', 'string'],
+            // 要望内容・対応方針は DB では TEXT（最大 65,535 バイト）だが、実運用の
+            // 入力欄としては過大なため 2,000 文字を上限とする（画面設計書 6章の残課題）。
+            'content' => ['required', 'string', 'max:2000'],
             'request_type' => ['required', Rule::in(['complaint', 'request', 'anomaly'])],
             // 緯度・経度は地図クリックで両方同時にセットされる。片方だけの座標は
             // 地図に表示できず不整合になるため、「両方揃う or 両方空」を要求する
@@ -36,7 +38,7 @@ trait RequestFormRules
             'address' => ['nullable', 'string', 'max:255'],
             'response_necessity' => ['required', Rule::in(['yes', 'no', 'unknown'])],
             'urgency' => ['required', Rule::in(['high', 'medium', 'low'])],
-            'response_policy' => ['nullable', 'string'],
+            'response_policy' => ['nullable', 'string', 'max:2000'],
             'response_status' => ['required', Rule::in(['not_started', 'in_progress', 'completed'])],
             // 対応完了日は対応状況と双方向で整合させる（要件定義書 3章）。
             // ・対応状況が「完了」なら完了日は必須
@@ -61,6 +63,20 @@ trait RequestFormRules
             'longitude.required_with' => '要望箇所の位置は、緯度・経度の両方を設定してください（地図で地点を選択してください）。',
             'response_completed_date.required_if' => '対応状況が「対応完了」の場合は、対応完了日を入力してください。',
             'response_completed_date.prohibited_unless' => '対応完了日は、対応状況が「対応完了」の場合のみ入力できます。',
+        ];
+    }
+
+    /**
+     * 属性名（エラーメッセージ内の :attribute を日本語にする）。
+     * TEXT項目の max 超過メッセージ等を自然な文言にするために付与する。
+     *
+     * @return array<string, string>
+     */
+    protected function requestAttributes(): array
+    {
+        return [
+            'content' => '要望の内容',
+            'response_policy' => '対応方針',
         ];
     }
 }

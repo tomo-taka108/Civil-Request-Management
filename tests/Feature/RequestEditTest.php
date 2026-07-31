@@ -113,6 +113,17 @@ class RequestEditTest extends TestCase
         $this->assertSame('更新しました。', $request->fresh()->content);
     }
 
+    public function test_編集で要望内容が2000文字を超えるとエラーになる(): void
+    {
+        $office = Office::factory()->create();
+        $this->actingAsStaff($office, 'road');
+        $request = Request::factory()->create(['office_id' => $office->id, 'department' => 'road']);
+
+        $this->put(route('requests.update', $request), $this->validPayload([
+            'content' => str_repeat('あ', 2001),
+        ]))->assertSessionHasErrors('content');
+    }
+
     public function test_編集画面に地図が埋め込まれ既存の座標が初期表示される(): void
     {
         $office = Office::factory()->create();
