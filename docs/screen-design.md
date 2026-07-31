@@ -33,12 +33,18 @@ Laravel標準のリソースルーティングを基本とし、業務要件に�
 全ルートは `auth` ミドルウェア配下（ログイン画面を除く）。
 
 ```php
-// 認証
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+// ALB（ロードバランサ）ヘルスチェック用。認証なしで 200 を返す（インフラ設計書 3.5）
+Route::get('/health', fn () => response('OK', 200))->name('health');
 
-Route::middleware('auth')->group(function () {
+// 認証（未ログインユーザー向け）
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [AuthController::class, 'login']);
+});
+
+// 認証済みユーザー向け（初回ログイン時はパスワード変更を強制）
+Route::middleware(['auth', 'force.password.change'])->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     // パスワード変更（初回強制変更を含む）
     Route::get('/password/change', [PasswordController::class, 'edit'])->name('password.edit');
@@ -46,6 +52,7 @@ Route::middleware('auth')->group(function () {
 
     // 案件（要望・苦情・異常箇所）
     Route::get('/requests', [RequestController::class, 'index'])->name('requests.index');
+    Route::get('/requests-export', [RequestController::class, 'exportCsv'])->name('requests.export');
     Route::get('/requests/create', [RequestController::class, 'create'])->name('requests.create');
     Route::post('/requests', [RequestController::class, 'store'])->name('requests.store');
     Route::get('/requests/{request}', [RequestController::class, 'show'])->name('requests.show');
@@ -55,11 +62,10 @@ Route::middleware('auth')->group(function () {
         ->middleware('can:update,request')->name('requests.update');
     Route::delete('/requests/{request}', [RequestController::class, 'destroy'])
         ->middleware('can:delete,request')->name('requests.destroy');
-    Route::get('/requests-export', [RequestController::class, 'exportCsv'])->name('requests.export');
 
     // 地図表示
     Route::get('/map', [MapController::class, 'index'])->name('map.index');
-    Route::get('/map/pins', [MapController::class, 'pins'])->name('map.pins'); // 非同期取得用（GeoJSON等）
+    Route::get('/map/pins', [MapController::class, 'pins'])->name('map.pins'); // 非同期取得用（GeoJSON）
 
     // ユーザー管理（システム管理者限定）
     Route::middleware('can:admin')->group(function () {
@@ -69,7 +75,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::put('/users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
+        Route::put('/users/{user}/activate', [UserController::class, 'activate'])->name('users.activate');       // 再有効化
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');               // 物理削除（案件なしのみ）
+        Route::put('/users/{user}/reissue-password', [UserController::class, 'reissuePassword'])->name('users.reissue-password'); // パスワード再発行
     });
+
+    // 認証後のトップは案件一覧へリダイレクト
+    Route::get('/', fn () => redirect()->route('requests.index'))->name('home');
 });
 ```
 
@@ -151,7 +163,8 @@ Route::middleware('auth')->group(function () {
 | RequestController | destroy | - | `requests`を論理削除（Policy適用） |
 | RequestController | exportCsv | - (CSVダウンロードレスポンス) | `requests`を検索しCSV変換 |
 | MapController | index / pins | `map/index.blade.php` | `requests`から緯度経度を持つ案件を条件検索（一般職員は事務所スコープ適用、管理者は全事務所）。`pins`は一覧の各件の緯度経度・受付日時・緊急性等をGeoJSON等で返す |
-| UserController | index / create / store / edit / update / deactivate | `users/*.blade.php` | `users`のCRUD（Gate: admin）。事務所スコープなし、全事務所のユーザーが対象。`index`は所属事務所によるフィルタをオプションで受け付ける |
+| UserController | index / create / store / edit / update / deactivate / activate / destroy / reissuePassword | `users/*.blade.php` | `users`のCRUD（Gate: admin）。事務所スコープなし、全事務所のユーザーが対象。`index`は所属事務所によるフィルタをオプションで受け付ける。`deactivate`＝無効化・`activate`＝再有効化・`destroy`＝物理削除（案件を持たない誤登録アカウントのみ）・`reissuePassword`＝初期パスワード再発行（`must_change_password`を`true`に戻す） |
+| （ルート直書き） | GET /health | -（`OK`テキスト） | なし。ALBヘルスチェック用に認証なしで200を返す（インフラ設計書3.5） |
 
 ---
 
@@ -174,6 +187,6 @@ Route::middleware('auth')->group(function () {
 
 ## 6. 今後検討すること
 
-- 地図ピン取得APIの詳細設計（GeoJSON等のレスポンス形式、`/map/pins`のフィールド定義）。モックアップは`mockup/map.html`として作成済み、クエリパラメータ方針（2章）は確定済み
-- パスワード再発行フロー（`mockup/user-edit.html`の「初期パスワードを再発行する」）の詳細：再発行後の通知方法（画面表示のみ想定、メール等は対象外）、再発行時に`must_change_password`を`true`に戻す仕様の確認
+- ~~地図ピン取得APIの詳細設計（GeoJSON等のレスポンス形式、`/map/pins`のフィールド定義）~~ → 実装済み（`MapController::pins`）。`FeatureCollection` で、各 `feature` は `geometry`（Point・座標は`[経度, 緯度]`＝RFC 7946）と `properties`（id／受付番号／受付日時／対応部署／緊急性＋ラベル／住所／要望内容（60字省略）／詳細URL）を返す。検索条件・事務所スコープは一覧と共通（`RequestSearch`）
+- ~~パスワード再発行フロー（`mockup/user-edit.html`の「初期パスワードを再発行する」）の詳細~~ → 実装済み（`UserController::reissuePassword`）。新パスワードを画面に一度だけ表示する方式（メール等は対象外）、再発行時に`must_change_password`を`true`に戻す
 - ~~バリデーションルール（各項目の文字数上限・必須/任意の詳細）の設計~~ → VARCHAR系（氏名100・ユーザーID50・要望者/住所/その他255）はDB設計とFormRequestの`max`が一致済み。TEXT系（要望内容・対応方針）は運用上限を`max:2000`で確定し実装（Issue #49）。各項目の必須/任意・上限・期待エラーメッセージの一覧と手動確認手順は [バリデーション手動確認シート](validation-checklist.html) を参照
