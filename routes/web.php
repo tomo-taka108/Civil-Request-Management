@@ -7,6 +7,13 @@ use App\Http\Controllers\RequestController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
+// ALB（ロードバランサ）のヘルスチェック用（インフラ設計書 3.5）。
+// ターゲットグループのヘルスチェックパスが /health のため、200 を返さないと
+// 常に unhealthy 判定になり公開できない。ALB が定期的に叩くので認証は不要。
+// アプリ（PHP-FPM/Nginx）が応答できること自体の確認が目的のため、DB 等の
+// 外部依存は見ない（DB 一時不調でターゲットから外れ復旧しづらくなるのを防ぐ）。
+Route::get('/health', fn () => response('OK', 200)->header('Content-Type', 'text/plain'))->name('health');
+
 // 認証（未ログインユーザー向け）
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');

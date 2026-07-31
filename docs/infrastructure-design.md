@@ -226,4 +226,4 @@ ALB自体は既にfamigo用として稼働しており、本システムの相�
 - [ ] famigo-sg-ec2の現物ルール確認（SSH許可元IP等、CLIでの要約は簡略化されているため`.tf`化前に詳細を再取得）
 - [ ] Terraform tfstateの保管方式確定
 - [ ] EC2上のアプリ切り替え・デプロイ手順の確定（famigoのGitHub Actions + SSM RunCommand方式を踏襲する方向で、本システム用のワークフローを具体化）
-- [ ] Laravel側`/health`エンドポイントの実装（「3.5 ALB相乗り方式」参照）
+- [x] Laravel側`/health`エンドポイントの実装（「3.5 ALB相乗り方式」参照）→ 実装済み（`routes/web.php`。認証なしで`200 OK`を返す。DB等の外部依存は見ない）
