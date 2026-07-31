@@ -1,0 +1,475 @@
+<title>バリデーション手動確認シート｜要望管理システム</title>
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --surface-2: #f0f2f6;
+    --ink: #1c2230;
+    --ink-soft: #55607a;
+    --ink-faint: #888fa3;
+    --border: #dfe3ec;
+    --accent: #3b5bdb;
+    --accent-soft: #e7ecfd;
+    --required: #d6455e;
+    --required-soft: #fce8ec;
+    --optional: #55607a;
+    --ok: #2f9e6f;
+    --ok-soft: #e3f4ec;
+    --cond: #b5730a;
+    --cond-soft: #fbf0dc;
+    --mono: ui-monospace, "SFMono-Regular", "Consolas", "Menlo", monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Meiryo", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141821;
+      --surface: #1c2230;
+      --surface-2: #232a3a;
+      --ink: #e8ebf2;
+      --ink-soft: #a3abc0;
+      --ink-faint: #6d7690;
+      --border: #2c3446;
+      --accent: #7c93f5;
+      --accent-soft: #26304d;
+      --required: #f0788c;
+      --required-soft: #3a2029;
+      --optional: #a3abc0;
+      --ok: #5cc794;
+      --ok-soft: #172a22;
+      --cond: #e0a94a;
+      --cond-soft: #33280f;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f7f8fa; --surface: #fff; --surface-2: #f0f2f6; --ink: #1c2230;
+    --ink-soft: #55607a; --ink-faint: #888fa3; --border: #dfe3ec; --accent: #3b5bdb;
+    --accent-soft: #e7ecfd; --required: #d6455e; --required-soft: #fce8ec;
+    --optional: #55607a; --ok: #2f9e6f; --ok-soft: #e3f4ec; --cond: #b5730a; --cond-soft: #fbf0dc;
+  }
+  :root[data-theme="dark"] {
+    --bg: #141821; --surface: #1c2230; --surface-2: #232a3a; --ink: #e8ebf2;
+    --ink-soft: #a3abc0; --ink-faint: #6d7690; --border: #2c3446; --accent: #7c93f5;
+    --accent-soft: #26304d; --required: #f0788c; --required-soft: #3a2029;
+    --optional: #a3abc0; --ok: #5cc794; --ok-soft: #172a22; --cond: #e0a94a; --cond-soft: #33280f;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 48px 24px 96px; }
+
+  header.page { margin-bottom: 40px; }
+  .eyebrow {
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 700; margin: 0 0 10px;
+  }
+  h1 {
+    font-size: clamp(26px, 4vw, 36px); line-height: 1.2; margin: 0 0 14px;
+    text-wrap: balance; letter-spacing: -0.01em;
+  }
+  .lead { color: var(--ink-soft); font-size: 15px; max-width: 62ch; margin: 0 0 20px; }
+
+  .how {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 22px; margin-bottom: 8px;
+  }
+  .how h2 { font-size: 14px; margin: 0 0 10px; letter-spacing: 0.02em; }
+  .how ol { margin: 0; padding-left: 20px; color: var(--ink-soft); font-size: 14px; }
+  .how li { margin: 4px 0; }
+  .how code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2);
+    padding: 1px 6px; border-radius: 5px; color: var(--ink); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 40px; }
+  .tag {
+    font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  }
+  .tag.req { background: var(--required-soft); color: var(--required); }
+  .tag.opt { background: var(--surface-2); color: var(--optional); }
+  .tag.cond { background: var(--cond-soft); color: var(--cond); }
+
+  section.screen { margin-bottom: 48px; }
+  .screen-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+  .screen-num {
+    font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--accent);
+    background: var(--accent-soft); border-radius: 6px; padding: 2px 9px;
+  }
+  .screen-head h2 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  .screen-sub { color: var(--ink-soft); font-size: 13.5px; margin: 0 0 18px; }
+  .screen-path {
+    font-family: var(--mono); font-size: 12.5px; color: var(--ink-faint);
+  }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; background: var(--surface); }
+  thead th {
+    text-align: left; font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 700; padding: 12px 14px;
+    border-bottom: 1px solid var(--border); background: var(--surface-2);
+    position: sticky; top: 0;
+  }
+  tbody td { padding: 13px 14px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 13.5px; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .field-name { font-weight: 700; color: var(--ink); white-space: nowrap; }
+  .field-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); font-weight: 400; }
+  .rule { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  .action { color: var(--ink-soft); }
+  .msg {
+    display: block; background: var(--required-soft); color: var(--required);
+    border-radius: 7px; padding: 7px 10px; font-size: 12.5px; line-height: 1.45;
+    border-left: 3px solid var(--required);
+  }
+  .msg.ok { background: var(--ok-soft); color: var(--ok); border-left-color: var(--ok); }
+  .col-check { text-align: center; width: 44px; }
+  .col-check input { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; }
+
+  th:first-child, td:first-child { padding-left: 18px; }
+
+  .note {
+    font-size: 12.5px; color: var(--ink-soft); background: var(--surface-2);
+    border-radius: 8px; padding: 10px 14px; margin-top: 12px; border-left: 3px solid var(--accent);
+  }
+  footer.page {
+    margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--border);
+    color: var(--ink-faint); font-size: 12.5px;
+  }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+</style>
+
+<div class="wrap">
+  <header class="page">
+    <p class="eyebrow">手動テスト用チェックシート</p>
+    <h1>入力項目バリデーション一覧</h1>
+    <p class="lead">ブラウザで各画面を開き、下の「試す操作」を実際に入力して、表示されるエラーメッセージが「期待されるメッセージ」と一致するか照合してください。確認できたら右端の ☑ を入れると進捗が残せます（このページ内でのみ保持）。</p>
+
+    <div class="how">
+      <h2>確認の進め方</h2>
+      <ol>
+        <li>一般職員でログイン（登録・編集は一般職員のみ。管理者は登録不可）</li>
+        <li>案件登録 <code>/requests/create</code>、案件編集 <code>/requests/{id}/edit</code> を開く</li>
+        <li>各行の「試す操作」どおりに入力して<strong>「登録／更新」ボタンを押す</strong></li>
+        <li>表示されたエラー文と「期待されるメッセージ」を見比べる</li>
+      </ol>
+    </div>
+
+    <div class="legend">
+      <span class="tag req">● 必須</span>
+      <span class="tag opt">● 任意</span>
+      <span class="tag cond">● 条件付き（他項目に依存）</span>
+    </div>
+  </header>
+
+  <!-- ============ 案件フォーム ============ -->
+  <section class="screen">
+    <div class="screen-head">
+      <span class="screen-num">案件</span>
+      <h2>案件 登録・編集フォーム</h2>
+    </div>
+    <p class="screen-sub">
+      <span class="screen-path">/requests/create ・ /requests/{id}/edit</span>
+      ／ ルールは登録・編集で共通（RequestFormRules）。事務所・受付番号・登録者はシステムが自動設定するため入力欄なし。
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>項目</th>
+            <th>区分・ルール</th>
+            <th>試す操作</th>
+            <th>期待されるメッセージ</th>
+            <th class="col-check">☑</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="field-name">受付日</span><br><span class="field-sub">reception_date</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">required / date</span></td>
+            <td class="action">空のまま登録</td>
+            <td><span class="msg">受付日は必須です。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">受付時刻</span><br><span class="field-sub">reception_time</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">required / H:i</span></td>
+            <td class="action">空のまま登録</td>
+            <td><span class="msg">受付時刻は必須です。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">受付方法</span><br><span class="field-sub">reception_method</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">required / in(...)</span></td>
+            <td class="action">未選択で登録</td>
+            <td><span class="msg">受付方法は必須です。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">受付方法（その他）</span><br><span class="field-sub">reception_method_other</span></td>
+            <td><span class="tag cond">条件付き</span><br><span class="rule">required_if:その他 / max:255</span></td>
+            <td class="action">受付方法で「その他」を選び、この欄を空にして登録</td>
+            <td><span class="msg">受付方法で「その他」を選択した場合は、具体的な内容を入力してください。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">区分</span><br><span class="field-sub">requester_category</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">required / in(...)</span></td>
+            <td class="action">未選択で登録</td>
+            <td><span class="msg">区分は必須です。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">要望者</span><br><span class="field-sub">requester_name</span></td>
+            <td><span class="tag opt">任意</span><br><span class="rule">max:255</span></td>
+            <td class="action">256文字以上を入力して登録</td>
+            <td><span class="msg">要望者は255文字以下で指定してください。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">対応部署</span><br><span class="field-sub">department</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">required / in(...)</span></td>
+            <td class="action">未選択で登録</td>
+            <td><span class="msg">対応部署は必須です。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">要望の内容</span><br><span class="field-sub">content</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">required / max:2000</span></td>
+            <td class="action">空のまま登録</td>
+            <td><span class="msg">要望の内容は必須です。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">要望の内容</span><br><span class="field-sub">content</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">max:2000</span></td>
+            <td class="action">2001文字を入力して登録</td>
+            <td><span class="msg">要望の内容は2000文字以下で指定してください。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">要望の内容</span><br><span class="field-sub">content</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">境界値（正常）</span></td>
+            <td class="action">ちょうど2000文字を入力して登録</td>
+            <td><span class="msg ok">エラーなく登録できる（成功）</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">種別</span><br><span class="field-sub">request_type</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">required / in(...)</span></td>
+            <td class="action">未選択で登録</td>
+            <td><span class="msg">種別は必須です。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">緯度・経度</span><br><span class="field-sub">latitude / longitude</span></td>
+            <td><span class="tag cond">条件付き</span><br><span class="rule">required_with 相互</span></td>
+            <td class="action">地図で片方だけ座標が入る状態にして登録<br><span class="field-sub">※通常は地図クリックで両方入る。開発ツールで片方消す等</span></td>
+            <td><span class="msg">要望箇所の位置は、緯度・経度の両方を設定してください（地図で地点を選択してください）。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">住所</span><br><span class="field-sub">address</span></td>
+            <td><span class="tag opt">任意</span><br><span class="rule">max:255</span></td>
+            <td class="action">256文字以上を入力して登録</td>
+            <td><span class="msg">住所は255文字以下で指定してください。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">対応の必要性</span><br><span class="field-sub">response_necessity</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">required / in(...)</span></td>
+            <td class="action">未選択で登録</td>
+            <td><span class="msg">対応の必要性は必須です。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">緊急性</span><br><span class="field-sub">urgency</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">required / in(...)</span></td>
+            <td class="action">未選択で登録</td>
+            <td><span class="msg">緊急性は必須です。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">対応方針</span><br><span class="field-sub">response_policy</span></td>
+            <td><span class="tag opt">任意</span><br><span class="rule">max:2000</span></td>
+            <td class="action">2001文字を入力して登録</td>
+            <td><span class="msg">対応方針は2000文字以下で指定してください。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">対応状況</span><br><span class="field-sub">response_status</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">required / in(...)</span></td>
+            <td class="action">未選択で登録</td>
+            <td><span class="msg">対応状況は必須です。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">対応完了日</span><br><span class="field-sub">response_completed_date</span></td>
+            <td><span class="tag cond">条件付き</span><br><span class="rule">required_if:完了</span></td>
+            <td class="action">対応状況を「対応完了」にして完了日を空のまま登録</td>
+            <td><span class="msg">対応状況が「対応完了」の場合は、対応完了日を入力してください。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">対応完了日</span><br><span class="field-sub">response_completed_date</span></td>
+            <td><span class="tag cond">条件付き</span><br><span class="rule">prohibited_unless:完了</span></td>
+            <td class="action">対応状況を「未対応／対応中」にして完了日を入れて登録</td>
+            <td><span class="msg">対応完了日は、対応状況が「対応完了」の場合のみ入力できます。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 検索フォーム ============ -->
+  <section class="screen">
+    <div class="screen-head">
+      <span class="screen-num">検索</span>
+      <h2>案件一覧 検索フォーム</h2>
+    </div>
+    <p class="screen-sub">
+      <span class="screen-path">/requests</span>
+      ／ 全項目が任意（未指定なら絞り込まない）。日付の前後関係のみチェックあり。
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>項目</th>
+            <th>区分・ルール</th>
+            <th>試す操作</th>
+            <th>期待されるメッセージ</th>
+            <th class="col-check">☑</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="field-name">受付日時（終了）</span><br><span class="field-sub">reception_date_to</span></td>
+            <td><span class="tag cond">条件付き</span><br><span class="rule">after_or_equal:開始</span></td>
+            <td class="action">開始日より前の終了日を指定して検索</td>
+            <td><span class="msg">受付日時（終了）には受付日時（開始）以降の日付を指定してください。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">地区・場所</span><br><span class="field-sub">address</span></td>
+            <td><span class="tag opt">任意</span><br><span class="rule">max:255</span></td>
+            <td class="action">256文字以上を入力して検索</td>
+            <td><span class="msg">地区・場所は255文字以下で指定してください。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">キーワード</span><br><span class="field-sub">keyword</span></td>
+            <td><span class="tag opt">任意</span><br><span class="rule">max:255</span></td>
+            <td class="action">256文字以上を入力して検索</td>
+            <td><span class="msg">キーワードは255文字以下で指定してください。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ ユーザー管理 ============ -->
+  <section class="screen">
+    <div class="screen-head">
+      <span class="screen-num">ユーザー</span>
+      <h2>ユーザー 登録・編集フォーム</h2>
+    </div>
+    <p class="screen-sub">
+      <span class="screen-path">/admin/users/create ・ /admin/users/{id}/edit</span>
+      ／ システム管理者でログインして確認。権限区分によって所属事務所・担当部署の要否が切り替わる。
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>項目</th>
+            <th>区分・ルール</th>
+            <th>試す操作</th>
+            <th>期待されるメッセージ</th>
+            <th class="col-check">☑</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="field-name">ユーザーID</span><br><span class="field-sub">user_id</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">required / max:50</span></td>
+            <td class="action">空のまま登録</td>
+            <td><span class="msg">ユーザーIDは必須です。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">ユーザーID</span><br><span class="field-sub">user_id</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">unique</span></td>
+            <td class="action">既存ユーザーと同じIDで登録</td>
+            <td><span class="msg">このユーザーIDは既に使われています。別のIDを指定してください。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">氏名</span><br><span class="field-sub">name</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">required / max:100</span></td>
+            <td class="action">空のまま登録</td>
+            <td><span class="msg">氏名は必須です。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">初期パスワード</span><br><span class="field-sub">password</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">required / min:8（登録時）</span></td>
+            <td class="action">7文字以下で登録</td>
+            <td><span class="msg">パスワードは8文字以上で指定してください。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">初期パスワード</span><br><span class="field-sub">password</span></td>
+            <td><span class="tag req">必須</span><br><span class="rule">confirmed</span></td>
+            <td class="action">確認用と違う値を入れて登録</td>
+            <td><span class="msg">パスワードと確認用の入力が一致しません。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">所属事務所</span><br><span class="field-sub">office_id</span></td>
+            <td><span class="tag cond">条件付き</span><br><span class="rule">required_if:一般職員</span></td>
+            <td class="action">権限区分を「一般職員」にして事務所を未選択で登録</td>
+            <td><span class="msg">一般職員の場合は、所属事務所を選択してください。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+          <tr>
+            <td><span class="field-name">担当部署</span><br><span class="field-sub">department</span></td>
+            <td><span class="tag cond">条件付き</span><br><span class="rule">required_if:一般職員</span></td>
+            <td class="action">権限区分を「一般職員」にして部署を未選択で登録</td>
+            <td><span class="msg">一般職員の場合は、担当部署を選択してください。</span></td>
+            <td class="col-check"><input type="checkbox"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">
+      権限区分を「システム管理者」にすると、所属事務所・担当部署は画面で隠れ、送信されても自動で無視されます（管理者は事務所・部署を持たない仕様）。
+    </p>
+  </section>
+
+  <footer class="page">
+    確認結果のチェック状態はこのブラウザ内にのみ保存されます（ページを閉じても保持）。実装：RequestFormRules / UserFormRules / SearchRequestRequest、メッセージ定義：lang/ja/validation.php
+  </footer>
+</div>
+
+<script>
+  // 各チェックボックスに一意キーを振り、状態を localStorage に保持する。
+  (function () {
+    const boxes = document.querySelectorAll('input[type="checkbox"]');
+    boxes.forEach(function (box, i) {
+      const key = 'valcheck-' + i;
+      if (localStorage.getItem(key) === '1') { box.checked = true; }
+      box.addEventListener('change', function () {
+        localStorage.setItem(key, box.checked ? '1' : '0');
+      });
+    });
+  })();
+</script>
