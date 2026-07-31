@@ -39,4 +39,12 @@ class UpdateRequestRequest extends FormRequest
     {
         return $this->requestMessages();
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return $this->requestAttributes();
+    }
 }

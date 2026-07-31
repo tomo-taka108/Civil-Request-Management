@@ -160,6 +160,39 @@ class RequestControllerTest extends TestCase
         ]))->assertSessionHasErrors('reception_method_other');
     }
 
+    public function test_要望内容が2000文字を超えるとバリデーションエラーになる(): void
+    {
+        $this->actingAsStaff();
+
+        $this->post(route('requests.store'), $this->validPayload([
+            'content' => str_repeat('あ', 2001),
+        ]))->assertSessionHasErrors('content');
+
+        $this->assertDatabaseCount('requests', 0);
+    }
+
+    public function test_要望内容がちょうど2000文字なら登録できる(): void
+    {
+        $this->actingAsStaff();
+
+        $this->post(route('requests.store'), $this->validPayload([
+            'content' => str_repeat('あ', 2000),
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('requests', 1);
+    }
+
+    public function test_対応方針が2000文字を超えるとバリデーションエラーになる(): void
+    {
+        $this->actingAsStaff();
+
+        $this->post(route('requests.store'), $this->validPayload([
+            'response_policy' => str_repeat('い', 2001),
+        ]))->assertSessionHasErrors('response_policy');
+
+        $this->assertDatabaseCount('requests', 0);
+    }
+
     public function test_リクエストにoffice_idを混ぜても無視される(): void
     {
         $user = $this->actingAsStaff();
