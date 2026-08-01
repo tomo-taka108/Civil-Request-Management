@@ -6,6 +6,12 @@
 - 設計ドキュメント：[要件定義書](docs/requirements.md) / [データベース設計書](docs/database-design.md) / [画面設計書](docs/screen-design.md) / [インフラ設計書](docs/infrastructure-design.md)
 - 画面モックアップ：[`mockup/`](mockup/)
 
+## インフラ構成
+
+famigo 既存 AWS 環境（ALB・EC2・RDS）に相乗りする構成。詳細は [インフラ設計書](docs/infrastructure-design.md) を参照。
+
+![要望管理システム インフラ構成図](docs/images/infrastructure-diagram.svg)
+
 ---
 
 ## ローカル開発環境の構築
@@ -115,3 +121,22 @@ docker compose down -v
   Laravel 標準の sessions / cache / jobs テーブルは作らない。
 - **文字コード・照合順序は `utf8mb4` / `utf8mb4_ja_0900_as_cs`** で本番（famigo-mysql 相乗り）と揃える
   （[インフラ設計書 3.1節](docs/infrastructure-design.md)）。
+
+---
+
+## ドキュメント用アセットの置き場（画像・動画）
+
+README や設計書に貼る画像・図は、リポジトリ内の [`docs/images/`](docs/images/) に置く。
+
+- **図・構成図**：SVG を第一候補とする（拡大しても鮮明・軽量・テキスト差分で修正しやすい）。
+  例：[`docs/images/infrastructure-diagram.svg`](docs/images/infrastructure-diagram.svg)
+- **スクリーンショット**：PNG を `docs/images/` に置く。
+
+**動画（画面操作の録画など）はリポジトリにコミットしない。**
+バイナリかつ容量が大きく、Git 履歴を肥大化させて clone を重くするため。
+README に載せる場合は、以下のいずれかで「リポジトリ外に置いたものを参照」する。
+
+- GitHub の Issue / PR のコメント欄に動画をドラッグ&ドロップ → 発行される URL を README から参照する
+- GitHub Releases にファイルとして添付し、その URL を参照する
+
+> 大容量バイナリを本格的に版管理したくなった場合は Git LFS の導入を検討する（現時点では未導入）。

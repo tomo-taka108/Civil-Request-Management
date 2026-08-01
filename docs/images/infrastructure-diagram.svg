@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" width="960" height="640" font-family="'Segoe UI','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif" role="img" aria-label="要望管理システム インフラ構成図。famigo既存のAWS環境（ALB・EC2・RDS）に相乗りする構成。">
+  <style>
+    :root {
+      --bg: #ffffff; --ink: #1c2230; --ink-soft: #4a5262; --line: #cfd4de;
+      --new: #2f5bd6; --new-fill: #e7edfc; --new-ink: #1a2e63;
+      --exist: #7a8394; --exist-fill: #eceef2; --exist-ink: #333a47;
+      --net: #0f9b8e; --net-fill: #e3f5f2; --net-ink: #0b3f39;
+      --zone: #9aa2b2;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #12151c; --ink: #e8eaf0; --ink-soft: #b4bccc; --line: #3a4150;
+        --new: #6f95f2; --new-fill: #23304f; --new-ink: #dce6ff;
+        --exist: #8a93a5; --exist-fill: #262b36; --exist-ink: #d3d8e2;
+        --net: #4fc7ba; --net-fill: #16332f; --net-ink: #cdeee8;
+        --zone: #5b6474;
+      }
+    }
+    .bg { fill: var(--bg); }
+    .zone { fill: none; stroke: var(--zone); stroke-dasharray: 5 4; }
+    .zone-lbl { fill: var(--ink-soft); font-size: 13px; font-weight: 600; }
+    .box-new { fill: var(--new-fill); stroke: var(--new); stroke-width: 2; }
+    .box-exist { fill: var(--exist-fill); stroke: var(--exist); stroke-width: 1.5; }
+    .box-net { fill: var(--net-fill); stroke: var(--net); stroke-width: 1.5; }
+    .t-new { fill: var(--new-ink); }
+    .t-exist { fill: var(--exist-ink); }
+    .t-net { fill: var(--net-ink); }
+    .title { font-weight: 700; font-size: 14px; }
+    .sub { font-size: 11.5px; }
+    .edge { fill: none; stroke: var(--ink-soft); stroke-width: 1.6; }
+    .edge-new { fill: none; stroke: var(--new); stroke-width: 1.8; stroke-dasharray: 6 4; }
+    .elbl { fill: var(--ink-soft); font-size: 11px; }
+    .elbl-new { fill: var(--new); font-size: 11px; font-weight: 600; }
+    .head { fill: var(--ink); font-weight: 700; font-size: 18px; }
+    .head-sub { fill: var(--ink-soft); font-size: 12px; }
+    .lg { fill: var(--ink-soft); font-size: 12px; }
+  </style>
+
+  <rect class="bg" x="0" y="0" width="960" height="640"/>
+
+  <!-- header -->
+  <text class="head" x="32" y="38">要望管理システム インフラ構成図</text>
+  <text class="head-sub" x="32" y="58">famigo 既存 AWS 環境（ALB・EC2・RDS）に相乗り／ap-northeast-1（東京）</text>
+
+  <!-- legend -->
+  <g transform="translate(600,22)">
+    <rect class="box-net" x="0" y="0" width="18" height="12" rx="3"/>
+    <text class="lg" x="24" y="10">インターネット・外部</text>
+    <rect class="box-exist" x="0" y="18" width="18" height="12" rx="3"/>
+    <text class="lg" x="24" y="28">famigo 既存（流用・参照）</text>
+    <rect class="box-new" x="0" y="36" width="18" height="12" rx="3"/>
+    <text class="lg" x="24" y="46">本システム 新規追加</text>
+    <line class="edge-new" x1="0" y1="60" x2="18" y2="60"/>
+    <text class="lg" x="24" y="64">新規トラフィック経路</text>
+  </g>
+
+  <!-- users -->
+  <g>
+    <rect class="box-net" x="40" y="150" width="150" height="60" rx="8"/>
+    <text class="title t-net" x="115" y="178" text-anchor="middle">利用者のブラウザ</text>
+    <text class="sub t-net" x="115" y="196" text-anchor="middle">HTTPS でアクセス</text>
+  </g>
+
+  <!-- DNS -->
+  <g>
+    <rect class="box-new" x="40" y="300" width="150" height="96" rx="8"/>
+    <text class="title t-new" x="115" y="326" text-anchor="middle">独自ドメイン（新規）</text>
+    <text class="sub t-new" x="115" y="346" text-anchor="middle">Route53</text>
+    <text class="sub t-new" x="115" y="362" text-anchor="middle">ホストゾーン</text>
+    <text class="sub t-new" x="115" y="380" text-anchor="middle">＋ ACM 証明書</text>
+  </g>
+
+  <!-- VPC zone -->
+  <rect class="zone" x="250" y="86" width="680" height="520" rx="12"/>
+  <text class="zone-lbl" x="268" y="108">VPC  famigo-vpc  (10.0.0.0/16)  ※ NATゲートウェイ無し</text>
+
+  <!-- Public subnet zone -->
+  <rect class="zone" x="272" y="124" width="636" height="330" rx="10"/>
+  <text class="zone-lbl" x="288" y="144">Public サブネット (1a / 1c)</text>
+
+  <!-- ALB -->
+  <g>
+    <rect class="box-exist" x="300" y="160" width="180" height="70" rx="8"/>
+    <text class="title t-exist" x="390" y="186" text-anchor="middle">ALB  famigo-alb</text>
+    <text class="sub t-exist" x="390" y="204" text-anchor="middle">internet-facing</text>
+    <text class="sub t-exist" x="390" y="220" text-anchor="middle">443 HTTPS リスナー</text>
+  </g>
+
+  <!-- EC2 zone -->
+  <rect class="zone" x="540" y="150" width="348" height="288" rx="10"/>
+  <text class="zone-lbl" x="556" y="170">EC2  famigo-ec2  (t3.micro, Public配置)</text>
+
+  <!-- famigo container -->
+  <g>
+    <rect class="box-exist" x="560" y="186" width="300" height="70" rx="8"/>
+    <text class="title t-exist" x="710" y="212" text-anchor="middle">famigo コンテナ</text>
+    <text class="sub t-exist" x="710" y="232" text-anchor="middle">Spring Boot : 8080</text>
+  </g>
+
+  <!-- civil container -->
+  <g>
+    <rect class="box-new" x="560" y="286" width="300" height="82" rx="8"/>
+    <text class="title t-new" x="710" y="312" text-anchor="middle">本システム コンテナ</text>
+    <text class="sub t-new" x="710" y="332" text-anchor="middle">Nginx + PHP-FPM : 8081</text>
+    <text class="sub t-new" x="710" y="350" text-anchor="middle">GET /health → 200</text>
+  </g>
+
+  <!-- Private subnet zone -->
+  <rect class="zone" x="272" y="474" width="636" height="112" rx="10"/>
+  <text class="zone-lbl" x="288" y="494">Private サブネット (1a / 1c)</text>
+
+  <!-- RDS -->
+  <g>
+    <rect class="box-exist" x="300" y="508" width="560" height="64" rx="8"/>
+    <text class="title t-exist" x="580" y="532" text-anchor="middle">RDS  famigo-mysql  (MySQL 8.4)</text>
+    <text class="sub t-exist" x="580" y="552" text-anchor="middle">famigo DB ＋ civil_request_management スキーマ（新規・専用ユーザーで最小権限）</text>
+  </g>
+
+  <!-- edges -->
+  <!-- user -> dns (name resolution) -->
+  <path class="edge" d="M115,210 L115,300"/>
+  <text class="elbl" x="122" y="258">名前解決</text>
+
+  <!-- user -> alb (https) -->
+  <path class="edge" d="M190,175 C 250,175 250,190 298,192" marker-end="url(#arrow)"/>
+  <text class="elbl" x="210" y="168">HTTPS 443</text>
+
+  <!-- alb -> famigo (default) -->
+  <path class="edge" d="M480,205 C 520,205 520,215 558,218" marker-end="url(#arrow)"/>
+  <text class="elbl" x="486" y="200">既定 forward</text>
+  <text class="elbl" x="486" y="214">tg-8080</text>
+
+  <!-- alb -> civil (new host rule) -->
+  <path class="edge-new" d="M420,230 C 420,320 480,320 558,322" marker-end="url(#arrow-new)"/>
+  <text class="elbl-new" x="330" y="292">ホストベース</text>
+  <text class="elbl-new" x="330" y="306">ルール（新規）</text>
+  <text class="elbl-new" x="330" y="320">→ tg-8081</text>
+
+  <!-- containers -> rds (3306). Both containers feed a shared trunk at x=840
+       (inside the EC2 zone, right of both boxes), which drops into the RDS top edge.
+       Nothing is crossed. -->
+  <path class="edge" d="M710,256 L710,270 L840,270 L840,508" marker-end="url(#arrow)"/>
+  <path class="edge" d="M710,368 L710,395 L840,395"/>
+  <text class="elbl" x="848" y="450">3306</text>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" style="fill: var(--ink-soft);"/>
+    </marker>
+    <marker id="arrow-new" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" style="fill: var(--new);"/>
+    </marker>
+  </defs>
+</svg>

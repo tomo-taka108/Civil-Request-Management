@@ -19,6 +19,49 @@
 
 ---
 
+## 1.5 全体構成図
+
+famigo 既存 AWS 環境（ALB・EC2・RDS）に相乗りする構成の全体像。色分けは「famigo 既存（流用・参照）／本システムが新規追加するもの／外部」を表す。詳細な各リソースの値は「2. 既存famigo環境の実地調査結果」、経路・切り分けは「3. 相乗り方式の詳細設計」を参照。
+
+![要望管理システム インフラ構成図](images/infrastructure-diagram.svg)
+
+> 図の実体は [`images/infrastructure-diagram.svg`](images/infrastructure-diagram.svg)（README でも同じ画像を使用）。図を修正するときは SVG を直接編集するか、下記 mermaid を編集してから SVG を描き直す。以下の mermaid は同じ内容の編集用ソース（GitHub 上ではそのまま図として描画される）。
+
+```mermaid
+flowchart TB
+    user["利用者のブラウザ"]:::net
+    dns["独自ドメイン（新規取得）<br/>Route53 ホストゾーン + ACM 証明書"]:::new
+
+    subgraph vpc["VPC  famigo-vpc  (10.0.0.0/16)  ※NATゲートウェイ無し"]
+      direction TB
+      subgraph pub["Public サブネット (1a / 1c)"]
+        direction TB
+        alb["ALB  famigo-alb (internet-facing)<br/>443 HTTPS リスナー"]:::exist
+        subgraph ec2["EC2  famigo-ec2  (t3.micro, Public配置)"]
+          direction TB
+          cFamigo["famigo コンテナ<br/>Spring Boot : 8080"]:::exist
+          cCivil["本システム コンテナ<br/>Nginx + PHP-FPM : 8081<br/>GET /health → 200"]:::new
+        end
+      end
+      subgraph prv["Private サブネット (1a / 1c)"]
+        rds[("RDS  famigo-mysql (MySQL 8.4)<br/>famigo DB ＋ civil_request_management スキーマ（新規）")]:::exist
+      end
+    end
+
+    user -->|"名前解決"| dns
+    user -->|"HTTPS 443"| alb
+    alb -->|"既定 forward → tg-8080"| cFamigo
+    alb -->|"ホストベースルール（新規）→ civil-request-tg-8081"| cCivil
+    cFamigo -->|"3306"| rds
+    cCivil -->|"3306"| rds
+
+    classDef net fill:#e3f5f2,stroke:#0f9b8e,color:#0b3f39;
+    classDef exist fill:#eceef2,stroke:#7a8394,color:#333a47;
+    classDef new fill:#e7edfc,stroke:#2f5bd6,color:#1a2e63;
+```
+
+---
+
 ## 2. 既存famigo環境の実地調査結果（2026-07-20 時点、AWS CLIで確認）
 
 ### 2.1 VPC・サブネット
