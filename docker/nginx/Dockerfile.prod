@@ -1,0 +1,12 @@
+# 本番用 Nginx イメージ（インフラ設計書 3.2）。
+# 静的ファイル（public/ 配下の CSS/JS/画像）を nginx から直接配信するため、
+# ビルド済みアプリの public/ をイメージに焼き込む。動的リクエストは
+# fastcgi_pass で php コンテナ（php:9000）へ渡す。
+
+FROM nginx:1.27-alpine
+
+# server ブロック（php コンテナへ fastcgi する設定。ローカルと共通で流用可能）。
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+
+# 静的配信に必要な public/ のみをイメージに含める（PHP ソース本体は php 側が持つ）。
+COPY public /var/www/html/public

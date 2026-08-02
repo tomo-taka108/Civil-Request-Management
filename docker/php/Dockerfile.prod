@@ -1,0 +1,46 @@
+# 本番用 PHP-FPM イメージ（インフラ設計書 3.2・6.3）。
+# ローカル用 Dockerfile はソースをバインドマウントする前提だが、本番では
+# ソース・vendor をイメージに焼き込み、不変の成果物としてデプロイする。
+
+FROM php:8.3-fpm
+
+# PHP拡張のインストールに必要なOSパッケージ（ローカル用と同じ）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    unzip \
+    libonig-dev \
+    libzip-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Laravelが必要とするPHP拡張（ローカル用と同じ）
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
+        pdo_mysql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        zip
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+
+# 依存を先に入れてレイヤキャッシュを効かせる（本番向けに dev 依存は除外）。
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction
+
+# アプリ本体をコピーし、オートローダを最適化生成。
+COPY . .
+RUN composer dump-autoload --optimize --no-dev \
+    && chown -R www-data:www-data storage bootstrap/cache
+
+# 本番用 entrypoint（migrate + config/route/view:cache を実行）。
+COPY docker/php/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["php-fpm"]

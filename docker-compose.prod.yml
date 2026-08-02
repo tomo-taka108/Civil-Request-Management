@@ -1,0 +1,45 @@
+# 本番用 Docker Compose（EC2 上 /opt/civil/ に配置する想定。インフラ設計書 3.2・3.3）。
+#
+# ★famigo と完全分離する：
+#   - ネットワーク civil-network / Volume civil-* を専用に持ち、famigo とは共有しない。
+#   - デプロイは必ず対象ファイルを明示する：
+#       docker compose -f docker-compose.prod.yml up -d --build
+#     （-f を付けず docker compose up すると意図せず両アプリを対象にしうるため、
+#       ファイル分離＋-f 明示で famigo コンテナを巻き込まないようにする）
+#   - famigo は 8080、本システムは 8081 を公開（ALB のターゲットは 8081）。
+#
+# nginx・php とも本番用イメージにソースを焼き込む（バインドマウントしない）。
+# nginx は public/（静的配信用）、php は全ソースを持ち、SCRIPT_FILENAME の
+# パス（/var/www/html/public/index.php）が両者で一致する。
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile.prod
+    restart: unless-stopped
+    ports:
+      # ALB からのみ到達（EC2 SG で ALB SG からの 8081 のみ許可。設計書 3.5）。
+      - "8081:80"
+    depends_on:
+      - php
+    networks:
+      - civil-network
+
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.prod
+    restart: unless-stopped
+    env_file:
+      # 本番 .env（機密を含む。コミットしない）。EC2 上に配置する。
+      - .env.production
+    networks:
+      - civil-network
+    # ポートは公開しない（nginx からのみ到達可能）。
+
+networks:
+  # famigo と分離した専用ネットワーク（設計書 3.3）。
+  civil-network:
+    driver: bridge
+    name: civil-network
