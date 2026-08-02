@@ -25,3 +25,23 @@ yarn-error.log
 # Claude Code のローカル/一時ファイル（共有しない）
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
+
+# Terraform（インフラ設計書 §4）
+# tfstate は機密（パスワード等が平文で入りうる）かつローカル保存方式のため
+# コミットしない。ローカルの記録帳としてのみ扱う。
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+# 変数の実値（機密を含みうる）はコミットせず、*.tfvars.example のみ共有する
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+# 上書き用ローカルファイル
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+# プロバイダ lock は共有するのでコミットする（除外しない）
+!.terraform.lock.hcl

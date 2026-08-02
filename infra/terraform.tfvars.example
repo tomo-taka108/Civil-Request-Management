@@ -1,0 +1,18 @@
+# terraform.tfvars のひな形。
+# このファイルをコピーして terraform.tfvars を作り、実値を設定する。
+#   cp terraform.tfvars.example terraform.tfvars
+# terraform.tfvars は .gitignore で除外されコミットされない（機密を含みうるため）。
+#
+# 既存 famigo リソースの ID 群は variables.tf に設計書の実値を default 済みなので、
+# 通常はここで上書きする必要はない。ドメイン取得後に app_domain_name を設定するのが主目的。
+
+# 本システム用に取得した独自ドメイン名（取得後に設定）。
+# 未設定（空）の間は ACM・Route53・リスナールールは作られない（TG と SG ルールのみ）。
+# app_domain_name = "civil-track.example"
+
+# 必要に応じて既存リソース ID を上書きする場合のみ記載（通常は不要）:
+# famigo_vpc_id          = "vpc-xxxxxxxx"
+# famigo_alb_name        = "famigo-alb"
+# famigo_ec2_instance_id = "i-xxxxxxxx"
+# famigo_ec2_sg_id       = "sg-xxxxxxxx"
+# famigo_alb_sg_id       = "sg-xxxxxxxx"
