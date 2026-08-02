@@ -169,9 +169,12 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP
 - 本システム側のコンテナ構成：**Nginx + PHP-FPMの2コンテナ**（Laravelは「PHP-FPMのみ」では画面を返せず、リバースプロキシ・静的ファイル配信を担うNginxが別途必要なため）
   - famigo：既存の8080番ポート（変更しない）
   - 本システム：新規ポート（例：8081）でNginxがLISTEN、PHP-FPMはNginxからのみ到達可能な内部ポート
-- famigoのデプロイフロー（GitHub Actions → S3 → SSM RunCommand → EC2上で`docker compose up -d`）と同様の方式を踏襲し、保守性を揃える。ただしdocker-compose.ymlの分離により、実行対象は本システム用ファイルのみに限定する
+- **デプロイ方式：当面は手動デプロイとする。** EC2 に SSH または SSM Session Manager で入り、本システムのソースを配置（`git pull` 等）した上で、`docker compose -f /opt/civil/docker-compose.prod.yml up -d --build` を実行する。GitHub Actions 等の CI/CD は今回は導入しない（famigo は GitHub Actions → S3 → SSM RunCommand 方式だが、本システムは規模・運用体制から手動で十分と判断）。**将来 CI/CD を導入する場合は、famigo と同方式（SSM RunCommand 等）を踏襲する方向で本節を更新する。**
 - Docker Volumeについても、famigoと本システムで共有せず、それぞれ独立したVolumeを利用する（Composeファイルを分けてもVolume名が衝突・共有されると、データが混在する事故につながるため）
-- OS・Dockerエンジン自体のアップデート、再起動を伴う作業はfamigoにも影響するため、実施タイミングに注意する
+- **famigo への影響と再起動の粒度（重要）：** 本システムの通常デプロイ（下記①）では famigo は停止しない。famigo が巻き添えで止まるのは Docker エンジンや EC2 自体を再起動する場合（下記②③）に限られる。②③は本システムの運用上は避け、必要なとき（スケールアップ・OS/Docker 更新等）だけ、事前に famigo 側の可否を確認して実施する。
+  - **①本システムのコンテナのみ起動/再起動**（`docker compose -f docker-compose.prod.yml up -d` 等）：famigo コンテナには触れない。**famigo 停止 0 秒**（通常のデプロイはこれ）。
+  - **②Docker エンジンの再起動**（`systemctl restart docker` 等）：ホスト上の全コンテナが再起動され、**famigo も数十秒〜1 分程度停止**。
+  - **③EC2 インスタンスの再起動/スケールアップ**（インスタンスタイプ変更等）：OS ごと再起動し、**famigo も 1〜3 分程度停止**（正確な秒数は famigo の起動時間に依存）。
 
 ### 3.3 Dockerネットワーク
 
@@ -255,9 +258,10 @@ ALB自体は既にfamigo用として稼働しており、本システムの相�
 
 ### 4.4 State管理
 
-- tfstateの保管先は`[要検討: S3 + DynamoDBロックか、個人用途のためlocal stateで十分か]`
-- 単独の個人開発であり、複数人・複数端末からの同時applyを想定しないため、チーム開発を前提としたstate管理の厳格化（リモートバックエンド必須化等）は現時点では過剰と判断する。まずはlocal stateで進め、共同編集や複数端末からの運用が必要になった時点でリモート化を検討する
-- 採用した方針とその理由、および`terraform import`・`terraform plan`・`terraform apply`の実行手順は、実装時にTerraform運用手順書（別途作成）に明記する（`[要検討: 手順書の置き場所・ファイル名を確定]`）
+- tfstateの保管先は **local state に確定**（`infra/versions.tf` の `backend "local"`、path=`terraform.tfstate`）
+- 単独の個人開発であり、複数人・複数端末からの同時applyを想定しないため、チーム開発を前提としたstate管理の厳格化（リモートバックエンド必須化等）は現時点では過剰と判断する。まずはlocal stateで進め、共同編集や複数端末からの運用が必要になった時点でリモート化（S3 backend）を検討する
+- tfstate はパスワード等の機密を平文で含みうるため、`.gitignore` でコミット除外する（`*.tfstate` / `.terraform/` 等）。プロバイダ版を固定する `.terraform.lock.hcl` は共有のため追跡する
+- Terraform の使い方（`init`・`fmt`・`validate`・`plan`・`apply`、ドメイン取得後の有効化手順）は `infra/README.md` に記載する
 
 ---
 
@@ -267,8 +271,8 @@ ALB自体は既にfamigo用として稼働しており、本システムの相�
 - [ ] EC2（t3.micro）でfamigo（Java/Spring Boot）・本システム（PHP/Laravel + Nginx）2アプリ同時稼働時のメモリ・CPU使用率を`free -h`・`docker stats`で実測し、本ドキュメント「3.4 EC2のリソース検証」に結果を追記
 - [ ] famigo-ec2上の既存docker-compose.yml・ディレクトリ構成の現物確認（`/opt/famigo/`配下の実際のパス名等）、本システム用docker-compose.ymlの配置・分離方法の具体化
 - [ ] famigo-sg-ec2の現物ルール確認（SSH許可元IP等、CLIでの要約は簡略化されているため`.tf`化前に詳細を再取得）
-- [ ] Terraform tfstateの保管方式確定
-- [ ] EC2上のアプリ切り替え・デプロイ手順の確定（famigoのGitHub Actions + SSM RunCommand方式を踏襲する方向で、本システム用のワークフローを具体化）
+- [x] Terraform tfstateの保管方式確定 → **ローカル保存**（`infra/versions.tf` の `backend "local"`）。個人開発・1台作業のため。tfstateは機密を含みうるため `.gitignore` でコミット除外。将来、複数PC・複数人になればS3 backendへ移行する（4.4）
+- [x] EC2上のアプリ切り替え・デプロイ手順の確定 → **当面は手動デプロイ**（SSH/SSMでEC2に入り `docker compose -f docker-compose.prod.yml up -d --build`）。CI/CDは今回導入せず将来検討（3.2）。本番用の Dockerfile.prod / docker-compose.prod.yml / entrypoint.prod.sh / .env.production.example をアプリリポジトリに用意済み（6章）
 - [x] Laravel側`/health`エンドポイントの実装（「3.5 ALB相乗り方式」参照）→ 実装済み（`routes/web.php`。認証なしで`200 OK`を返す。DB等の外部依存は見ない）
 
 ---
@@ -279,7 +283,7 @@ ALB自体は既にfamigo用として稼働しており、本システムの相�
 
 ### 6.1 ALB(HTTPS)終端に伴う必須設定（TrustProxies）
 
-- **`bootstrap/app.php` で `trustProxies` を設定する。** ALBがHTTPSを終端し、EC2へはHTTPで転送する構成のため、Laravelはこの設定がないと自分がHTTP接続だと誤認する。結果、`url()`/`route()` が `http://` を生成する・`secure` cookie が送出されない・httpsリダイレクトループが起きる等の不具合につながる。
+- **`bootstrap/app.php` で `trustProxies` を設定済み。** ALBがHTTPSを終端し、EC2へはHTTPで転送する構成のため、Laravelはこの設定がないと自分がHTTP接続だと誤認する。結果、`url()`/`route()` が `http://` を生成する・`secure` cookie が送出されない・httpsリダイレクトループが起きる等の不具合につながる。
   ```php
   ->withMiddleware(function (Middleware $middleware) {
       // ALB配下のため、転送元プロキシを信頼して X-Forwarded-* を反映する
@@ -319,7 +323,7 @@ php artisan route:cache            # ルートキャッシュ
 php artisan view:cache             # Bladeビューのコンパイルキャッシュ
 ```
 
-- 現状の `docker/php/entrypoint.sh` は開発用（storage初期化のみ）。**本番用は上記の最適化・migrateを含む別entrypoint（またはSSM RunCommand手順）を用意する**（コンテナ内部構成のためアプリリポジトリ側で管理。4.3参照）。
+- 開発用 `docker/php/entrypoint.sh` は storage 初期化のみ。**本番用は `docker/php/entrypoint.prod.sh` を用意済み**（上記 migrate + config/route/view:cache を実行）。本番イメージは `docker/php/Dockerfile.prod`・`docker/nginx/Dockerfile.prod`、起動は `docker-compose.prod.yml`、環境変数は `.env.production.example` を雛形とする（いずれもアプリリポジトリ側で管理。4.3参照）。
 - 初期データ投入：初回のみ `php artisan db:seed --class=OfficeSeeder`・`--class=AdminUserSeeder` を実行する（管理者は投入後すぐパスワード変更）。体験用サンプル（`SampleStaffSeeder`/`SampleRequestSeeder`）を本番に入れるかは運用方針次第。
 
 ### 6.4 ヘルスチェックエンドポイントの使い分け
