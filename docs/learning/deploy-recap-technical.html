@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>デプロイ作業の振り返り（技術版）— Civil Track</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #f0f2f5;
+    --ink: #1b2130; --ink-soft: #4b5464; --ink-faint: #858da0; --line: #e3e6ec;
+    --accent: #2f5bd6; --accent-soft: #e7edfc; --accent-ink: #1a2e63;
+    --ok: #2f8f5b; --warn: #c56636; --warn-soft: #fbeee5;
+    --codebg: #1c2333; --codetext: #e6e9f2; --codecomment: #8a94ad; --codekey: #8fb3ff; --codestr: #9ed99b;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1117; --surface: #171b24; --surface-2: #1e2430;
+      --ink: #e9ebf1; --ink-soft: #b3bbcb; --ink-faint: #7c8598; --line: #262d3a;
+      --accent: #7099f5; --accent-soft: #22304f; --accent-ink: #d9e4ff;
+      --ok: #5cc088; --warn: #e0895e; --warn-soft: #2f2016;
+      --codebg: #0b0e16; --codetext: #e6e9f2;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1117; --surface: #171b24; --surface-2: #1e2430;
+    --ink: #e9ebf1; --ink-soft: #b3bbcb; --ink-faint: #7c8598; --line: #262d3a;
+    --accent: #7099f5; --accent-soft: #22304f; --accent-ink: #d9e4ff;
+    --ok: #5cc088; --warn: #e0895e; --warn-soft: #2f2016; --codebg: #0b0e16;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #f0f2f5;
+    --ink: #1b2130; --ink-soft: #4b5464; --ink-faint: #858da0; --line: #e3e6ec;
+    --accent: #2f5bd6; --accent-soft: #e7edfc; --accent-ink: #1a2e63;
+    --ok: #2f8f5b; --warn: #c56636; --warn-soft: #fbeee5; --codebg: #1c2333;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); line-height: 1.7; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 44px 22px 80px; }
+  .themebtn { position: fixed; top: 14px; right: 14px; z-index: 10; border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); border-radius: 20px; padding: 6px 14px; font: 600 13px var(--font); cursor: pointer; }
+
+  header .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 8px; }
+  h1 { font-size: clamp(24px, 4.2vw, 33px); line-height: 1.2; margin: 0 0 12px; letter-spacing: -.02em; text-wrap: balance; }
+  .lede { color: var(--ink-soft); font-size: 15.5px; margin: 0; }
+  .toc { margin: 22px 0 0; padding: 14px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
+  .toc b { color: var(--ink); } .toc a { color: var(--accent); text-decoration: none; } .toc a:hover { text-decoration: underline; }
+
+  h2 { font-size: 21px; margin: 52px 0 4px; letter-spacing: -.01em; display: flex; align-items: baseline; gap: 11px; scroll-margin-top: 20px; }
+  h2 .act { font-size: 12px; font-weight: 800; color: #fff; background: var(--accent); border-radius: 7px; padding: 3px 9px; letter-spacing: .04em; white-space: nowrap; }
+  .actsub { color: var(--ink-faint); font-size: 13.5px; margin: 6px 0 20px; }
+
+  h3 { font-size: 16px; margin: 26px 0 8px; }
+  h3 .n { color: var(--accent); font-weight: 800; margin-right: 6px; }
+  p { margin: 8px 0; color: var(--ink-soft); font-size: 14.5px; }
+  .purpose { font-size: 14px; color: var(--ink-soft); background: var(--surface-2); border-radius: 8px; padding: 9px 13px; margin: 8px 0; }
+  .purpose b { color: var(--ink); }
+
+  pre { background: var(--codebg); color: var(--codetext); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: var(--mono); font-size: 12.8px; line-height: 1.6; margin: 10px 0; border: 1px solid rgba(255,255,255,.06); }
+  pre .c { color: var(--codecomment); } /* comment */
+  pre .k { color: var(--codekey); }     /* keyword */
+  pre .s { color: var(--codestr); }     /* string */
+  code { font-family: var(--mono); font-size: .86em; background: var(--surface-2); padding: 1px 6px; border-radius: 5px; color: var(--ink); }
+  .filelabel { display: inline-block; font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft); border-radius: 6px 6px 0 0; padding: 4px 10px; margin: 12px 0 0; }
+  .filelabel + pre { margin-top: 0; border-top-left-radius: 0; }
+
+  .cmd { display: inline-block; font-size: 11px; font-weight: 700; color: #fff; background: var(--ok); border-radius: 5px; padding: 1px 7px; margin-right: 6px; vertical-align: middle; }
+  .file { display: inline-block; font-size: 11px; font-weight: 700; color: #fff; background: var(--accent); border-radius: 5px; padding: 1px 7px; margin-right: 6px; vertical-align: middle; }
+  .trouble { display: inline-block; font-size: 11px; font-weight: 700; color: #fff; background: var(--warn); border-radius: 5px; padding: 1px 7px; margin-right: 6px; vertical-align: middle; }
+
+  .note { display: flex; gap: 10px; align-items: flex-start; background: var(--warn-soft); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 8px; padding: 11px 14px; margin: 12px 0; font-size: 13.5px; color: var(--ink-soft); }
+  .note b { color: var(--ink); }
+  .execbox { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; padding: 14px 18px; margin: 4px 0 14px; }
+  .execbox h3 { font-size: 15px; margin: 0 0 8px; color: var(--ink); }
+  .execbox p { font-size: 14px; margin: 8px 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 12px 0; }
+  .tscroll { overflow-x: auto; }
+  th, td { text-align: left; padding: 9px 11px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 11.5px; letter-spacing: .03em; text-transform: uppercase; color: var(--ink-faint); font-weight: 700; white-space: nowrap; }
+  td code { font-size: 12px; }
+
+  footer { margin-top: 52px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 12.5px; }
+</style></head>
+<body>
+<button class="themebtn" id="themebtn" type="button">🌓 テーマ切替</button>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Deploy Recap · 技術版</p>
+    <h1>Civil Track デプロイ — 実際の手順とファイル</h1>
+    <p class="lede">「何のために」に加えて「どのファイルを作り・どのコマンドを打ったか」を各ステップに添えた技術版。イメージ版と対で読むと、再現・修正できる理解になります。</p>
+    <div class="toc">
+      <b>目次：</b>
+      <a href="#act1">第1幕 インフラ構築（Terraform）</a> ／
+      <a href="#act2">第2幕 本番アプリ設定</a> ／
+      <a href="#act3">第3幕 デプロイ作業</a> ／
+      <a href="#files">作成ファイル一覧</a>
+    </div>
+    <div class="note"><span>🏷️</span><span>凡例：<span class="file">FILE</span> ファイル作成／編集　<span class="cmd">CMD</span> コマンド実行　<span class="trouble">対処</span> 想定外への対処</span></div>
+  </header>
+
+  <!-- ============ 第1幕 ============ -->
+  <h2 id="act1"><span class="act">第1幕</span>インフラ構築（Terraform）</h2>
+  <p class="actsub">AWS に「部屋と通り道」を作る。手作業でなくコードで。</p>
+
+  <h3><span class="n">1-1</span><span class="file">FILE</span>Terraform コードを infra/ に作成</h3>
+  <div class="purpose"><b>目的：</b>「何をAWSに作るか」を10個のファイルに分けて宣言。役割ごとに分割し、既存famigoは<b>参照だけ</b>（data）、新規分だけ<b>作成</b>（resource）と明確に分ける。</div>
+  <div class="tscroll"><table>
+    <thead><tr><th>ファイル</th><th>役割</th><th>要点</th></tr></thead>
+    <tbody>
+      <tr><td><code>versions.tf</code></td><td>Terraform本体/プロバイダのバージョン・state保存方式</td><td><code>backend "local"</code>＝stateをローカル保存</td></tr>
+      <tr><td><code>providers.tf</code></td><td>AWS接続設定</td><td>リージョン東京・全リソースに共通タグ付与</td></tr>
+      <tr><td><code>variables.tf</code></td><td>値の一覧（famigoの実物ID・ポート・ドメイン）</td><td>設計書§2の実測ID(VPC/EC2/SG)をdefault化</td></tr>
+      <tr><td><code>data.tf</code></td><td>既存famigoリソースの<b>参照</b></td><td>VPC/ALB/リスナー/EC2/SGを「読むだけ」</td></tr>
+      <tr><td><code>target_group.tf</code></td><td>振り分け先(TG)＋EC2登録</td><td>8081・ヘルスチェック<code>/health</code></td></tr>
+      <tr><td><code>security_group.tf</code></td><td>EC2 SGに8081許可を1本追加</td><td>「1ルールだけ」のリソースで既存に触れない</td></tr>
+      <tr><td><code>acm.tf</code></td><td>HTTPS証明書(DNS検証)</td><td>ドメイン未設定なら作らない仕掛け</td></tr>
+      <tr><td><code>route53.tf</code></td><td>DNS(ホストゾーン・レコード)</td><td>別ゾーン新規作成。famigoに非干渉</td></tr>
+      <tr><td><code>listener_rule.tf</code></td><td>ALB443にホストベースルール追加</td><td>既定(→famigo)は不変、ルール1本足す</td></tr>
+      <tr><td><code>outputs.tf</code></td><td>完成後に必要な値の出力</td><td>ネームサーバー4つ・公開URL等</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>要点コード</b>（famigo無影響の核）— 既存SGに「1ルールだけ」足す書き方：</p>
+  <span class="filelabel">infra/security_group.tf</span>
+<pre><span class="k">resource</span> <span class="s">"aws_vpc_security_group_ingress_rule"</span> <span class="s">"ec2_allow_alb_8081"</span> {
+  security_group_id            = data.aws_security_group.famigo_ec2.id  <span class="c"># 既存SGに</span>
+  referenced_security_group_id = data.aws_security_group.famigo_alb.id  <span class="c"># ALBからのみ</span>
+  from_port = <span class="s">8081</span>
+  to_port   = <span class="s">8081</span>
+  ip_protocol = <span class="s">"tcp"</span>
+}
+<span class="c"># SG本体(aws_security_group)を管理下に置かない＝既存ルールに一切触れない</span></pre>
+
+  <h3><span class="n">1-2</span><span class="cmd">CMD</span>静的チェック（AWSに触れず・課金なし）</h3>
+  <div class="purpose"><b>目的：</b>コードの文法・整形が正しいかを、AWSに接続せず確認。</div>
+<pre><span class="k">cd</span> infra
+terraform init -backend=false   <span class="c"># プロバイダ(AWS操作プラグイン)取得のみ</span>
+terraform fmt -recursive        <span class="c"># インデント整形</span>
+terraform validate              <span class="c"># 文法・参照の整合チェック → Success</span></pre>
+
+  <h3><span class="n">1-3</span><span class="cmd">CMD</span>AWS認証（SSO）とドメイン取得</h3>
+  <div class="purpose"><b>目的：</b>AWSを操作する権限を得る＋利用者の入口(ドメイン)を用意。</div>
+<pre>aws sso login --profile takashima   <span class="c"># ブラウザでログイン→一時認証(数時間有効)</span>
+aws sts get-caller-identity          <span class="c"># 認証できたか確認</span></pre>
+  <p>お名前.com で <code>civil-track.com</code> を購入（年約1,600円・レンタルサーバー等の抱き合わせは外す）。ネームサーバーは後でRoute53のものに差し替える。</p>
+
+  <h3><span class="n">1-4</span><span class="cmd">CMD</span>plan（差分プレビュー）→ apply（実作成）</h3>
+  <div class="purpose"><b>目的：</b>「何が作られるか」を先に確認してから、実際にAWSへ作る。</div>
+  <p>ドメインの検証は「DNSがRoute53に向いてから」でないと通らないため、<b>2段階</b>で実施した：</p>
+<pre><span class="c"># ① まずホストゾーンだけ作る → ネームサーバー4つを取得</span>
+terraform apply -target=aws_route53_zone.app -auto-approve
+<span class="c">#   出力された ns-xxxx.awsdns-xx... 4つを お名前.com に登録（DNSをRoute53へ向ける）</span>
+
+<span class="c"># ② DNS伝播を確認</span>
+nslookup -type=NS civil-track.com 8.8.8.8   <span class="c"># Route53のNSが返ればOK</span>
+
+<span class="c"># ③ 残り全部を作成（ACM証明書・リスナールール・TG・SGルール等）</span>
+terraform apply -auto-approve
+<span class="c">#   → Plan: 10 to add, 0 to change, 0 to destroy （famigoは0変更・0削除）</span></pre>
+  <div class="note"><span>💡</span><span><b>plan と apply の違い：</b>plan は「作らずに差分を表示するだけ・課金なし」。apply は「実際にAWSへ作る」。毎回 plan で <b>0 to change / 0 to destroy</b>（＝famigoに触れない）を確認してから apply した。</span></div>
+  <div class="note"><span>🔑</span><span><b>terraform.tfvars</b>（機密扱い・非コミット）に <code>app_domain_name = "civil-track.com"</code> を書くと、ドメイン依存リソース(ACM/Route53/ルール)が有効化される仕掛けにしてある。</span></div>
+
+  <!-- ============ 第2幕 ============ -->
+  <h2 id="act2"><span class="act">第2幕</span>本番アプリ設定</h2>
+  <p class="actsub">同じアプリを「本番用の顔」に。これらは事前にコードとして準備済み。</p>
+
+  <h3><span class="n">2-1</span><span class="file">FILE</span>ALB越しで正しく動く設定（TrustProxies）</h3>
+  <div class="purpose"><b>目的：</b>ALBがHTTPSを終端しEC2へHTTPで渡すため、この設定が無いとアプリがHTTPと誤認→cookie不送出・リダイレクトループ。</div>
+  <span class="filelabel">bootstrap/app.php</span>
+<pre>$middleware->trustProxies(at: <span class="s">'*'</span>, headers:
+    Request::HEADER_X_FORWARDED_FOR
+  | Request::HEADER_X_FORWARDED_HOST
+  | Request::HEADER_X_FORWARDED_PORT
+  | Request::HEADER_X_FORWARDED_PROTO);   <span class="c"># ALBが付ける「元はHTTPS」の印を信頼</span></pre>
+
+  <h3><span class="n">2-2</span><span class="file">FILE</span>本番用の環境設定ファイル</h3>
+  <div class="purpose"><b>目的：</b>ローカル用(<code>APP_DEBUG=true</code>等)を本番に持ち込まない。本番専用の雛形を分離。</div>
+  <span class="filelabel">.env.production.example（抜粋）</span>
+<pre>APP_ENV=<span class="s">production</span>
+APP_DEBUG=<span class="s">false</span>          <span class="c"># 必須：例外画面に内部情報を出さない</span>
+APP_URL=<span class="s">https://civil-track.com</span>
+DB_HOST=<span class="s">famigo-mysql....rds.amazonaws.com</span>
+DB_DATABASE=<span class="s">civil_request_management</span>   <span class="c"># 本システム専用スキーマ</span>
+SESSION_SECURE_COOKIE=<span class="s">true</span>       <span class="c"># HTTPSでのみcookie送信</span>
+<span class="c"># APP_KEY / DB_PASSWORD は空 → 本番で実値を入れる（機密はコミットしない）</span></pre>
+
+  <h3><span class="n">2-3</span><span class="file">FILE</span>本番用の起動イメージ・手順</h3>
+  <div class="purpose"><b>目的：</b>本番はソースをイメージに焼き込み、起動時にDB更新＆高速化を自動実行。</div>
+  <div class="tscroll"><table>
+    <thead><tr><th>ファイル</th><th>役割・要点</th></tr></thead>
+    <tbody>
+      <tr><td><code>docker/php/Dockerfile.prod</code></td><td>PHP実行環境。<code>composer install --no-dev</code>で本番依存のみ＋ソース焼き込み</td></tr>
+      <tr><td><code>docker/nginx/Dockerfile.prod</code></td><td>Nginx。<code>public/</code>を焼き込み静的配信、PHPへfastcgi</td></tr>
+      <tr><td><code>docker/php/entrypoint.prod.sh</code></td><td>起動時に<code>migrate --force</code>＋<code>config/route/view:cache</code></td></tr>
+      <tr><td><code>docker-compose.prod.yml</code></td><td>Nginx+PHPの2コンテナ。<b>famigoと完全分離</b>（専用network/8081公開）</td></tr>
+    </tbody>
+  </table></div>
+  <span class="filelabel">docker/php/entrypoint.prod.sh（要点）</span>
+<pre>php artisan migrate --force   <span class="c"># DBテーブルを最新に（対話プロンプト無し）</span>
+php artisan config:cache      <span class="c"># 設定を事前キャッシュ＝高速化</span>
+php artisan route:cache
+php artisan view:cache</pre>
+
+  <!-- ============ 第3幕 ============ -->
+  <h2 id="act3"><span class="act">第3幕</span>デプロイ作業</h2>
+  <p class="actsub">用意した部屋に、本番仕様のアプリを実際に設置して動かす。</p>
+
+  <div class="execbox">
+    <h3 style="margin-top:0">🖥️ この幕の作業は「誰が・どう実行したか」</h3>
+    <p>本来この一連（EC2にフォルダを作る→コードを取り込む→RDSに入ってDB・テーブル・初期データを作る→Dockerをビルド・起動）は、EC2 のターミナルに入って手でコマンドを打つ作業。今回は <b>AI（私）が SSM Run Command 経由でコマンドを送り込み、利用者の代わりに実行</b>した（<code>aws ssm send-command ...</code>）。手でログインして打つのと結果は同じ。</p>
+    <p style="margin-bottom:0"><b>ただし機密が絡む箇所だけは利用者が手打ち：</b>RDS の <code>CREATE DATABASE/USER/GRANT</code>（マスターパスワードをログに残さないため）と、<code>.env.production</code> への APP_KEY・DBパスワード記入。これらは AI のコマンド履歴に残さないよう、利用者の手元セッションで実施した。</p>
+  </div>
+
+  <div class="note" style="border-left-color: var(--ok); background: var(--surface);">
+    <span>♻️</span>
+    <span><b>これらは基本「一度きり」の構築作業。</b>作ったフォルダ・コード・Swap・RDSのDB/テーブル/初期データは、EC2/RDSを<b>停止しても消えず残る</b>ため、次回以降やり直す必要はない。<b>毎回必要なのはコンテナ起動だけ</b>で、それも <code>restart: unless-stopped</code> で自動復帰する見込み。詳細は<a href="#reexec" style="color:var(--accent)">末尾の「再実行が必要か早見表」</a>を参照。</span>
+  </div>
+
+  <h3><span class="n">3-1</span><span class="cmd">CMD</span>EC2に入る手段＝SSM で環境調査</h3>
+  <div class="purpose"><b>目的：</b>鍵不要でEC2を遠隔操作。まず中身(docker/git等)を調べる。</div>
+<pre><span class="c"># EC2に「コマンドを送って結果を受け取る」方式（対話ログイン不要）</span>
+aws ssm send-command --instance-ids i-0dcf0d521ec4ae906 \
+  --document-name <span class="s">"AWS-RunShellScript"</span> \
+  --parameters <span class="s">'commands=["docker --version; git --version; free -h"]'</span>
+<span class="c"># 判明：docker有／git無し／メモリ実質1GB弱でSwap 0</span></pre>
+
+  <h3><span class="n">3-2</span><span class="trouble">対処</span><span class="cmd">CMD</span>メモリ保険：Swap 2GB追加</h3>
+  <div class="purpose"><b>目的：</b>メモリ不足でアプリが強制終了し<b>famigoが巻き添えで落ちる</b>のを防ぐ避難場所を用意。</div>
+<pre>fallocate -l 2G /swapfile; chmod 600 /swapfile
+mkswap /swapfile; swapon /swapfile
+<span class="k">echo</span> <span class="s">"/swapfile none swap sw 0 0"</span> >> /etc/fstab   <span class="c"># 再起動後も有効</span></pre>
+
+  <h3><span class="n">3-3</span><span class="cmd">CMD</span>アプリのコードをEC2に配置</h3>
+  <div class="purpose"><b>目的：</b>動かす実体を運び込む。gitが無いのでtarball(zip)を取得して展開。</div>
+<pre>mkdir -p /opt/civil && cd /opt/civil
+curl -fsSL -o main.tar.gz \
+  https://github.com/tomo-taka108/Civil-Request-Management/archive/refs/heads/main.tar.gz
+tar xzf main.tar.gz --strip-components=1   <span class="c"># /opt/civil に展開</span>
+<span class="c"># 続いて .env.production を作成（APP_KEY生成・DB_PASSWORD等を記入）</span></pre>
+
+  <h3><span class="n">3-4</span><span class="cmd">CMD</span>RDSに専用スキーマ・ユーザー・テーブルを作成</h3>
+  <div class="purpose"><b>目的：</b>データ保存先を用意。famigoと棚を分け、専用ユーザーは自分の棚しか触れない最小権限。</div>
+  <p>マスター権限のSQLは<b>機密のためログに残さず手元(EC2セッション)で</b>実行：</p>
+<pre><span class="c">-- RDSにマスターユーザーで接続して実行</span>
+<span class="k">CREATE DATABASE</span> civil_request_management CHARACTER SET utf8mb4 COLLATE utf8mb4_ja_0900_as_cs;
+<span class="k">CREATE USER</span> <span class="s">'civil_request_app'</span>@<span class="s">'%'</span> IDENTIFIED BY <span class="s">'(生成したパスワード)'</span>;
+<span class="k">GRANT</span> SELECT,INSERT,UPDATE,DELETE,CREATE,ALTER,INDEX,DROP,REFERENCES
+  ON civil_request_management.* TO <span class="s">'civil_request_app'</span>@<span class="s">'%'</span>;</pre>
+<pre><span class="c"># テーブル生成と初期データ投入（コンテナ経由でartisan実行）</span>
+docker compose -f docker-compose.prod.yml run --rm --no-deps php php artisan migrate --force
+... db:seed --class=OfficeSeeder --force      <span class="c"># 事務所3件</span>
+... db:seed --class=AdminUserSeeder --force   <span class="c"># 管理者admin</span></pre>
+
+  <h3><span class="n">3-5</span><span class="trouble">対処</span>本番特有のつまずきを解消</h3>
+  <div class="purpose"><b>目的：</b>ローカルと違う本番環境で、実際に動かして判明した差異を1つずつ潰す。</div>
+  <div class="tscroll"><table>
+    <thead><tr><th>症状</th><th>原因</th><th>対処</th></tr></thead>
+    <tbody>
+      <tr><td>ビルドが<code>buildx 0.17必要</code>で失敗</td><td>EC2のbuildxが旧版(0.12)</td><td><code>DOCKER_BUILDKIT=0</code>で旧ビルダー使用</td></tr>
+      <tr><td>外部キー作成で<code>REFERENCES denied</code></td><td>専用ユーザーにREFERENCES権限なし</td><td>マスターで<code>GRANT REFERENCES</code>追加</td></tr>
+      <tr><td><code>users already exists</code>が消えない</td><td>再起動ループ中のコンテナが裏でmigrate実行しDBを汚染</td><td><code>compose down</code>で停止→DROP→migrateやり直し</td></tr>
+      <tr><td>git無し</td><td>famigoは事前ビルドjar方式</td><td>tarball取得に切替(3-3)</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="n">3-6</span><span class="cmd">CMD</span>コンテナ起動＆開通確認</h3>
+  <div class="purpose"><b>目的：</b>「ブラウザ→ALB→EC2→RDS」が実際に一本つながったか最終確認。</div>
+<pre><span class="c"># ビルド→起動</span>
+export DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml up -d
+
+<span class="c"># 確認①：EC2内でヘルスチェック</span>
+curl -s -o /dev/null -w <span class="s">"%{http_code}"</span> http://localhost:8081/health   <span class="c"># → 200</span>
+free -h                                                          <span class="c"># メモリ実測（famigo無事）</span>
+
+<span class="c"># 確認②：ALBのターゲットが healthy か</span>
+aws elbv2 describe-target-health --target-group-arn ...          <span class="c"># → healthy</span>
+
+<span class="c"># 確認③：インターネット経由（HTTPS）</span>
+curl https://civil-track.com/health                              <span class="c"># → 200</span>
+curl -I https://civil-track.com/                                 <span class="c"># → 302 /login（ログイン画面へ）</span></pre>
+
+  <!-- ============ ファイル一覧 ============ -->
+  <h2 id="files"><span class="act">まとめ</span>今回作成したファイル一覧</h2>
+  <p class="actsub">どのファイルが何のためのものか（すべてGitで管理。機密の実ファイルは非コミット）。</p>
+  <div class="tscroll"><table>
+    <thead><tr><th>ファイル</th><th>幕</th><th>役割</th></tr></thead>
+    <tbody>
+      <tr><td><code>infra/*.tf</code>（10個）</td><td>1</td><td>AWSに作る部品の設計図（Terraform）</td></tr>
+      <tr><td><code>infra/terraform.tfvars</code></td><td>1</td><td>ドメイン名等の実値（機密・非コミット）</td></tr>
+      <tr><td><code>bootstrap/app.php</code>（編集）</td><td>2</td><td>TrustProxies追加（ALB対応）</td></tr>
+      <tr><td><code>.env.production.example</code></td><td>2</td><td>本番環境変数の雛形</td></tr>
+      <tr><td><code>docker/php/Dockerfile.prod</code></td><td>2</td><td>本番PHPイメージ定義</td></tr>
+      <tr><td><code>docker/nginx/Dockerfile.prod</code></td><td>2</td><td>本番Nginxイメージ定義</td></tr>
+      <tr><td><code>docker/php/entrypoint.prod.sh</code></td><td>2</td><td>起動時のmigrate＋cache</td></tr>
+      <tr><td><code>docker-compose.prod.yml</code></td><td>2</td><td>本番の2コンテナ構成（famigo分離）</td></tr>
+      <tr><td><code>docs/operations-start-stop.md</code></td><td>後</td><td>停止・再開の運用手順</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><span>🖥️</span><span><b>EC2上にだけ在るもの（Git非管理）：</b><code>/opt/civil</code>（tarball展開したソース）・<code>/opt/civil/.env.production</code>（機密）・<code>/swapfile</code>（2GB）。RDS内の<code>civil_request_management</code>スキーマ・専用ユーザーも手作業で作成した実体。</span></div>
+
+  <h2 id="reexec"><span class="act">早見表</span>この作業、次回も要る？</h2>
+  <p class="actsub">第3幕でやった各作業が「一度きり（完了済み）」か「起動のたびに必要」か。停止→再開のたびにゼロからやり直す必要はない。</p>
+  <div class="tscroll"><table>
+    <thead><tr><th>作業</th><th>種別</th><th>次回以降</th></tr></thead>
+    <tbody>
+      <tr><td>EC2 <code>/opt/civil</code> フォルダ作成</td><td>一度きり</td><td>✅ 不要（ディスクに残る）</td></tr>
+      <tr><td>コード配置（tarball展開）</td><td>一度きり</td><td>✅ 不要 ※コード更新時のみ再取得</td></tr>
+      <tr><td>Swap 2GB 追加</td><td>一度きり</td><td>✅ 不要（fstab登録で再起動後も有効）</td></tr>
+      <tr><td><code>.env.production</code> 作成</td><td>一度きり</td><td>✅ 不要（設定変更時のみ編集）</td></tr>
+      <tr><td>RDS の DB・ユーザー・GRANT 作成</td><td>一度きり</td><td>✅ 不要（RDSに永続。停止しても消えない）</td></tr>
+      <tr><td>テーブル生成（migrate）・初期データ（seed）</td><td>一度きり</td><td>✅ 不要 ※スキーマ変更時のみ追加migrate</td></tr>
+      <tr><td>Terraform インフラ（ALB/証明書/DNS等）</td><td>一度きり</td><td>✅ 不要（AWSに存在し続ける）</td></tr>
+      <tr><td><b>Dockerコンテナの起動（up -d）</b></td><td><b>起動のたび</b></td><td>🔁 EC2再開時に必要。ただし <code>restart: unless-stopped</code> で<b>自動復帰する見込み</b>。出なければ手動 <code>up -d</code> 1回</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note" style="border-left-color: var(--ok); background: var(--surface);"><span>📌</span><span><b>まとめ：</b>停止→再開で戻るのは「コンテナ起動」だけ。フォルダ作成やDB作成に戻る必要は無い。<b>コードを更新したい時だけ</b>「コード再取得＋ビルド＆起動」を行う（DB作成等は不要）。再開手順の詳細は <code>docs/operations-start-stop.md</code>。</span></div>
+
+  <footer>
+    Civil Track（CivilRequestManagement）／デプロイ実施 2026-08-02。設定の根拠は <code>docs/infrastructure-design.md</code>、停止・再開は <code>docs/operations-start-stop.md</code>。イメージ重視版の振り返りと対で参照。
+  </footer>
+</div>
+<script>
+  (function () {
+    var btn = document.getElementById('themebtn'), root = document.documentElement;
+    btn.addEventListener('click', function () {
+      var mqDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var cur = root.getAttribute('data-theme') || (mqDark ? 'dark' : 'light');
+      root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+    });
+  })();
+</script>
+
+</body>
+</html>

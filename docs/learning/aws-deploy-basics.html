@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AWSデプロイの仕組み — ブラウザからDBまで</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #fafbfc;
+    --ink: #1b2130;
+    --ink-soft: #4b5464;
+    --ink-faint: #858da0;
+    --line: #e3e6ec;
+    --accent: #2f5bd6;
+    --accent-soft: #e7edfc;
+    --accent-ink: #1a2e63;
+    --exist: #6d7688;
+    --exist-soft: #eceef2;
+    --net: #0f9b8e;
+    --net-soft: #e2f4f1;
+    --warn: #c56636;
+    --warn-soft: #fbeee5;
+    --radius: 14px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10131a; --surface: #191d26; --surface-2: #151922; --ink: #e9ebf1;
+      --ink-soft: #b3bbcb; --ink-faint: #7c8598; --line: #2a3040;
+      --accent: #7099f5; --accent-soft: #22304f; --accent-ink: #d9e4ff;
+      --exist: #8a93a5; --exist-soft: #242a36;
+      --net: #52c9bc; --net-soft: #153230;
+      --warn: #e0895e; --warn-soft: #2f2016;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10131a; --surface: #191d26; --surface-2: #151922; --ink: #e9ebf1;
+    --ink-soft: #b3bbcb; --ink-faint: #7c8598; --line: #2a3040;
+    --accent: #7099f5; --accent-soft: #22304f; --accent-ink: #d9e4ff;
+    --exist: #8a93a5; --exist-soft: #242a36; --net: #52c9bc; --net-soft: #153230;
+    --warn: #e0895e; --warn-soft: #2f2016;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #fafbfc; --ink: #1b2130;
+    --ink-soft: #4b5464; --ink-faint: #858da0; --line: #e3e6ec;
+    --accent: #2f5bd6; --accent-soft: #e7edfc; --accent-ink: #1a2e63;
+    --exist: #6d7688; --exist-soft: #eceef2; --net: #0f9b8e; --net-soft: #e2f4f1;
+    --warn: #c56636; --warn-soft: #fbeee5;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 44px 22px 80px; }
+
+  .themebtn { position: fixed; top: 14px; right: 14px; z-index: 10; border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); border-radius: 20px; padding: 6px 14px; font: 600 13px var(--font); cursor: pointer; }
+  .themebtn:hover { color: var(--ink); }
+  .themebtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  header .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 8px; }
+  h1 { font-size: clamp(25px, 4.5vw, 36px); line-height: 1.2; margin: 0 0 10px; letter-spacing: -.02em; text-wrap: balance; }
+  header .lede { color: var(--ink-soft); font-size: 16px; margin: 0; }
+
+  h2 { font-size: 21px; margin: 52px 0 4px; letter-spacing: -.01em; }
+  h2 .num { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 10px; }
+  .h2sub { color: var(--ink-faint); font-size: 14px; margin: 0 0 20px; }
+
+  /* flow steps */
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .step { display: grid; grid-template-columns: 44px 1fr; gap: 16px; }
+  .rail { display: flex; flex-direction: column; align-items: center; }
+  .dot { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex: none; font-variant-numeric: tabular-nums; }
+  .line { width: 2px; flex: 1; background: var(--line); margin: 4px 0; min-height: 14px; }
+  .step:last-child .line { display: none; }
+  .body { padding-bottom: 26px; }
+  .step h3 { margin: 3px 0 6px; font-size: 17px; }
+  .step p { margin: 0 0 10px; color: var(--ink-soft); font-size: 15px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; background: var(--accent-soft); color: var(--accent-ink); white-space: nowrap; }
+  .chip.exist { background: var(--exist-soft); color: var(--exist); }
+  .chip.net { background: var(--net-soft); color: var(--net); }
+
+  code { font-family: var(--mono); font-size: .88em; background: var(--exist-soft); padding: 1px 6px; border-radius: 5px; }
+
+  /* glossary cards */
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px; margin-top: 14px; }
+  .card h3 { margin: 0 0 4px; font-size: 17px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .card .role { font-size: 12.5px; color: var(--ink-faint); font-weight: 600; }
+  .card p { margin: 8px 0 0; color: var(--ink-soft); font-size: 14.5px; }
+  .card .analogy { margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border-left: 3px solid var(--accent); border-radius: 6px; font-size: 13.5px; color: var(--ink-soft); }
+  .card .analogy b { color: var(--ink); }
+  .tag { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px; white-space: nowrap; }
+  .tag-new { background: var(--accent-soft); color: var(--accent-ink); }
+  .tag-exist { background: var(--exist-soft); color: var(--exist); }
+
+  .note { display: flex; gap: 11px; align-items: flex-start; background: var(--warn-soft); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 8px; padding: 13px 15px; margin-top: 16px; font-size: 14px; color: var(--ink-soft); }
+  .note b { color: var(--ink); }
+
+  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 13px; }
+</style>
+</head>
+<body>
+<button class="themebtn" id="themebtn" type="button" aria-label="ライト・ダーク切替">🌓 テーマ切替</button>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">AWS Deploy · 仕組み解説</p>
+    <h1>ブラウザ → ALB → EC2 → RDS を分解する</h1>
+    <p class="lede">利用者が URL を打ってから画面が返るまで。その一連の流れの中で、Route53・ACM・リスナー・ターゲットグループ・セキュリティグループ等が「どこで・何のために」登場するのかを順番に追います。値は famigo 相乗り環境の実設定に沿っています。</p>
+  </header>
+
+  <h2><span class="num">1</span>リクエストの旅（時系列）</h2>
+  <p class="h2sub">1本のリクエストが左から右へ進み、また戻ってくるまで。各ステップの色付きタグ＝そこで登場する技術。</p>
+
+  <div class="flow">
+    <div class="step">
+      <div class="rail"><div class="dot">1</div><div class="line"></div></div>
+      <div class="body">
+        <h3>名前解決：ドメイン → IPアドレス</h3>
+        <p>ブラウザが「このドメインのサーバーはどこ？」を調べる（DNS）。答えを持つのが <b>Route53 ホストゾーン</b>。「このドメイン＝ALB」というレコードを返し、ブラウザは ALB の在り処を知る。まだ通信は始まっていない＝電話帳を引いた段階。</p>
+        <div class="chips"><span class="chip">Route53 ホストゾーン</span><span class="chip">DNS</span></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="rail"><div class="dot">2</div><div class="line"></div></div>
+      <div class="body">
+        <h3>ブラウザが ALB に接続（HTTPS・443）</h3>
+        <p>得た IP（＝ALB）へ接続。<code>https://</code> なので <b>443番ポート</b>・暗号化通信。「このサーバーは本物」を示す <b>ACM証明書</b> が ALB に載っており、ここで暗号化の握手に使われる。ALB は internet-facing なのでインターネットから直接届く。</p>
+        <div class="chips"><span class="chip net">443 / HTTPS</span><span class="chip net">ACM証明書</span><span class="chip exist">ALB（既存流用）</span></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="rail"><div class="dot">3</div><div class="line"></div></div>
+      <div class="body">
+        <h3>ALB が振り分け先を判断（リスナー・ルール・ターゲットグループ）</h3>
+        <p>ALB は自分で処理せず後ろへ転送する。「443 で受けたものをどうするか」が <b>リスナー</b>。その中の <b>ルール</b> が条件で振り分ける。振り分け先の束が <b>ターゲットグループ</b>。<b>あなたが新規追加するのは「ホスト名＝自ドメインなら本システムのターゲットグループへ」というルール1本と、その受け皿のターゲットグループ。</b></p>
+        <div class="chips"><span class="chip exist">リスナー（既存）</span><span class="chip"><b>ルール（新規）</b></span><span class="chip"><b>civil-request-tg-8081（新規）</b></span></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="rail"><div class="dot">4</div><div class="line"></div></div>
+      <div class="body">
+        <h3>ALB → EC2 のコンテナへ（8081）</h3>
+        <p>ターゲットグループが指すのは EC2 上で動く本システムのコンテナ（Nginx + PHP-FPM、<b>8081番</b>で待受）。ALB がそこへ転送する。このとき「ALB からの 8081 だけ通す」と許可するのが EC2 側の <b>セキュリティグループ</b>（ここに 8081 の許可を1行追加する）。</p>
+        <div class="chips"><span class="chip exist">EC2（既存流用）</span><span class="chip">8081</span><span class="chip">セキュリティグループ（EC2側・1行追加）</span></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="rail"><div class="dot">5</div><div class="line"></div></div>
+      <div class="body">
+        <h3>アプリが処理し、必要なら DB へ（RDS・3306）</h3>
+        <p>Laravel が画面を組み立てる。データが要れば <b>RDS（MySQL）</b> に <b>3306番</b>で問い合わせる。RDS は <b>Private サブネット</b>（インターネットから直接触れない場所）にいて安全。「EC2 からの 3306 だけ通す」を許可するのが RDS 側の <b>セキュリティグループ</b>。</p>
+        <div class="chips"><span class="chip exist">RDS（既存流用）</span><span class="chip">3306</span><span class="chip">Private サブネット</span><span class="chip">セキュリティグループ（RDS側）</span></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="rail"><div class="dot">6</div><div class="line"></div></div>
+      <div class="body">
+        <h3>来た道を逆に返る</h3>
+        <p>RDS → EC2（Laravel が HTML 完成）→ ALB → ブラウザ、と戻り、画面が表示される。以降の操作も 2〜6 を繰り返す。</p>
+        <div class="chips"><span class="chip net">画面表示</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <span>🔑</span>
+    <span><b>「相乗りで新規に作る部分」はこの旅の中の一部だけ。</b>Route53 ホストゾーン・ACM 証明書（自ドメイン用）＝ステップ1〜2、ALB のルール＋ターゲットグループ＝ステップ3、SG に 8081 許可を1行＝ステップ4、RDS の新規スキーマ＝ステップ5。ALB・EC2・RDS の本体、VPC・サブネット・IGW は既存を参照するだけで作らない。</span>
+  </div>
+
+  <h2><span class="num">2</span>用語辞典（役割で理解する）</h2>
+  <p class="h2sub">各技術を「一言でいう役割」→「たとえ話」で。新規/既存の区分つき。</p>
+
+  <div class="card">
+    <h3>VPC <span class="tag tag-exist">既存・参照</span></h3>
+    <div class="role">役割：AWS 上に区切った“自分専用の閉じたネットワーク区画”</div>
+    <p>この中に EC2 や RDS が置かれる。外との出入口や内部の部屋割りをまとめて管理する土地のようなもの。famigo が作った <code>famigo-vpc</code>（10.0.0.0/16）にそのまま同居する。</p>
+    <div class="analogy">たとえ：<b>1棟のオフィスビル</b>。この建物の中に部屋（サブネット）があり、人（サーバー）が働いている。</div>
+  </div>
+
+  <div class="card">
+    <h3>サブネット / AZ（アベイラビリティゾーン） <span class="tag tag-exist">既存・参照</span></h3>
+    <div class="role">役割：VPC をさらに細かく区切った“部屋”。AZ は物理的に離れたデータセンター</div>
+    <p><b>Public サブネット</b>＝インターネットと行き来できる部屋（ALB・EC2 を置く）。<b>Private サブネット</b>＝外から直接入れない奥の部屋（RDS を置く）。<b>AZ</b> は「東京リージョン内の、電源も建物も別の複数拠点」。1a と 1c の2か所に分けておくと、片方の拠点が落ちても全滅しない。だからサブネットは 1a 用・1c 用と2つずつ用意されている。</p>
+    <div class="analogy">たとえ：<b>ビル内の部屋割り</b>。受付ロビー（Public）は誰でも入れるが、金庫室（Private）は関係者だけ。AZ は「別の街に建てた同じビル」で、災害の同時被災を避ける保険。</div>
+  </div>
+
+  <div class="card">
+    <h3>Internet Gateway（IGW） <span class="tag tag-exist">既存・参照</span></h3>
+    <div class="role">役割：VPC とインターネットをつなぐ唯一の“正面玄関”</div>
+    <p>これが無いと VPC の中は完全に外界から隔離される。Public サブネットは IGW への通り道を持つのでインターネットと通信できる。今回の環境は <b>NAT ゲートウェイが無い</b>（コスト削減）ため、EC2 は Public に置いて IGW 経由で直接外と通信している。</p>
+    <div class="analogy">たとえ：<b>ビルの正面玄関</b>。ここを通らないと外に出られない／外から入れない。</div>
+  </div>
+
+  <div class="card">
+    <h3>ALB（Application Load Balancer） <span class="tag tag-exist">既存・参照</span></h3>
+    <div class="role">役割：外からのリクエストを受け、後ろのサーバーへ振り分ける“受付・案内係”</div>
+    <p>利用者は常に ALB に接続し、ALB が中身（どの EC2 / どのコンテナ）へ流すかを決める。HTTPS の暗号化解除もここで行う。1台の ALB で複数システム（famigo と本システム）を捌ける＝これが「相乗り」の要。</p>
+    <div class="analogy">たとえ：<b>ビルの総合受付</b>。来訪者は受付にだけ話しかければよく、受付が「その用件は8080号室、こちらは8081号室」と案内してくれる。</div>
+  </div>
+
+  <div class="card">
+    <h3>リスナー / ルール / ターゲットグループ <span class="tag tag-new">ルール・TGは新規</span></h3>
+    <div class="role">役割：ALB の“受付マニュアル”。受け口・振り分け条件・行き先の3点セット</div>
+    <p><b>リスナー</b>＝「何番ポートで待つか」（443 リスナー＝HTTPS を待つ窓口）。<b>ルール</b>＝「どんな条件のリクエストをどこへ送るか」（例：ホスト名が自ドメインなら…）。<b>ターゲットグループ</b>＝「送り先サーバー群の名簿」。ここに <b>ヘルスチェック</b> 設定があり、名簿内のサーバーが生きているか定期的に <code>/health</code> を叩いて確認する。死んでいれば振り分け対象から外す。</p>
+    <div class="analogy">たとえ：受付の<b>対応マニュアル</b>。「443番窓口（リスナー）に来た人のうち、“土木要望の件”と言った人（ルール）は8081号室グループ（ターゲットグループ）へ通す。各号室には毎分“生きてますか”と内線（ヘルスチェック）して、応答が無い部屋には客を通さない」。</div>
+  </div>
+
+  <div class="card">
+    <h3>ポート番号（443 / 8080 / 8081 / 3306） <span class="tag tag-new">8081が新規</span></h3>
+    <div class="role">役割：1台のサーバーの中の“どの窓口(サービス)宛てか”を示す番号</div>
+    <p>同じIPアドレスでも、ポート番号でサービスを区別する。<b>443</b>＝HTTPS（外向けの標準）、<b>8080</b>＝famigo コンテナ、<b>8081</b>＝本システムのコンテナ（新規）、<b>3306</b>＝MySQL。ALB は外から 443 で受け、内側では 8081（本システム）へ渡す。</p>
+    <div class="analogy">たとえ：ビルの代表電話は1つ（IP）でも、<b>内線番号</b>（ポート）で部署が分かれている。「443番窓口」「8081号室」「3306号室（DB）」。</div>
+  </div>
+
+  <div class="card">
+    <h3>セキュリティグループ（SG） <span class="tag tag-new">EC2側に1行追加</span></h3>
+    <div class="role">役割：サーバー1台ごとに付く“通信の許可リスト（ファイアウォール）”</div>
+    <p>「誰から・何番ポートへの通信を通すか」を明示的に許可する。既定は全部拒否で、許可した分だけ通る。<br>・EC2 の SG：「ALB からの 8080 と 8081 を許可」（8081 の行を新規追加する）<br>・RDS の SG：「EC2 の SG からの 3306 だけ許可」。<b>“IP ではなく相手の SG を指定”できる</b>のがポイントで、これにより「EC2 からの通信だけ DB に通す」を安全に表現できる。</p>
+    <div class="analogy">たとえ：各部屋のドアに貼った<b>入室許可名簿</b>。「受付(ALB)から来た8081番の用件のみ入室可」「DBの部屋は“EC2グループの人”以外お断り」。</div>
+  </div>
+
+  <div class="card">
+    <h3>EC2 <span class="tag tag-exist">既存・参照</span></h3>
+    <div class="role">役割：実際にアプリを動かす“仮想サーバー（コンピュータ）”</div>
+    <p>この上で Docker が動き、famigo のコンテナ（8080）と本システムのコンテナ（Nginx+PHP-FPM、8081）が同居する。docker-compose・ネットワーク・Volume を分けて、片方のデプロイがもう片方に影響しないようにする。</p>
+    <div class="analogy">たとえ：1台の<b>作業机</b>。その上で2つの業務（famigo と本システム）を、書類の山を分けて並行して進めるイメージ。</div>
+  </div>
+
+  <div class="card">
+    <h3>RDS <span class="tag tag-new">スキーマは新規</span></h3>
+    <div class="role">役割：AWS が管理してくれる“データベース専用サーバー”（MySQL）</div>
+    <p>データの保存先。バックアップやパッチ適用を AWS が面倒みてくれる。Private サブネットにいて外から直接触れない。相乗りでは、既存の <code>famigo-mysql</code> の中に本システム専用の<b>スキーマ（データベース）</b>と<b>専用ユーザー</b>を新規に作る（最小権限）。インスタンス本体の設定は変えない。</p>
+    <div class="analogy">たとえ：1つの<b>大きな書庫</b>（RDS インスタンス）の中に、famigo 用の棚と本システム用の棚（スキーマ）を分けて置く。鍵（ユーザー）も別々で、自分の棚しか開けられない。</div>
+  </div>
+
+  <div class="card">
+    <h3>Route53 ホストゾーン <span class="tag tag-new">新規</span></h3>
+    <div class="role">役割：ドメイン名と行き先（ALB等）を対応づける“電話帳”（DNS）</div>
+    <p>「このドメイン＝この ALB」というレコードを持つ。ブラウザは最初にここを引いて ALB の在り処を知る。本システムは独自ドメインを新規取得し、その<b>ホストゾーンを新規作成</b>する。famigo の既存ドメインには影響しない。</p>
+    <div class="analogy">たとえ：<b>電話帳</b>。「“○○社”という名前で調べると、この番号（ALB）につながる」と載っている。</div>
+  </div>
+
+  <div class="card">
+    <h3>ACM 証明書 <span class="tag tag-new">新規</span></h3>
+    <div class="role">役割：HTTPS 通信を成立させる“身分証明書”（TLS/SSL 証明書）</div>
+    <p>「このドメインのサーバーは確かに本物」を証明し、通信を暗号化する。ブラウザの鍵マークの正体。ALB に載せて使う。AWS の ACM で<b>無料発行</b>でき、自ドメイン用に新規発行する（DNS 検証のためホストゾーンが必要）。</p>
+    <div class="analogy">たとえ：受付に掲げる<b>公的な認可証</b>。これがあると来訪者は「偽サイトではなく本物だ」と安心して暗号通話できる。</div>
+  </div>
+
+  <h2><span class="num">3</span>いちばん短いまとめ</h2>
+  <div class="card">
+    <p style="margin-top:0">
+      ブラウザは <b>Route53</b> で ALB の在り処を知り、<b>443/HTTPS</b> で <b>ALB</b> に接続する（<b>ACM証明書</b>で暗号化）。ALB は <b>リスナー＋ルール</b> で「本システム宛て」と判断し、<b>ターゲットグループ</b> 経由で <b>EC2 の 8081 コンテナ</b> へ転送する（<b>SG</b> が通信を許可）。アプリは <b>3306</b> で <b>RDS</b> に問い合わせ（<b>SG</b> が EC2 だけ許可、<b>Private サブネット</b>で保護）、結果を組み立てて逆順に返す。
+    </p>
+    <p>
+      このうち <b>新規に作るのは</b>：Route53 ホストゾーン、ACM 証明書、ALB のルール＋ターゲットグループ、EC2 の SG に 8081 許可1行、RDS の新規スキーマ＋ユーザー、そして EC2 上の本システムコンテナ。<b>VPC・サブネット・IGW・ALB本体・EC2本体・RDS本体は既存を “参照するだけ”</b>（Terraform では data source）。
+    </p>
+  </div>
+
+  <footer>
+    要望管理システム（CivilRequestManagement）／この解説は <code>docs/infrastructure-design.md</code> の実設定（2026-07-20 実地調査）に沿った学習用まとめ。実際の値・切り分けの根拠は同設計書を参照。
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themebtn');
+    var root = document.documentElement;
+    btn.addEventListener('click', function () {
+      var mqDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var current = root.getAttribute('data-theme') || (mqDark ? 'dark' : 'light');
+      root.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    });
+  })();
+</script>
+</body>
+</html>
