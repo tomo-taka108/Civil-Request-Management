@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>デプロイ作業の振り返り — Civil Track</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #fafbfc;
+    --ink: #1b2130; --ink-soft: #4b5464; --ink-faint: #858da0; --line: #e3e6ec;
+    --accent: #2f5bd6; --accent-soft: #e7edfc; --accent-ink: #1a2e63;
+    --ok: #2f8f5b; --ok-soft: #e4f4ea;
+    --warn: #c56636; --warn-soft: #fbeee5;
+    --step: #6d7688; --step-soft: #eceef2;
+    --radius: 14px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10131a; --surface: #191d26; --surface-2: #151922;
+      --ink: #e9ebf1; --ink-soft: #b3bbcb; --ink-faint: #7c8598; --line: #2a3040;
+      --accent: #7099f5; --accent-soft: #22304f; --accent-ink: #d9e4ff;
+      --ok: #5cc088; --ok-soft: #143024;
+      --warn: #e0895e; --warn-soft: #2f2016;
+      --step: #8a93a5; --step-soft: #242a36;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10131a; --surface: #191d26; --surface-2: #151922;
+    --ink: #e9ebf1; --ink-soft: #b3bbcb; --ink-faint: #7c8598; --line: #2a3040;
+    --accent: #7099f5; --accent-soft: #22304f; --accent-ink: #d9e4ff;
+    --ok: #5cc088; --ok-soft: #143024; --warn: #e0895e; --warn-soft: #2f2016;
+    --step: #8a93a5; --step-soft: #242a36;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #fafbfc;
+    --ink: #1b2130; --ink-soft: #4b5464; --ink-faint: #858da0; --line: #e3e6ec;
+    --accent: #2f5bd6; --accent-soft: #e7edfc; --accent-ink: #1a2e63;
+    --ok: #2f8f5b; --ok-soft: #e4f4ea; --warn: #c56636; --warn-soft: #fbeee5;
+    --step: #6d7688; --step-soft: #eceef2;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 44px 22px 80px; }
+  .themebtn { position: fixed; top: 14px; right: 14px; z-index: 10; border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); border-radius: 20px; padding: 6px 14px; font: 600 13px var(--font); cursor: pointer; }
+  .themebtn:hover { color: var(--ink); }
+
+  header .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 8px; }
+  h1 { font-size: clamp(25px, 4.5vw, 35px); line-height: 1.2; margin: 0 0 12px; letter-spacing: -.02em; text-wrap: balance; }
+  .lede { color: var(--ink-soft); font-size: 16px; margin: 0; }
+  .oneline { margin: 18px 0 0; padding: 16px 18px; background: var(--accent-soft); color: var(--accent-ink); border-radius: 12px; font-size: 15.5px; font-weight: 600; }
+
+  h2 { font-size: 22px; margin: 50px 0 4px; letter-spacing: -.01em; display: flex; align-items: baseline; gap: 12px; }
+  h2 .act { font-size: 13px; font-weight: 800; color: #fff; background: var(--accent); border-radius: 8px; padding: 3px 10px; letter-spacing: .04em; }
+  .actsub { color: var(--ink-faint); font-size: 14px; margin: 6px 0 18px; }
+
+  .goal { display: flex; gap: 10px; align-items: flex-start; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 13px 15px; margin: 0 0 20px; font-size: 14.5px; color: var(--ink-soft); }
+  .goal b { color: var(--ink); }
+
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step { display: grid; grid-template-columns: 40px 1fr; gap: 15px; }
+  .rail { display: flex; flex-direction: column; align-items: center; }
+  .dot { width: 28px; height: 28px; border-radius: 50%; background: var(--step); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex: none; }
+  .step.trouble .dot { background: var(--warn); }
+  .line { width: 2px; flex: 1; background: var(--line); margin: 3px 0; min-height: 10px; }
+  .step:last-child .line { display: none; }
+  .body { padding-bottom: 22px; }
+  .step h3 { margin: 2px 0 5px; font-size: 16px; }
+  .step p { margin: 0; color: var(--ink-soft); font-size: 14.5px; }
+  .step .why { display: inline-block; margin-top: 6px; font-size: 13px; color: var(--ink-faint); }
+  .step .why b { color: var(--ink-soft); }
+  .step .howto { margin-top: 9px; font-size: 13px; color: var(--ink-soft); background: var(--surface-2); border-radius: 8px; padding: 9px 12px; }
+  .step .howto b { color: var(--ink); }
+  .step .howto code { background: var(--step-soft); }
+  .tbadge { display: inline-block; font-size: 11px; font-weight: 700; color: #fff; background: var(--warn); border-radius: 6px; padding: 1px 7px; margin-left: 6px; vertical-align: middle; }
+
+  code { font-family: var(--mono); font-size: .86em; background: var(--step-soft); padding: 1px 6px; border-radius: 5px; }
+
+  .analogy { margin: 22px 0 0; padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; font-size: 14.5px; color: var(--ink-soft); }
+  .analogy b { color: var(--ink); }
+
+  .final { margin-top: 24px; padding: 20px 22px; background: var(--ok-soft); border: 1px solid var(--line); border-radius: 12px; }
+  .final h3 { margin: 0 0 8px; font-size: 17px; color: var(--ink); }
+  .final p { margin: 0; color: var(--ink-soft); font-size: 15px; }
+  .final .url { font-family: var(--mono); font-weight: 700; color: var(--ok); }
+
+  footer { margin-top: 52px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 13px; }
+</style></head>
+<body>
+<button class="themebtn" id="themebtn" type="button">🌓 テーマ切替</button>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Deploy Recap · やったことの振り返り</p>
+    <h1>Civil Track を AWS に公開するまで</h1>
+    <p class="lede">「言われるがまま」進めた一連の作業が、結局“何のための何だったのか”。3つの幕に分けて、目的とやったことをたどります。</p>
+    <div class="oneline">🎯 全体を一言で：AWSという土地に、Civil Track が動く「部屋」を用意し（第1幕）、本番用の設定をしたアプリを運び込んで（第2幕）、実際に動かして公開した（第3幕）。</div>
+  </header>
+
+  <!-- 第1幕 -->
+  <h2><span class="act">第1幕</span>インフラ構築（Terraform）</h2>
+  <p class="actsub">＝ アプリを置く「部屋」と「通り道」を AWS に用意する</p>
+  <div class="goal"><span>🎯</span><span><b>目的：</b>ブラウザ →(HTTPS)→ ALB → EC2 → RDS という経路を通せるように、足りない部品を AWS に作る。既存の famigo 環境を壊さないよう「間借り（相乗り）」で。</span></div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="rail"><div class="dot">1</div><div class="line"></div></div>
+      <div class="body">
+        <h3>Terraform のコードを書いた</h3>
+        <p>AWS に「こういう部品を作って」と指示する設計図を <code>infra/</code> に用意。手作業でポチポチ作る代わりに、コードで正確・再現可能に作る道具が Terraform。</p>
+        <span class="why"><b>なぜ：</b>手作業だと間違えるし記録も残らない。コード化で「何を作ったか」が明確になり、famigo に触れないことも保証しやすい。</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="rail"><div class="dot">2</div><div class="line"></div></div>
+      <div class="body">
+        <h3>独自ドメイン civil-track.com を取得</h3>
+        <p>お名前.com で購入し、その「住所案内（DNS）」を AWS の Route53 に向けた（ネームサーバー4つを登録）。</p>
+        <span class="why"><b>なぜ：</b>利用者がアクセスする入口の名前。famigo の名前を間借りせず、独立した名前にするため。</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="rail"><div class="dot">3</div><div class="line"></div></div>
+      <div class="body">
+        <h3>Terraform を実行して AWS に部品を作った</h3>
+        <p><code>plan</code>（作らずに差分を確認）→ <code>apply</code>（実際に作成）。作ったのは：HTTPS証明書(ACM)・DNS(Route53)・振り分け先(ターゲットグループ)・振り分けルール(ALBに1本追加)・通信許可(SGに8081を1行追加)。</p>
+        <span class="why"><b>なぜ：</b>「ブラウザ→ALB→EC2」の経路のうち、まだ無かった受け皿・案内・鍵を用意するため。<b>famigo 側は0件変更・0件削除</b>を毎回確認した。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="analogy">🏢 <b>たとえ：</b>雑居ビル（EC2）の空き区画に新しい事務所を構えるにあたり、①ビル入口の受付（ALB）に「“Civil Track宛て”の来客はこの部屋へ」という案内札を1枚足し、②部屋のドアに「受付から来た人だけ入室可」の許可を貼り、③「civil-track.com」という看板（ドメイン）と本人証明（証明書）を用意した。既存テナント（famigo）の設備には一切触らない。</div>
+
+  <!-- 第2幕 -->
+  <h2><span class="act">第2幕</span>本番アプリ設定</h2>
+  <p class="actsub">＝ 同じアプリでも「本番用の顔」に整える</p>
+  <div class="goal"><span>🎯</span><span><b>目的：</b>ローカル（自分のPC）で動く設定のまま本番に出すと危険・不都合。本番専用の設定を用意する。※これは事前にコードとして準備済みだった。</span></div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="rail"><div class="dot">1</div><div class="line"></div></div>
+      <div class="body">
+        <h3>本番用の設定ファイルを用意</h3>
+        <p>本番用の環境設定（<code>.env.production</code> の雛形）と、本番用の起動手順（Docker のファイル一式）を作成。エラー詳細を隠す・HTTPSでcookieを送る等、本番向けに調整。</p>
+        <span class="why"><b>なぜ：</b>ローカル用は「エラーを画面に全部出す」など開発に便利な代わりに本番では危険な設定。分けておく必要がある。</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="rail"><div class="dot">2</div><div class="line"></div></div>
+      <div class="body">
+        <h3>「ALB越しでも正しく動く」設定を追加（TrustProxies）</h3>
+        <p>ALB が HTTPS を受けて、EC2 へは HTTP で渡す構成。この一言設定が無いとアプリが「自分はHTTPだ」と勘違いし、ログインの cookie が壊れる等の不具合になる。</p>
+        <span class="why"><b>なぜ：</b>ALB を挟む本番特有のハマりどころ。先回りして潰しておいた。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="analogy">👔 <b>たとえ：</b>同じ人（アプリ）でも、社内（ローカル）ではラフな格好でよいが、来客対応（本番）ではスーツに着替える。さらに「受付(ALB)を経由して来た客への応対マナー」も仕込んでおいた。</div>
+
+  <!-- 第3幕 -->
+  <h2><span class="act">第3幕</span>デプロイ作業</h2>
+  <p class="actsub">＝ アプリを実際に EC2 へ運び込み、DBを用意して、動かす</p>
+  <div class="goal"><span>🎯</span><span><b>目的：</b>用意した部屋（第1幕）に、本番仕様のアプリ（第2幕）を実際に設置して起動する。ここが一番細かい手数が多かった部分。</span></div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="rail"><div class="dot">1</div><div class="line"></div></div>
+      <div class="body">
+        <h3>EC2 に入る手段を用意（SSM）</h3>
+        <p>鍵なしで EC2 を遠隔操作できる仕組み(SSM)を使い、私がコマンドを送り込む方式で作業した。</p>
+        <span class="why"><b>なぜ：</b>EC2 の中で「コードを置く・DBを作る・起動する」を行う必要があるため。</span>
+      </div>
+    </div>
+    <div class="step trouble">
+      <div class="rail"><div class="dot">2</div><div class="line"></div></div>
+      <div class="body">
+        <h3>メモリ不足に備えて Swap を追加<span class="tbadge">対策</span></h3>
+        <p>EC2 のメモリが小さく（実質1GB弱）、famigo と同居させると足りなくなる恐れ。あふれた分の避難場所（Swap 2GB）を先に用意した。</p>
+        <span class="why"><b>なぜ：</b>メモリ不足でアプリが強制終了し、<b>famigo まで巻き添えで落ちる</b>のを防ぐ保険。</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="rail"><div class="dot">3</div><div class="line"></div></div>
+      <div class="body">
+        <h3>アプリのコードを EC2 に配置</h3>
+        <p>GitHub（公開リポジトリ）からソース一式をダウンロードし、EC2 の <code>/opt/civil</code> に展開。本番用の設定ファイル(<code>.env.production</code>)を作成。</p>
+        <span class="why"><b>なぜ：</b>動かす実体（プログラム）を部屋に運び込む工程。</span>
+        <p class="howto"><b>今回の手法：</b>やっていること（GitHubからコードを持ってくる）は <code>git clone</code> と同じだが、今回は EC2 に <code>git</code> をインストールしていないため、<b>コードを zip 相当に固めたファイル（tar.gz）を <code>curl</code> でダウンロードして展開</b>する方法を取った。<code>git</code> は使っていない。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="rail"><div class="dot">4</div><div class="line"></div></div>
+      <div class="body">
+        <h3>データベース(RDS)に置き場所を作った</h3>
+        <p>共用の RDS の中に、Civil Track 専用の「棚（データベース）」と「鍵（専用ユーザー）」を新規作成。その後、アプリが必要とするテーブル一式を自動生成(migration)し、初期データ（事務所・管理者アカウント）を投入。</p>
+        <span class="why"><b>なぜ：</b>データの保存先。famigo のデータとは棚を分け、専用ユーザーは自分の棚しか触れないようにした。</span>
+      </div>
+    </div>
+    <div class="step trouble">
+      <div class="rail"><div class="dot">5</div><div class="line"></div></div>
+      <div class="body">
+        <h3>いくつかの本番特有のつまずきを解消<span class="tbadge">対策</span></h3>
+        <p>DB権限の不足(REFERENCES)、ビルド道具の古さ(buildx)、gitが未導入、起動失敗ループが裏でDBを汚す——といった想定外に順に対処した。</p>
+        <span class="why"><b>なぜ：</b>本番環境はローカルと条件が違い、実際に動かして初めて分かる差異がある。原因を切り分けて回避策で通した。</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="rail"><div class="dot">6</div><div class="line"></div></div>
+      <div class="body">
+        <h3>コンテナを起動し、経路が開通したか確認</h3>
+        <p>Nginx+PHP のコンテナを起動 → ALBのヘルスチェックが healthy に → <code>https://civil-track.com</code> でログイン画面が表示されることを確認。メモリも実測して famigo 無事を確認。</p>
+        <span class="why"><b>なぜ：</b>「ブラウザ→ALB→EC2→RDS」が実際に一本つながったかの最終確認。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="analogy">📦 <b>たとえ：</b>用意した部屋に、荷物（アプリ）を運び込み（3）、電源が足りるようブレーカーを増設し（2 Swap）、書類棚と鍵を用意して中身を並べ（4 DB）、搬入中のトラブルを片付けながら（5）、最後に照明をつけて「ちゃんと営業できる」ことを確認した（6）。</div>
+
+  <div class="final">
+    <h3>✅ 結果</h3>
+    <p><span class="url">https://civil-track.com</span> で Civil Track が公開され、ログイン・動作確認まで完了。作業中、既存の famigo は一度も停止しなかった（無停止を最優先にした設計・対策が効いた）。</p>
+  </div>
+
+  <footer>
+    Civil Track（CivilRequestManagement）／デプロイ実施 2026-08-02。詳細な設定根拠は <code>docs/infrastructure-design.md</code>、停止・再開は <code>docs/operations-start-stop.md</code> を参照。
+  </footer>
+</div>
+<script>
+  (function () {
+    var btn = document.getElementById('themebtn'), root = document.documentElement;
+    btn.addEventListener('click', function () {
+      var mqDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var cur = root.getAttribute('data-theme') || (mqDark ? 'dark' : 'light');
+      root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+    });
+  })();
+</script>
+
+</body>
+</html>
