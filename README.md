@@ -4,6 +4,7 @@
 
 - 技術スタック：PHP / Laravel（Blade）+ MySQL + Leaflet（国土地理院地図タイル）
 - 設計ドキュメント：[要件定義書](docs/requirements.md) / [データベース設計書](docs/database-design.md) / [画面設計書](docs/screen-design.md) / [インフラ設計書](docs/infrastructure-design.md)
+- 運用手順：[EC2/RDS の停止・再開](docs/operations-start-stop.md)
 - 画面モックアップ：[`mockup/`](mockup/)
 
 ## インフラ構成
