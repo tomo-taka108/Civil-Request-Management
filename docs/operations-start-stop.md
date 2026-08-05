@@ -98,6 +98,82 @@ curl -s -o /dev/null -w "HTTP=%{http_code}\n" http://localhost:8081/health
 
 ---
 
+## コード更新デプロイ手順（プログラムを修正して本番へ反映する）
+
+プログラム（PHP / Blade / CSS 等）を修正して本番 https://civil-track.com に反映する手順。
+当面は **手動デプロイ**（CI/CD は将来検討。[インフラ設計書 3.2](infrastructure-design.md)）。
+
+### 大前提：コードと DB データは別物
+
+- **コード**は Docker イメージに焼き込まれる（`docker-compose.prod.yml` の「ソースを焼き込む」）。
+  更新する＝**イメージを作り直してコンテナを入れ替える**。
+- **DB データ**（案件・職員等）は **RDS の中**にある。**コンテナ／イメージを作り直しても触れられない**。
+
+→ したがって **コードを更新しても DB の既存データは消えない・初期状態に戻らない**（詳細は下記「DB データへの影響」）。
+
+### 手順
+
+#### ステップ 0：ローカルで正規フローに沿って main を更新
+
+1. Issue 作成 → `feature/xx-...` ブランチを切る（CLAUDE.md）
+2. コードを修正する
+3. `quality-check` スキルで Pint / PHPStan / PHPUnit を緑にする
+4. Conventional Commit → push → PR 作成 → **ユーザーがマージ**して main を最新化
+
+> この時点では本番未反映。本番 EC2 は main を自動追従しないため、次に手動で持っていく。
+
+#### ステップ 1：EC2 に入り最新コードを取得（tarball 方式）
+
+EC2 に git は無いため tarball を取得して `/opt/civil` を上書き展開する。
+
+```bash
+sudo -i
+cd /opt/civil
+
+curl -L https://github.com/tomo-taka108/Civil-Request-Management/archive/refs/heads/main.tar.gz -o /tmp/civil.tar.gz
+tar xzf /tmp/civil.tar.gz --strip-components=1
+```
+
+> ⚠️ この上書きで**コードは差し替わるが `.env.production` は上書きされない**
+> （gitignore 対象で tarball に含まれないため）。機密設定はそのまま残る。
+
+#### ステップ 2：イメージを作り直して起動（＝反映の本体）
+
+```bash
+export DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0   # EC2 の buildx が旧版のため
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+`--build` により新コードを焼き込んだイメージが作られ、コンテナが入れ替わる。
+起動時に entrypoint が `php artisan migrate --force` と config/route/view キャッシュ再生成を自動実行する。
+
+#### ステップ 3：反映確認
+
+```bash
+docker ps --format "{{.Names}} | {{.Status}}"
+curl -s -o /dev/null -w "HTTP=%{http_code}\n" http://localhost:8081/health
+```
+
+ブラウザで https://civil-track.com を開き、修正内容が反映されていれば完了。
+
+### DB データへの影響（重要）
+
+コード更新デプロイで既存の DB データがどうなるか。
+
+| 操作 | コード | DB データ（案件・職員等） |
+|---|---|---|
+| 通常のコード更新デプロイ（上記手順） | 新しくなる | **変わらない**。entrypoint の `migrate --force` は**テーブル構造の最新化のみ**で行データは保持（新規マイグレーションが無ければ何もしない） |
+| entrypoint の自動処理 | — | `migrate --force` **のみ**。`db:seed` は走らない |
+| 手動で `db:seed --class=Sample...` | — | seeder は**冪等**。二重登録されず、手動で追加したデータも消えない（[README.md](../README.md) サンプルデータ節） |
+| 手動で `migrate:fresh` / `migrate:rollback` | — | ⚠️ テーブルを作り直す＝**既存データが消え初期サンプルだけに戻る**。**本番では絶対に実行しない** |
+
+- **再デプロイで seeder は自動実行されない**（entrypoint に seed は含まない。`docker/php/entrypoint.prod.sh`）。
+  よって「案件 29 件＋手動追加 5 件＝34 件」の状態で再デプロイしても **34 件のまま**で、初期 29 件には戻らない。
+- **初期件数に戻る**のは `migrate:fresh` 等の破壊的コマンドを本番で意図的に叩いた場合のみ。
+  本番 entrypoint は `migrate --force`（追加のみ）であり、fresh は使わない。
+
+---
+
 ## トラブル時の確認ポイント
 
 | 症状 | 確認 |
