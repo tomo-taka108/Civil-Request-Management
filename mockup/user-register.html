@@ -38,7 +38,7 @@
       <label class="required">ユーザーID</label>
       <div>
         <input type="text" placeholder="例：yamada_t">
-        <div class="note">ログイン時に使用します。事務所内で一意になるよう設定してください</div>
+        <div class="note">ログイン時に使用します。システム全体で一意である必要があります。</div>
       </div>
 
       <label class="required">氏名</label>
@@ -46,8 +46,9 @@
 
       <label class="required">初期パスワード</label>
       <div>
-        <input type="password" placeholder="初期パスワードを入力">
-        <div class="note">初回ログイン時に本人がパスワードを変更する運用を想定</div>
+        <input type="password" placeholder="初期パスワードを入力（8文字以上）">
+        <input type="password" placeholder="確認のためもう一度入力" style="margin-top:8px;">
+        <div class="note">初回ログイン時に本人がパスワードを変更する運用を想定しています。</div>
       </div>
     </div>
 

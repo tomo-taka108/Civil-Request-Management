@@ -94,10 +94,16 @@
       <label>現在の状態</label>
       <div><span class="badge badge-status-対応完了">有効</span></div>
 
-      <label>無効化</label>
+      <label>有効／無効</label>
       <div>
         <button type="button" class="btn btn-danger">このアカウントを無効化する</button>
-        <div class="note">異動・退職等で本システムを利用しなくなる場合に無効化してください。無効化したユーザーはログインできなくなりますが、登録済み案件の登録者としての表示は残ります</div>
+        <div class="note">異動・退職等で本システムを利用しなくなる場合に無効化してください。登録済み案件の登録者としての表示は残ります。あとで再有効化できます。</div>
+      </div>
+
+      <label>削除</label>
+      <div>
+        <button type="button" class="btn btn-danger" disabled>このアカウントを完全に削除する</button>
+        <div class="note">このユーザーは案件を登録しているため削除できません（登録者表示を保つため）。利用を停止する場合は「無効化」してください。</div>
       </div>
     </div>
   </div>
