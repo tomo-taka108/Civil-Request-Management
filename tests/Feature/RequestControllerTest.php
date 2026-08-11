@@ -122,6 +122,39 @@ class RequestControllerTest extends TestCase
         $this->assertSame(["{$year}-0001", "{$year}-0002"], $numbers);
     }
 
+    /**
+     * 論理削除済み案件があっても採番が重複しないこと（Issue #69 のリグレッション）。
+     *
+     * SoftDeletes の既定では論理削除済みが max() の集計から外れるため、削除済みの
+     * 連番を再採番して UNIQUE(office_id, reception_number) 違反（1062）で 500 になっていた。
+     * UNIQUE 制約は deleted_at を見ないので、採番側も withTrashed で揃える必要がある。
+     */
+    public function test_論理削除済み案件の受付番号は再利用されない(): void
+    {
+        $office = Office::factory()->create();
+        $this->actingAsStaff($office);
+        $year = now()->format('Y');
+
+        // 1件目を登録して論理削除する（レコードは deleted_at 付きで残る）
+        $this->post(route('requests.store'), $this->validPayload());
+        $first = Request::first();
+        $first->delete();
+
+        // 2件目を登録：0001 を再採番せず 0002 が振られる
+        $this->post(route('requests.store'), $this->validPayload())
+            ->assertRedirect(route('requests.index'));
+
+        $second = Request::latest('id')->first();
+        $this->assertSame("{$year}-0002", $second->reception_number);
+        $this->assertSame(2, $second->reception_seq);
+
+        // 削除済みを含めても受付番号が重複していない
+        $this->assertSame(
+            2,
+            Request::withTrashed()->distinct()->count('reception_number'),
+        );
+    }
+
     public function test_別事務所は連番が独立する(): void
     {
         $year = now()->format('Y');
