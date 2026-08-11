@@ -1,6 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" width="960" height="640" font-family="'Segoe UI','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif" role="img" aria-label="要望管理システム インフラ構成図。famigo既存のAWS環境（ALB・EC2・RDS）に相乗りする構成。">
   <style>
-    :root {
+    /* CSS変数は svg 要素自身に定義する（:root だと img 埋め込み時に解決されず
+       Cursor/GitHub のプレビューで色が出ない環境があるため）。 */
+    svg {
       --bg: #ffffff; --ink: #1c2230; --ink-soft: #4a5262; --line: #cfd4de;
       --new: #2f5bd6; --new-fill: #e7edfc; --new-ink: #1a2e63;
       --exist: #7a8394; --exist-fill: #eceef2; --exist-ink: #333a47;
@@ -8,7 +10,7 @@
       --zone: #9aa2b2;
     }
     @media (prefers-color-scheme: dark) {
-      :root {
+      svg {
         --bg: #12151c; --ink: #e8eaf0; --ink-soft: #b4bccc; --line: #3a4150;
         --new: #6f95f2; --new-fill: #23304f; --new-ink: #dce6ff;
         --exist: #8a93a5; --exist-fill: #262b36; --exist-ink: #d3d8e2;
