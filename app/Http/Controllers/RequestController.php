@@ -7,6 +7,7 @@ use App\Http\Requests\StoreRequestRequest;
 use App\Http\Requests\UpdateRequestRequest;
 use App\Models\Office;
 use App\Models\Request;
+use App\Models\Scopes\OfficeScope;
 use App\Models\User;
 use App\Support\RequestLabels;
 use App\Support\RequestSearch;
@@ -177,7 +178,15 @@ class RequestController extends Controller
         $created = DB::transaction(function () use ($request, $user, $officeId, $year) {
             // (office_id, year) の最大連番を行ロック付きで取得し、+1して採番する。
             // 同時登録の最終防御は UNIQUE(office_id, reception_year, reception_seq)。
-            $maxSeq = Request::query()
+            //
+            // withTrashed / withoutGlobalScope は必須（外すと採番が重複する）：
+            //   - SoftDeletes の既定では論理削除済みが集計から外れるが、UNIQUE 制約は
+            //     deleted_at を見ないため、削除済みの番号を再採番して 1062 で落ちる。
+            //   - OfficeScope は「ログイン中の職員の事務所」で絞るスコープであり、
+            //     採番対象の事務所を明示する下の where と役割が重複する。採番は
+            //     閲覧権限ではなく対象事務所の全レコードを見る必要があるため外す。
+            $maxSeq = Request::withTrashed()
+                ->withoutGlobalScope(OfficeScope::class)
                 ->where('office_id', $officeId)
                 ->where('reception_year', $year)
                 ->lockForUpdate()
