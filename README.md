@@ -237,7 +237,7 @@ Laravel のリソースルーティングに沿って、リソース単位で HT
 
 ### 1. ログイン → 初回パスワード変更
 
-（未撮影）
+https://github.com/user-attachments/assets/3cd11e04-14d2-42ec-b6cc-b14ae91e8999
 
 ### 2. 案件一覧で条件検索
 
