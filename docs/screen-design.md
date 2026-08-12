@@ -1,6 +1,6 @@
 # 画面設計書
 
-最終更新日: 2026-07-20
+最終更新日: 2026-08-12
 
 [要件定義書](requirements.md) 5章の画面イメージ、および `mockup/` の画面プロトタイプをもとに、
 Laravel（Blade）でのルーティング・コントローラ・権限制御を設計する。
@@ -105,7 +105,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
 
 - Laravel標準の`auth`ミドルウェアでログイン必須を担保
 - 一般職員（`role === 'staff'`）はログイン中ユーザーの`office_id`を基準に、**全てのクエリに事務所スコープを適用する**
-  - `Request`モデルに `office_id` のグローバルスコープ（`BootedByOffice`等）を実装し、`Auth::user()->office_id` で自動フィルタする方式を採用
+  - `Request`モデルに `office_id` のグローバルスコープ（`OfficeScope`）を実装し、`Auth::user()->office_id` で自動フィルタする方式を採用
   - コントローラ側で個別に `where('office_id', ...)` を書き漏らすリスクを避けるため、モデル層で一元化する
 - **システム管理者（`role === 'admin'`）は`office_id`を持たない（DB設計書2.2参照）ため、上記グローバルスコープの対象外とする**。管理者ログイン時はスコープを適用せず、全事務所の`requests`を検索・取得できるようにする
 - 一般職員が他事務所のレコードIDを直接URLで指定した場合（例：`/requests/999`が他事務所の案件）は404を返す（グローバルスコープにより取得自体ができないため自然に404になる）。管理者はこの制限を受けない
@@ -132,7 +132,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
   ```
 - 担当部署・対応部署はいずれも道路／河川／砂防の3種類のみ（「その他」区分は廃止。要件定義書1.3参照）のため、一般職員は`department`の単純一致比較のみで判定できる
 - **システム管理者は担当部署によらず全事務所の案件を編集・削除できる**（要件定義書1.3・4.1：個人情報の混入や不適切な記載の是正のため）
-- 新規登録（`store`）は担当部署を問わないため、Policyの`create`は常に許可（全認証済みユーザー）
+- 新規登録（`store`）は担当部署を問わないため、一般職員であれば担当部署によらず許可する。ただし**システム管理者は登録できない**：`requests.office_id` は NOT NULL であり、`office_id` を持たない管理者は登録主体になれないため、`RequestPolicy::create` は `role === 'staff'` かつ `office_id` が非NULLの場合のみ許可する（管理者の主務は是正のための閲覧・編集・削除）
 - 閲覧（`show`・`index`）も担当部署を問わないため、一般職員は事務所スコープのみで制御し、Policyでの追加制限はしない。管理者は3.1の通り事務所スコープの対象外
 
 ### 3.3 システム管理者限定機能
@@ -190,3 +190,4 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
 - ~~地図ピン取得APIの詳細設計（GeoJSON等のレスポンス形式、`/map/pins`のフィールド定義）~~ → 実装済み（`MapController::pins`）。`FeatureCollection` で、各 `feature` は `geometry`（Point・座標は`[経度, 緯度]`＝RFC 7946）と `properties`（id／受付番号／受付日時／対応部署／緊急性＋ラベル／住所／要望内容（60字省略）／詳細URL）を返す。検索条件・事務所スコープは一覧と共通（`RequestSearch`）
 - ~~パスワード再発行フロー（`mockup/user-edit.html`の「初期パスワードを再発行する」）の詳細~~ → 実装済み（`UserController::reissuePassword`）。新パスワードを画面に一度だけ表示する方式（メール等は対象外）、再発行時に`must_change_password`を`true`に戻す
 - ~~バリデーションルール（各項目の文字数上限・必須/任意の詳細）の設計~~ → VARCHAR系（氏名100・ユーザーID50・要望者/住所/その他255）はDB設計とFormRequestの`max`が一致済み。TEXT系（要望内容・対応方針）は運用上限を`max:2000`で確定し実装（Issue #49）。各項目の必須/任意・上限・期待エラーメッセージの一覧と手動確認手順は [バリデーション手動確認シート](validation-checklist.html) を参照
+- **システム管理者による案件登録の可否**：`requests.office_id` が NOT NULL のため、`office_id` を持たない管理者は登録主体になれず、現状は `RequestPolicy::create` で登録不可としている（3.2）。管理者にも登録させる要件が生じた場合は、「登録時に対象事務所を選択させる」等の仕様追加とあわせて `office_id` の決定方法を再設計する必要がある
