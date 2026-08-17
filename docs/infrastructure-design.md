@@ -1,6 +1,6 @@
 # インフラ設計書
 
-最終更新日: 2026-08-12
+最終更新日: 2026-08-15
 
 本システムのAWSインフラ構築・デプロイ方針を定める。
 [要件定義書](requirements.md) の「4.3 保守性・運用」「4.4 技術スタック」を前提とし、既存の別アプリ（famigo）用AWS環境への相乗り方針を具体化したもの。変更履歴は`git log docs/infrastructure-design.md`を参照。
@@ -182,11 +182,73 @@ famigo用コンテナと本システム用コンテナで、**Dockerネットワ
 
 ### 3.4 EC2のリソース検証
 
-t3.micro（メモリ2GB）は、famigo（Java/Spring Boot、単体で目安300〜500MB）と本システム（PHP/Laravel + Nginx）を同時稼働させるとメモリが逼迫する可能性がある。Docker・OSのオーバーヘッドを含めると、2アプリ合計で1GB近くに達することも想定されるため、実測での検証を必須とする。
+t3.micro（メモリ1GiB。**実測では`total 916Mi`**。当初本節に「2GB」と記載していたのは誤りで、実測により訂正）に、famigo（Java/Spring Boot）と本システム（PHP/Laravel + Nginx）を同時稼働させるとメモリが逼迫する可能性があるため、実測での検証を必須としていた。
+
+**検証方針**
 
 - デプロイ後、EC2上で`free -h`（OS全体のメモリ使用状況）・`docker stats`（コンテナ単位のCPU・メモリ使用率）を実行し、実測値を本ドキュメントに記録する
 - 目安として、メモリ使用率・CPU使用率が常時80%を超える場合は、EC2インスタンスタイプのスケールアップ（例：t3.small）を検討する
-- `[要検討: 実装・デプロイ完了後に実測し、本節に結果を追記]`
+
+#### 実測結果（2026-08-15 実施）
+
+SSM Session Manager 経由で実測。時間帯を変えて2回測定し、値が安定していることを確認した。
+
+```
+$ free -h
+              total        used        free      shared  buff/cache   available
+Mem:           916Mi       472Mi        58Mi        22Mi       385Mi       282Mi
+Swap:          2.0Gi        79Mi       1.9Gi
+
+$ docker stats --no-stream
+CONTAINER ID   NAME            CPU %     MEM USAGE / LIMIT     MEM %     PIDS
+9764ac113295   civil-php-1     0.00%     45.96MiB / 916.8MiB   5.01%     4
+5418dd46c7bd   civil-nginx-1   0.00%     3.047MiB / 916.8MiB   0.33%     3
+14933eb18476   famigo-api      0.12%     234.9MiB / 916.8MiB   25.63%    31
+
+$ uptime
+ 13:20:22 up 3 days, 17:46,  0 users,  load average: 0.00, 0.00, 0.00
+
+$ docker ps --format "table {{.Names}}\t{{.Status}}"
+NAMES           STATUS
+civil-php-1     Up 3 days
+civil-nginx-1   Up 3 days
+famigo-api      Up 3 days
+```
+
+| 観点 | 実測値 | 判定 |
+|---|---|---|
+| メモリ | `available` 282Mi / `total` 916Mi（**30.8%**） | 判断基準（残20%）を上回る。**余裕あり** |
+| swap | 79Mi 使用（2回の測定でほぼ横ばい） | 増加傾向になく、枯渇に向かっていない |
+| CPU | 全コンテナ 0.12%以下、load average 0.00 | **問題なし** |
+| 稼働継続性 | 3コンテナとも`Up 3 days`（EC2 の稼働時間と一致） | 停止・再起動の形跡**なし** |
+
+**判断：t3.small へのスケールアップは不要。**
+
+- 本システムの消費は **50MiB（全体の5.3%）** にとどまり、メモリ使用の主因ではない（最大は famigo の Java プロセスで 234.9MiB）
+- 仮に本システムを撤去しても `available` は 330Mi 程度にしかならず、**相乗り自体が逼迫要因ではない**
+- `free`（58Mi）が小さく見えるが、`buff/cache`（385Mi）は Linux が高速化のため一時借用している領域で必要時に解放される。**判断は `available` で行う**
+
+#### ディスク使用量（監視対象に追加）
+
+上記の実測時、**ディスク使用率が80%**に達していることを併せて発見した。メモリよりも先に逼迫する可能性があるため、監視対象に加える。
+
+原因は、デプロイ（`docker compose up -d --build`）のたびに旧イメージがタグを失って`<none>`として蓄積することにある。実測時点で未使用イメージが4つ（うち1つは13日前の旧`civil-php`イメージ 581MB）残っていた。
+
+```
+$ df -h /          # 掃除前
+/dev/nvme0n1p1  8.0G  6.3G  1.7G  80% /
+
+$ docker image prune -a
+Total reclaimed space: 226.9MB
+
+$ df -h /          # 掃除後
+/dev/nvme0n1p1  8.0G  6.1G  1.9G  77% /
+```
+
+- 掃除により **80% → 77%** に改善。稼働中の3コンテナは`Up 3 days`のままで、**再起動は発生しない**（Docker は使用中イメージの削除を拒否するため、famigo にも影響しない）
+- Docker の表示上は856.7MBが「回収可能」だが、イメージ間でレイヤーが共有されているため**実際に空くのは約227MB**。`docker system df -v`の`UNIQUE SIZE`が実質的な削減量の目安になる
+- **デプロイ後は`docker image prune -a`を実行する運用とする**（[運用手順](operations-start-stop.md)に記載）
+- 使用率が90%を超える場合は、EBSボリュームの拡張を検討する
 
 ### 3.5 ALB相乗り方式
 
@@ -268,7 +330,7 @@ ALB自体は既にfamigo用として稼働しており、本システムの相�
 ## 5. 今後決めること
 
 - [ ] 本システム用独自ドメインの選定・取得（ドメイン名・TLD・取得先レジストラを確定。「3.6 ドメイン方針」参照）
-- [ ] EC2（t3.micro）でfamigo（Java/Spring Boot）・本システム（PHP/Laravel + Nginx）2アプリ同時稼働時のメモリ・CPU使用率を`free -h`・`docker stats`で実測し、本ドキュメント「3.4 EC2のリソース検証」に結果を追記
+- [x] EC2（t3.micro）でfamigo（Java/Spring Boot）・本システム（PHP/Laravel + Nginx）2アプリ同時稼働時のメモリ・CPU使用率を`free -h`・`docker stats`で実測し、本ドキュメント「3.4 EC2のリソース検証」に結果を追記 → **2026-08-15 実施。`available` 282Mi/916Mi（30.8%）・CPU ほぼアイドルで余裕ありと確認し、t3.small へのスケールアップは不要と判断（3.4）。併せてディスク使用率80%を発見し、デプロイ後の`docker image prune -a`を運用手順に追加**
 - [ ] famigo-ec2上の既存docker-compose.yml・ディレクトリ構成の現物確認（`/opt/famigo/`配下の実際のパス名等）、本システム用docker-compose.ymlの配置・分離方法の具体化
 - [ ] famigo-sg-ec2の現物ルール確認（SSH許可元IP等、CLIでの要約は簡略化されているため`.tf`化前に詳細を再取得）
 - [x] Terraform tfstateの保管方式確定 → **ローカル保存**（`infra/versions.tf` の `backend "local"`）。個人開発・1台作業のため。tfstateは機密を含みうるため `.gitignore` でコミット除外。将来、複数PC・複数人になればS3 backendへ移行する（4.4）
