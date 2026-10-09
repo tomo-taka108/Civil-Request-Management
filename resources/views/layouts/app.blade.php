@@ -25,7 +25,10 @@
         @if (Route::has('map.index'))
             <a href="{{ route('map.index') }}" class="@yield('nav-map')">地図表示</a>
         @endif
-        <a href="{{ route('requests.create') }}" class="@yield('nav-create')">新規登録</a>
+        {{-- 新規登録は一般職員のみ（システム管理者は事務所に紐づかないため登録できない。要件定義書 1.3） --}}
+        @can('create', App\Models\Request::class)
+            <a href="{{ route('requests.create') }}" class="@yield('nav-create')">新規登録</a>
+        @endcan
         {{-- ユーザー管理はシステム管理者のみ表示（画面設計書 3.3） --}}
         @can('admin')
             <a href="{{ route('users.index') }}" class="@yield('nav-users')">ユーザー管理</a>
