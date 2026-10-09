@@ -46,6 +46,29 @@ class RequestIndexTest extends TestCase
             ->assertSee('案件一覧');
     }
 
+    public function test_一般職員のナビには新規登録が表示される(): void
+    {
+        $this->actingAsStaff();
+
+        $this->get(route('requests.index'))
+            ->assertOk()
+            ->assertSee(route('requests.create'));
+    }
+
+    /**
+     * システム管理者は事務所に紐づかず案件を登録できない（要件定義書 1.3）。
+     * ナビにリンクが出ると押下時に403になるため、表示自体を抑止する。
+     */
+    public function test_管理者のナビには新規登録が表示されない(): void
+    {
+        $admin = User::factory()->admin()->create(['must_change_password' => false]);
+        $this->actingAs($admin);
+
+        $this->get(route('requests.index'))
+            ->assertOk()
+            ->assertDontSee(route('requests.create'));
+    }
+
     public function test_一般職員は自事務所の案件のみ表示される(): void
     {
         $officeA = Office::factory()->create();
