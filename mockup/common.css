@@ -144,6 +144,21 @@ a {
   color: var(--color-text-sub);
 }
 
+/* 注記が複数行になる項目。上下の項目と詰まって見えないよう余白を足し、
+   項目名は（縦中央ではなく）入力欄の高さに合わせて上寄せにする。 */
+.form-grid .field-roomy {
+  padding: 6px 0 10px;
+}
+
+.form-grid .label-roomy {
+  align-self: start;
+  padding-top: 13px;
+}
+
+.form-grid .field-roomy .note:not(:last-child) {
+  margin-bottom: 6px;
+}
+
 .form-grid .required::after {
   content: "必須";
   font-size: 10px;
@@ -259,6 +274,22 @@ table.list-table tbody tr:hover {
   cursor: pointer;
 }
 
+/* 事務所グループ見出し行（管理者の一覧のみ） */
+table.list-table tbody tr.group-row:hover {
+  background: transparent;
+  cursor: default;
+}
+
+table.list-table tbody tr.group-row th {
+  background: var(--color-primary-dark);
+  color: #fff;
+  /* 事務所名の見出し行を、下の案件データ行と明確に区別できるよう大きめ・太字にする。 */
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 10px 12px;
+}
+
 /* バッジ */
 .badge {
   display: inline-block;
@@ -284,16 +315,30 @@ table.list-table tbody tr:hover {
   margin-bottom: 14px;
 }
 
-.search-form .field label {
+/* 項目名（事務所・対応状況 等）＝各 .field の直下の label のみを見出しとして
+   強調する。チェックボックスの選択肢ラベル（.checkbox-group 内の label）は
+   直下ではないため対象外で、通常フォントのまま（項目と条件の見た目を分ける）。 */
+.search-form .field > label {
   display: block;
-  font-size: 12px;
-  color: var(--color-text-sub);
-  margin-bottom: 4px;
-  font-weight: bold;
+  font-size: 14px;
+  color: var(--color-text);
+  margin-bottom: 6px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border-left: 3px solid var(--color-primary, #2b6cb0);
+  padding-left: 8px;
 }
 
 .search-form .field.span-3 {
   grid-column: span 3;
+}
+
+/* 事務所（管理者のみ・重要な絞り込み）は、下に区切り線と余白を入れて
+   他の検索条件と視覚的に分ける。 */
+.search-form .field.field-office {
+  padding-bottom: 14px;
+  margin-bottom: 6px;
+  border-bottom: 1px dashed var(--color-border);
 }
 
 .checkbox-group {
@@ -383,6 +428,14 @@ table.list-table tbody tr:hover {
   margin-top: 4px;
 }
 
+/* Leaflet の地図コンテナ（詳細・登録・編集で共用）。
+   モックでは .map-placeholder で見た目を代用している。 */
+.location-map {
+  height: 320px;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
 /* 地図表示画面 */
 .map-pin {
   position: absolute;
@@ -411,6 +464,15 @@ table.list-table tbody tr:hover {
 .map-pin-urgency-高 { background: var(--color-danger); }
 .map-pin-urgency-中 { background: var(--color-warning); }
 .map-pin-urgency-低 { background: #9aa5b1; }
+
+/* Leaflet の DivIcon 内で使う雫型ピン。Leaflet が位置を決めるため、
+   モックの絶対配置（.map-pin の position:absolute / translate）は打ち消し、
+   回転による雫型の見た目だけを使う。 */
+.map-pin-static {
+  position: static;
+  transform: rotate(-45deg);
+  margin: 0;
+}
 
 .map-pin-list-item {
   padding: 12px 14px;
@@ -570,6 +632,364 @@ table.list-table tbody tr:hover {
 .login-footer a {
   display: inline-block;
   margin-top: 10px;
+}
+
+/* フラッシュ・バリデーションメッセージ */
+.alert {
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 18px;
+  line-height: 1.6;
+}
+
+.alert-danger {
+  background: #fdecea;
+  color: var(--color-danger);
+  border: 1px solid #f5c2c7;
+}
+
+.alert-success {
+  background: #e8f5ee;
+  color: var(--color-success);
+  border: 1px solid #b7e0c9;
+}
+
+.alert-info {
+  background: #eef3fe;
+  color: var(--color-primary-dark);
+  border: 1px solid #cdddfb;
+}
+
+/* フィールド別のバリデーションエラー（.field 内・フォームグリッド内どちらでも効く） */
+.error {
+  color: var(--color-danger);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* リンク風ボタン（form内でGET遷移せずPOSTするため） */
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--color-primary-dark);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* ========================================================================
+   ここから下は追加機能（ダッシュボード・対応履歴・現場写真）用。
+   実装時に public/css/common.css へ取り込む。
+   ======================================================================== */
+
+/* ダッシュボード：要対応サマリーのカード（クリックで該当条件の一覧へ） */
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  display: block;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-text-sub);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 4px 20px rgba(91, 141, 239, 0.06);
+}
+
+.stat-card:hover {
+  background: #f6f8ff;
+}
+
+/* 緊急度の高い指標は赤、注意喚起は黄で縁取る。 */
+.stat-card.is-danger { border-left-color: var(--color-danger); }
+.stat-card.is-warning { border-left-color: var(--color-warning); }
+.stat-card.is-info { border-left-color: var(--color-primary); }
+
+.stat-card .stat-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+}
+
+.stat-card .stat-value {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-top: 4px;
+}
+
+.stat-card .stat-value .stat-unit {
+  font-size: 14px;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.stat-card.is-danger .stat-value { color: var(--color-danger); }
+.stat-card.is-warning .stat-value { color: var(--color-warning); }
+
+.stat-card .stat-note {
+  font-size: 11px;
+  color: var(--color-text-sub);
+  margin-top: 4px;
+}
+
+/* ダッシュボード：2カラム並べ（内訳グラフ等）。狭い画面では1カラムに落とす。 */
+.dash-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 860px) {
+  .dash-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 件数の内訳：CSSの横棒グラフ。数値を併記するので色だけに依存しない。 */
+.bar-chart {
+  display: grid;
+  grid-template-columns: 72px 1fr 56px;
+  align-items: center;
+  row-gap: 10px;
+  column-gap: 10px;
+}
+
+.bar-chart .bar-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+}
+
+.bar-chart .bar-track {
+  background: #eef1f8;
+  border-radius: 6px;
+  height: 18px;
+  overflow: hidden;
+}
+
+.bar-chart .bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(120deg, var(--color-primary), var(--color-primary-2));
+}
+
+.bar-chart .bar-fill.is-danger { background: var(--color-danger); }
+.bar-chart .bar-fill.is-warning { background: var(--color-warning); }
+.bar-chart .bar-fill.is-success { background: var(--color-success); }
+.bar-chart .bar-fill.is-muted { background: #9aa5b1; }
+
+.bar-chart .bar-value {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+/* マトリクス表（部署×対応状況）。合計列・行は背景を変えて区別する。 */
+table.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table.matrix-table th,
+table.matrix-table td {
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  font-size: 13px;
+  text-align: right;
+}
+
+/* 件数は一覧へのリンクとして押しやすく・読み取りやすくするため、
+   見出しや注記より大きめの文字にする。 */
+table.matrix-table tbody td,
+table.matrix-table tfoot td {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+table.matrix-table thead th {
+  background: #f1f4fc;
+  color: var(--color-text-sub);
+  font-weight: 700;
+  text-align: center;
+}
+
+table.matrix-table tbody th {
+  background: #f8fafe;
+  color: var(--color-text);
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+}
+
+table.matrix-table .total,
+table.matrix-table tfoot th,
+table.matrix-table tfoot td {
+  background: #f1f4fc;
+  font-weight: 800;
+}
+
+table.matrix-table td a {
+  text-decoration: none;
+  font-weight: 700;
+}
+
+/* 月別推移グラフ（インラインSVG）の軸・ラベル */
+.trend-chart {
+  width: 100%;
+  height: auto;
+}
+
+.trend-chart .trend-bar {
+  fill: var(--color-primary);
+}
+
+.trend-chart .trend-axis {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.trend-chart .trend-label,
+.trend-chart .trend-count {
+  font-size: 10px;
+  fill: var(--color-text-sub);
+  font-family: inherit;
+}
+
+.trend-chart .trend-count {
+  font-weight: 700;
+  fill: var(--color-text);
+}
+
+/* 対応履歴タイムライン */
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.timeline > li {
+  position: relative;
+  padding: 0 0 18px 22px;
+  border-left: 2px solid var(--color-border);
+}
+
+.timeline > li:last-child {
+  padding-bottom: 0;
+  border-left-color: transparent;
+}
+
+/* 各エントリの丸印。border-left の線上に重ねる。 */
+.timeline > li::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 2px solid #fff;
+}
+
+.timeline .log-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.timeline .log-date {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.timeline .log-author {
+  font-size: 12px;
+  color: var(--color-text-sub);
+}
+
+.timeline .log-body {
+  margin-top: 4px;
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+
+.timeline .log-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+}
+
+/* 編集された履歴であることを示すしるし。記録の訂正を隠さず明示する。 */
+.timeline .log-edited {
+  font-size: 11px;
+  color: var(--color-text-sub);
+  background: #f1f4fc;
+  border-radius: 10px;
+  padding: 1px 8px;
+}
+
+/* 各対応履歴に紐づく現場写真（その日の対応で撮影したもの）。
+   タイムライン内に置くため、本体のギャラリーより小さいサムネイルにする。 */
+.timeline .photo-grid {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  margin-top: 10px;
+}
+
+.timeline .photo-item img {
+  height: 90px;
+}
+
+/* 現場写真ギャラリー */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.photo-item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #fff;
+}
+
+.photo-item a {
+  display: block;
+}
+
+.photo-item img {
+  display: block;
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  background: #eef1f8;
+}
+
+.photo-meta {
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--color-text-sub);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.photo-meta .photo-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mock-banner {

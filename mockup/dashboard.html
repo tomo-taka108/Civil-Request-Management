@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ダッシュボード | CivilTrack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="mock-banner">モックアップ（表示イメージ確認用・実データではありません）</div>
+<header class="app-header">
+  <div class="brand">
+    <span class="brand-name">CivilTrack</span>
+    <span class="brand-sub">土木施設要望・対応管理システム</span>
+  </div>
+  <nav>
+    <a class="active" href="dashboard.html">ダッシュボード</a>
+    <a href="list.html">案件一覧</a>
+    <a href="map.html">地図表示</a>
+    <a href="register.html">新規登録</a>
+  </nav>
+  <div class="user">〇〇土木事務所 道路課 山田 太郎　<a href="password-change.html">パスワード変更</a>｜<!-- ログアウトはPOSTで行うため、実装はリンクではなくリンク風ボタン（.btn-link） --><button type="button" class="btn-link">ログアウト</button></div>
+</header>
+
+<main class="app-main">
+  <h1 class="page-title">ダッシュボード</h1>
+
+  <!-- 一般職員は自事務所のみが集計対象（OfficeScope）。管理者は全事務所が対象となり、
+       下部に「事務所別の内訳」が追加される（このファイル末尾に管理者向けの差分を併記）。 -->
+  <div class="note" style="margin-bottom:16px;">
+    集計対象：〇〇土木事務所（自事務所の案件のみ）　／　2026-10-11 時点
+  </div>
+
+  <!-- モックアップ特有の制約についての注記。実装では解消される。 -->
+  <div class="alert alert-info">
+    <strong>【モックアップについての注意】</strong>
+    このページの件数リンクには実際の検索条件が付いています（例：未対応かつ緊急性「高」→
+    <code>list.html?response_status[]=not_started&amp;urgency[]=high</code>）。
+    ただし <code>list.html</code> は静的なHTMLファイルのため、ブラウザで開くとクエリ文字列が無視され、
+    <strong>どの件数をクリックしても同じ一覧（固定の20件）が表示されます</strong>。
+    実装では一覧画面がサーバ側で条件を解釈するため、<strong>クリックした件数の対象だけが表示されます</strong>
+    （既存の検索処理が <code>office[]</code> / <code>department[]</code> /
+    <code>response_status[]</code> / <code>urgency[]</code> に対応済みのため、一覧側の変更は不要）。
+    例外として「30日以上動きなし」のみ既存の検索条件に該当する項目が無く、実装時に一覧へ専用の絞り込みを追加します。
+  </div>
+
+  <!-- ① 要対応サマリー。
+       各カードはクリックすると、そのカードが数えている条件だけで絞り込んだ
+       案件一覧へ遷移する（全案件ではない）。検索条件は既存の一覧画面と同じ
+       クエリ形式（配列）で渡すため、一覧側の実装は変更不要。
+         例）未対応かつ緊急性「高」
+             list.html?response_status[]=not_started&urgency[]=high -->
+  <div class="section-heading" style="margin-top:0;">要対応サマリー</div>
+  <div class="stat-cards">
+    <a class="stat-card is-danger" href="list.html?response_status[]=not_started&urgency[]=high">
+      <div class="stat-label">未対応 かつ 緊急性「高」</div>
+      <div class="stat-value">5<span class="stat-unit">件</span></div>
+      <div class="stat-note">最優先で着手が必要です</div>
+    </a>
+    <!-- 「30日以上動きなし」は updated_at による判定で、現在の検索条件には
+         対応する項目が無い。実装時は一覧側に専用の絞り込み（例 stale=1）を
+         追加して、この5件だけが表示されるようにする。 -->
+    <a class="stat-card is-warning" href="list.html?stale=1">
+      <div class="stat-label">30日以上 動きなし</div>
+      <div class="stat-value">3<span class="stat-unit">件</span></div>
+      <div class="stat-note">対応完了していない案件のうち、30日以上更新がないもの</div>
+    </a>
+    <a class="stat-card is-info" href="list.html?response_status[]=in_progress">
+      <div class="stat-label">対応中</div>
+      <div class="stat-value">8<span class="stat-unit">件</span></div>
+      <div class="stat-note">着手済み・完了前</div>
+    </a>
+    <a class="stat-card" href="list.html">
+      <div class="stat-label">全案件</div>
+      <div class="stat-value">45<span class="stat-unit">件</span></div>
+      <div class="stat-note">削除済みを除く（条件を指定しない一覧へ）</div>
+    </a>
+  </div>
+
+  <!-- ②③ 内訳グラフ。横棒＋数値併記（色だけに依存しない）。 -->
+  <div class="dash-row">
+    <!-- 件数はいずれもリンク。その区分だけで絞り込んだ一覧へ遷移する。 -->
+    <div class="card">
+      <div class="section-heading">対応状況の内訳</div>
+      <div class="bar-chart">
+        <div class="bar-label">未対応</div>
+        <div class="bar-track"><div class="bar-fill is-danger" style="width:48%;"></div></div>
+        <div class="bar-value"><a href="list.html?response_status[]=not_started">12件</a></div>
+
+        <div class="bar-label">対応中</div>
+        <div class="bar-track"><div class="bar-fill is-warning" style="width:32%;"></div></div>
+        <div class="bar-value"><a href="list.html?response_status[]=in_progress">8件</a></div>
+
+        <div class="bar-label">対応完了</div>
+        <div class="bar-track"><div class="bar-fill is-success" style="width:100%;"></div></div>
+        <div class="bar-value"><a href="list.html?response_status[]=completed">25件</a></div>
+      </div>
+      <div class="note">棒の長さは最大件数（25件）を100%とした相対表示です。件数をクリックすると、その対応状況の案件一覧を表示します。</div>
+    </div>
+
+    <div class="card">
+      <div class="section-heading">緊急性の内訳</div>
+      <div class="bar-chart">
+        <div class="bar-label">高</div>
+        <div class="bar-track"><div class="bar-fill is-danger" style="width:20%;"></div></div>
+        <div class="bar-value"><a href="list.html?urgency[]=high">5件</a></div>
+
+        <div class="bar-label">中</div>
+        <div class="bar-track"><div class="bar-fill is-warning" style="width:60%;"></div></div>
+        <div class="bar-value"><a href="list.html?urgency[]=medium">15件</a></div>
+
+        <div class="bar-label">低</div>
+        <div class="bar-track"><div class="bar-fill is-muted" style="width:100%;"></div></div>
+        <div class="bar-value"><a href="list.html?urgency[]=low">25件</a></div>
+      </div>
+      <div class="note">棒の長さは最大件数（25件）を100%とした相対表示です。件数をクリックすると、その緊急性の案件一覧を表示します。</div>
+    </div>
+  </div>
+
+  <!-- ④ 対応部署 × 対応状況のマトリクス。
+       すべての件数（各セル・部署別の計・対応状況別の計・全合計）がリンクで、
+       クリックするとその条件だけで絞り込んだ一覧へ遷移する。
+         各セル        … department[] と response_status[] の両方を指定
+         部署別の計    … department[] のみ
+         対応状況別の計… response_status[] のみ
+         全合計        … 条件なし -->
+  <div class="card">
+    <div class="section-heading">対応部署 × 対応状況</div>
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th>対応部署</th>
+          <th>未対応</th>
+          <th>対応中</th>
+          <th>対応完了</th>
+          <th>計</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>道路</th>
+          <td><a href="list.html?department[]=road&response_status[]=not_started">5</a></td>
+          <td><a href="list.html?department[]=road&response_status[]=in_progress">3</a></td>
+          <td><a href="list.html?department[]=road&response_status[]=completed">12</a></td>
+          <td class="total"><a href="list.html?department[]=road">20</a></td>
+        </tr>
+        <tr>
+          <th>河川</th>
+          <td><a href="list.html?department[]=river&response_status[]=not_started">4</a></td>
+          <td><a href="list.html?department[]=river&response_status[]=in_progress">3</a></td>
+          <td><a href="list.html?department[]=river&response_status[]=completed">8</a></td>
+          <td class="total"><a href="list.html?department[]=river">15</a></td>
+        </tr>
+        <tr>
+          <th>砂防</th>
+          <td><a href="list.html?department[]=sabo&response_status[]=not_started">3</a></td>
+          <td><a href="list.html?department[]=sabo&response_status[]=in_progress">2</a></td>
+          <td><a href="list.html?department[]=sabo&response_status[]=completed">5</a></td>
+          <td class="total"><a href="list.html?department[]=sabo">10</a></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <th>計</th>
+          <td><a href="list.html?response_status[]=not_started">12</a></td>
+          <td><a href="list.html?response_status[]=in_progress">8</a></td>
+          <td><a href="list.html?response_status[]=completed">25</a></td>
+          <td><a href="list.html">45</a></td>
+        </tr>
+      </tfoot>
+    </table>
+    <div class="note">件数をクリックすると、その条件で絞り込んだ案件一覧を表示します（計の件数も、部署のみ・対応状況のみ・全件での絞り込みとして機能します）。</div>
+  </div>
+
+  <!-- ⑤ 月別受付件数（直近12ヶ月）。インラインSVGの矩形で描画し、新規JS依存を入れない。 -->
+  <div class="card">
+    <div class="section-heading">月別受付件数（直近12ヶ月）</div>
+    <svg class="trend-chart" viewBox="0 0 720 220" preserveAspectRatio="xMidYMid meet" role="img"
+         aria-label="月別受付件数の推移。2025年11月3件、12月5件、2026年1月4件、2月6件、3月8件、4月7件、5月5件、6月9件、7月12件、8月6件、9月4件、10月2件。">
+      <!-- 横軸 -->
+      <line class="trend-axis" x1="30" y1="180" x2="710" y2="180"/>
+
+      <!-- 棒と件数ラベル。高さは最大値12件を基準にスケールする（最大140px）。 -->
+      <g>
+        <rect class="trend-bar" x="40"  y="145" width="34" height="35"/><text class="trend-count" x="57"  y="140" text-anchor="middle">3</text>
+        <rect class="trend-bar" x="96"  y="122" width="34" height="58"/><text class="trend-count" x="113" y="117" text-anchor="middle">5</text>
+        <rect class="trend-bar" x="152" y="133" width="34" height="47"/><text class="trend-count" x="169" y="128" text-anchor="middle">4</text>
+        <rect class="trend-bar" x="208" y="110" width="34" height="70"/><text class="trend-count" x="225" y="105" text-anchor="middle">6</text>
+        <rect class="trend-bar" x="264" y="87"  width="34" height="93"/><text class="trend-count" x="281" y="82"  text-anchor="middle">8</text>
+        <rect class="trend-bar" x="320" y="98"  width="34" height="82"/><text class="trend-count" x="337" y="93"  text-anchor="middle">7</text>
+        <rect class="trend-bar" x="376" y="122" width="34" height="58"/><text class="trend-count" x="393" y="117" text-anchor="middle">5</text>
+        <rect class="trend-bar" x="432" y="75"  width="34" height="105"/><text class="trend-count" x="449" y="70"  text-anchor="middle">9</text>
+        <rect class="trend-bar" x="488" y="40"  width="34" height="140"/><text class="trend-count" x="505" y="35"  text-anchor="middle">12</text>
+        <rect class="trend-bar" x="544" y="110" width="34" height="70"/><text class="trend-count" x="561" y="105" text-anchor="middle">6</text>
+        <rect class="trend-bar" x="600" y="133" width="34" height="47"/><text class="trend-count" x="617" y="128" text-anchor="middle">4</text>
+        <rect class="trend-bar" x="656" y="157" width="34" height="23"/><text class="trend-count" x="673" y="152" text-anchor="middle">2</text>
+      </g>
+
+      <!-- 月ラベル -->
+      <g>
+        <text class="trend-label" x="57"  y="196" text-anchor="middle">2025-11</text>
+        <text class="trend-label" x="113" y="196" text-anchor="middle">2025-12</text>
+        <text class="trend-label" x="169" y="196" text-anchor="middle">2026-01</text>
+        <text class="trend-label" x="225" y="196" text-anchor="middle">2026-02</text>
+        <text class="trend-label" x="281" y="196" text-anchor="middle">2026-03</text>
+        <text class="trend-label" x="337" y="196" text-anchor="middle">2026-04</text>
+        <text class="trend-label" x="393" y="196" text-anchor="middle">2026-05</text>
+        <text class="trend-label" x="449" y="196" text-anchor="middle">2026-06</text>
+        <text class="trend-label" x="505" y="196" text-anchor="middle">2026-07</text>
+        <text class="trend-label" x="561" y="196" text-anchor="middle">2026-08</text>
+        <text class="trend-label" x="617" y="196" text-anchor="middle">2026-09</text>
+        <text class="trend-label" x="673" y="196" text-anchor="middle">2026-10</text>
+      </g>
+    </svg>
+    <div class="note">受付日を月単位で集計しています。当月（2026-10）は集計途中です。</div>
+  </div>
+
+  <!-- ⑥ 要対応案件リスト。緊急性「高」かつ未対応、または30日以上動きのないものを上位10件。 -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div class="section-heading" style="margin:0; border:none; padding:0;">要対応の案件（上位10件）</div>
+      <a class="btn btn-secondary" href="list.html">案件一覧で見る</a>
+    </div>
+    <table class="list-table">
+      <thead>
+        <tr>
+          <th>受付番号</th>
+          <th>受付日</th>
+          <th>対応部署</th>
+          <th>緊急性</th>
+          <th>対応状況</th>
+          <th>要望の内容</th>
+          <th>最終更新</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0142</td>
+          <td>2026-07-18</td>
+          <td>道路</td>
+          <td><span class="badge badge-urgency-高">高</span></td>
+          <td><span class="badge badge-status-未対応">未対応</span></td>
+          <td>県道○○線の路面にポットホール（穴ぼこ）があり危険</td>
+          <td>2026-07-18</td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0137</td>
+          <td>2026-07-13</td>
+          <td>河川</td>
+          <td><span class="badge badge-urgency-高">高</span></td>
+          <td><span class="badge badge-status-対応中">対応中</span></td>
+          <td>パトロール中にポンプの異音を確認</td>
+          <td>2026-08-02</td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0127</td>
+          <td>2026-07-03</td>
+          <td>砂防</td>
+          <td><span class="badge badge-urgency-高">高</span></td>
+          <td><span class="badge badge-status-未対応">未対応</span></td>
+          <td>パトロール中にひび割れを発見</td>
+          <td>2026-07-03</td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0124</td>
+          <td>2026-06-30</td>
+          <td>道路</td>
+          <td><span class="badge badge-urgency-高">高</span></td>
+          <td><span class="badge badge-status-対応中">対応中</span></td>
+          <td>路肩の陥没で自転車の通行が危険</td>
+          <td>2026-07-05</td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0133</td>
+          <td>2026-07-09</td>
+          <td>河川</td>
+          <td><span class="badge badge-urgency-中">中</span></td>
+          <td><span class="badge badge-status-未対応">未対応</span></td>
+          <td>不法投棄されたごみの撤去を希望</td>
+          <td>2026-07-09</td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0136</td>
+          <td>2026-07-12</td>
+          <td>砂防</td>
+          <td><span class="badge badge-urgency-低">低</span></td>
+          <td><span class="badge badge-status-未対応">未対応</span></td>
+          <td>案内看板が老朽化し文字が読めない</td>
+          <td>2026-07-12</td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0131</td>
+          <td>2026-07-07</td>
+          <td>砂防</td>
+          <td><span class="badge badge-urgency-中">中</span></td>
+          <td><span class="badge badge-status-対応中">対応中</span></td>
+          <td>堰堤周辺の立木が越境し敷地に倒れそう</td>
+          <td>2026-07-20</td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0130</td>
+          <td>2026-07-06</td>
+          <td>道路</td>
+          <td><span class="badge badge-urgency-低">低</span></td>
+          <td><span class="badge badge-status-未対応">未対応</span></td>
+          <td>歩道の段差を解消してほしい</td>
+          <td>2026-07-06</td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0128</td>
+          <td>2026-07-04</td>
+          <td>道路</td>
+          <td><span class="badge badge-urgency-中">中</span></td>
+          <td><span class="badge badge-status-対応中">対応中</span></td>
+          <td>信号待ちの車列が渋滞し危険という苦情</td>
+          <td>2026-07-11</td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0125</td>
+          <td>2026-07-01</td>
+          <td>河川</td>
+          <td><span class="badge badge-urgency-低">低</span></td>
+          <td><span class="badge badge-status-未対応">未対応</span></td>
+          <td>増水時の水位情報を掲示してほしい</td>
+          <td>2026-07-01</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="note">緊急性「高」かつ未対応、または30日以上更新のない未完了案件を、緊急性・最終更新日の順に表示しています。</div>
+  </div>
+
+  <!-- ⑦ 事務所別の内訳（システム管理者のみ表示）。
+       一般職員は自事務所しか集計対象にならないため、このカードは出さない。
+       モックでは管理者で見た場合のイメージを確認できるよう、常時表示している。 -->
+  <div class="card" style="border-color:var(--color-primary);">
+    <div class="section-heading">事務所別の内訳（システム管理者のみ表示）</div>
+    <div class="alert alert-info">
+      このカードはシステム管理者でログインした場合のみ表示されます（管理者は事務所に紐づかず、全事務所の案件が集計対象となるため）。一般職員の画面には表示されません。
+    </div>
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th>事務所</th>
+          <th>未対応</th>
+          <th>対応中</th>
+          <th>対応完了</th>
+          <th>計</th>
+        </tr>
+      </thead>
+      <!-- 事務所の絞り込みは office[] に事務所IDを渡す（管理者のみ利用できる条件）。
+           ここでも各セル・事務所別の計・対応状況別の計・全合計のすべてがリンク。 -->
+      <tbody>
+        <tr>
+          <th>〇〇土木事務所</th>
+          <td><a href="list.html?office[]=1&response_status[]=not_started">12</a></td>
+          <td><a href="list.html?office[]=1&response_status[]=in_progress">8</a></td>
+          <td><a href="list.html?office[]=1&response_status[]=completed">25</a></td>
+          <td class="total"><a href="list.html?office[]=1">45</a></td>
+        </tr>
+        <tr>
+          <th>△△土木事務所</th>
+          <td><a href="list.html?office[]=2&response_status[]=not_started">7</a></td>
+          <td><a href="list.html?office[]=2&response_status[]=in_progress">5</a></td>
+          <td><a href="list.html?office[]=2&response_status[]=completed">18</a></td>
+          <td class="total"><a href="list.html?office[]=2">30</a></td>
+        </tr>
+        <tr>
+          <th>□□土木事務所</th>
+          <td><a href="list.html?office[]=3&response_status[]=not_started">4</a></td>
+          <td><a href="list.html?office[]=3&response_status[]=in_progress">3</a></td>
+          <td><a href="list.html?office[]=3&response_status[]=completed">11</a></td>
+          <td class="total"><a href="list.html?office[]=3">18</a></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <th>計</th>
+          <td><a href="list.html?response_status[]=not_started">23</a></td>
+          <td><a href="list.html?response_status[]=in_progress">16</a></td>
+          <td><a href="list.html?response_status[]=completed">54</a></td>
+          <td><a href="list.html">93</a></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</main>
+</body>
+</html>

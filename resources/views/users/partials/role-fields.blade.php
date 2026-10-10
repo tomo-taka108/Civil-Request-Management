@@ -20,9 +20,10 @@
         @error('role')<div class="error">{{ $message }}</div>@enderror
     </div>
 
-    {{-- 一般職員のみ入力。管理者選択時は JS で非表示にし、サーバ側でも NULL に矯正する。 --}}
-    <label class="required staff-only-label">所属事務所</label>
-    <div class="staff-only-field">
+    {{-- 一般職員のみ入力。管理者選択時は JS で非表示にし、サーバ側でも NULL に矯正する。
+         注記が複数行になるため、上下の項目と詰まって見えないよう field-roomy で余白を足す。 --}}
+    <label class="required staff-only-label label-roomy">所属事務所</label>
+    <div class="staff-only-field field-roomy">
         <select name="office_id">
             <option value="">選択してください</option>
             @foreach ($offices as $office)
@@ -30,6 +31,8 @@
             @endforeach
         </select>
         <div class="note">担当部署に応じて該当案件の編集・削除権限が付与されます（閲覧は自事務所の全案件が可能）。</div>
+        {{-- 異動により閲覧範囲が変わる点は、運用上あらかじめ知っておく必要があるため明示する。 --}}
+        <div class="note">異動時はここで変更してください。案件は登録時点の事務所に残るため、異動後は新しい事務所の案件のみ閲覧・編集できるようになります（以前の事務所の案件は見えなくなります）。</div>
         @error('office_id')<div class="error">{{ $message }}</div>@enderror
     </div>
 
