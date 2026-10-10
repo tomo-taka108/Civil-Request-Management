@@ -16,12 +16,13 @@
     <span class="brand-sub">土木施設要望・対応管理システム</span>
   </div>
   <nav>
+    <a href="dashboard.html">ダッシュボード</a>
     <a href="list.html">案件一覧</a>
     <a href="map.html">地図表示</a>
     <!-- 新規登録はシステム管理者には表示しない（事務所に紐づかず登録できないため。要件定義書 1.3） -->
     <a class="active" href="user-list.html">ユーザー管理</a>
   </nav>
-  <div class="user">システム管理者 佐藤 健一　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
+  <div class="user">佐藤 健一　<a href="password-change.html">パスワード変更</a>｜<!-- ログアウトはPOSTで行うため、実装はリンクではなくリンク風ボタン（.btn-link）。管理者は事務所に紐づかないため事務所名・課名は表示されない --><button type="button" class="btn-link">ログアウト</button></div>
 </header>
 
 <main class="app-main">
@@ -44,7 +45,8 @@
         </select>
       </div>
       <div class="field" style="display:flex; align-items:flex-end; justify-content:flex-end; gap:10px;">
-        <button type="button" class="btn btn-secondary">クリア</button>
+        <!-- 「クリア」は条件なしのURLへ遷移するためリンク（実装は <a>）。 -->
+        <a class="btn btn-secondary" href="user-list.html">クリア</a>
         <button type="button" class="btn btn-secondary">絞り込み</button>
       </div>
     </form>
@@ -103,8 +105,21 @@
           <td>一般職員</td>
           <td><span class="badge badge-status-未対応">無効化済み</span></td>
         </tr>
+        <!-- 該当0件の場合は、tbody にこの1行だけを表示する。
+        <tr>
+          <td colspan="6" style="text-align:center; padding:24px 0;">該当するユーザーはいません。</td>
+        </tr>
+        -->
       </tbody>
     </table>
+
+    <!-- 一覧はページネーションされる（案件一覧と同じ共通ページネーション）。 -->
+    <div class="pagination">
+      <span>&laquo;</span>
+      <span class="current">1</span>
+      <a href="#">2</a>
+      <a href="#">&raquo;</a>
+    </div>
   </div>
 </main>
 </body>

@@ -16,12 +16,13 @@
     <span class="brand-sub">土木施設要望・対応管理システム</span>
   </div>
   <nav>
+    <a href="dashboard.html">ダッシュボード</a>
     <a href="list.html">案件一覧</a>
     <a href="map.html">地図表示</a>
     <!-- 新規登録はシステム管理者には表示しない（事務所に紐づかず登録できないため。要件定義書 1.3） -->
     <a class="active" href="user-list.html">ユーザー管理</a>
   </nav>
-  <div class="user">システム管理者 佐藤 健一　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
+  <div class="user">佐藤 健一　<a href="password-change.html">パスワード変更</a>｜<!-- ログアウトはPOSTで行うため、実装はリンクではなくリンク風ボタン（.btn-link）。管理者は事務所に紐づかないため事務所名・課名は表示されない --><button type="button" class="btn-link">ログアウト</button></div>
 </header>
 
 <main class="app-main">
@@ -32,13 +33,17 @@
 
   <div class="note" style="margin-bottom:16px;">この画面は「システム管理者」権限を持つユーザーのみ利用できます。</div>
 
+  <!-- バリデーションエラーがある場合、フォーム上部にまとめて表示する。 -->
+  <div class="alert alert-danger">［エラー時の表示例］入力内容にエラーがあります。各項目をご確認ください。</div>
+
   <form class="card">
     <div class="section-heading">アカウント情報</div>
     <div class="form-grid">
       <label class="required">ユーザーID</label>
       <div>
         <input type="text" value="yamada_t">
-        <div class="note">ログイン時に使用します。入力ミスの訂正等で変更できますが、システム全体で一意である必要があります</div>
+        <div class="note">ログイン時に使用します。入力ミスの訂正等で変更できますが、システム全体で一意である必要があります。</div>
+        <div class="error">［エラー時の表示例］このユーザーIDは既に使われています。別のIDを指定してください。</div>
       </div>
 
       <label class="required">氏名</label>
@@ -46,8 +51,10 @@
 
       <label>パスワード</label>
       <div>
-        <button type="button" class="btn btn-secondary">初期パスワードを再発行する</button>
-        <div class="note">本人がパスワードを忘れた場合、システム管理者が初期パスワードを再発行し、次回ログイン時に本人が再設定します</div>
+        <!-- 再発行は確認ダイアログを経てから実行する。 -->
+        <button type="button" class="btn btn-secondary"
+                onclick="return confirm('初期パスワードを再発行します。よろしいですか？');">初期パスワードを再発行する</button>
+        <div class="note">本人がパスワードを忘れた場合、システム管理者が初期パスワードを再発行し、次回ログイン時に本人が再設定します。</div>
       </div>
     </div>
 
@@ -62,14 +69,17 @@
     </div>
 
     <div class="form-grid" id="staff-fields">
-      <label class="required">所属事務所</label>
-      <div>
+      <!-- 注記が複数行になるため、上の権限区分・下の担当部署と詰まって見えないよう
+           field-roomy / label-roomy で縦の余白を確保する。 -->
+      <label class="required label-roomy">所属事務所</label>
+      <div class="field-roomy">
         <select>
           <option selected>〇〇土木事務所</option>
           <option>△△土木事務所</option>
           <option>□□土木事務所</option>
         </select>
-        <div class="note">異動時はここで変更してください。案件は登録時点の事務所に残るため、異動後は新しい事務所の案件のみ閲覧・編集できるようになります（以前の事務所の案件は見えなくなります）</div>
+        <div class="note">担当部署に応じて該当案件の編集・削除権限が付与されます（閲覧は自事務所の全案件が可能）。</div>
+        <div class="note">異動時はここで変更してください。案件は登録時点の事務所に残るため、異動後は新しい事務所の案件のみ閲覧・編集できるようになります（以前の事務所の案件は見えなくなります）。</div>
       </div>
 
       <label class="required">担当部署</label>
@@ -78,7 +88,6 @@
         <label><input type="radio" name="dept">河川</label>
         <label><input type="radio" name="dept">砂防</label>
       </div>
-      <div style="grid-column:2;" class="note">担当部署に応じて、該当案件の編集・削除権限が付与されます（閲覧は自事務所の全案件が可能）</div>
     </div>
     <div class="note" id="admin-note" style="display:none;">「システム管理者」を選択したため、所属事務所・担当部署の入力は不要です。</div>
 
@@ -88,15 +97,23 @@
     </div>
   </form>
 
+  <!-- ================================================================
+       アカウント状態のカードは、対象ユーザーの状況によって表示が変わる。
+       実装は該当する1パターンのみを表示するが、モックでは文言を確認できるよう
+       4パターンすべてを並べている。
+       ================================================================ -->
+
+  <!-- パターン①：有効なアカウント／案件の登録あり（削除不可）＝最も一般的なケース -->
   <div class="card" style="border-color:var(--color-danger);">
-    <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger);">アカウント状態</div>
+    <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger);">アカウント状態［①有効・案件の登録あり］</div>
     <div class="form-grid">
       <label>現在の状態</label>
       <div><span class="badge badge-status-対応完了">有効</span></div>
 
       <label>有効／無効</label>
       <div>
-        <button type="button" class="btn btn-danger">このアカウントを無効化する</button>
+        <button type="button" class="btn btn-danger"
+                onclick="return confirm('このアカウントを無効化します。無効化するとログインできなくなります。よろしいですか？');">このアカウントを無効化する</button>
         <div class="note">異動・退職等で本システムを利用しなくなる場合に無効化してください。登録済み案件の登録者としての表示は残ります。あとで再有効化できます。</div>
       </div>
 
@@ -105,6 +122,68 @@
         <button type="button" class="btn btn-danger" disabled>このアカウントを完全に削除する</button>
         <div class="note">このユーザーは案件を登録しているため削除できません（登録者表示を保つため）。利用を停止する場合は「無効化」してください。</div>
       </div>
+    </div>
+  </div>
+
+  <!-- パターン②：有効なアカウント／案件の登録なし（完全削除が可能） -->
+  <div class="card" style="border-color:var(--color-danger);">
+    <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger);">アカウント状態［②有効・案件の登録なし］</div>
+    <div class="form-grid">
+      <label>現在の状態</label>
+      <div><span class="badge badge-status-対応完了">有効</span></div>
+
+      <label>有効／無効</label>
+      <div>
+        <button type="button" class="btn btn-danger"
+                onclick="return confirm('このアカウントを無効化します。無効化するとログインできなくなります。よろしいですか？');">このアカウントを無効化する</button>
+        <div class="note">異動・退職等で本システムを利用しなくなる場合に無効化してください。登録済み案件の登録者としての表示は残ります。あとで再有効化できます。</div>
+      </div>
+
+      <label>削除</label>
+      <div>
+        <button type="button" class="btn btn-danger"
+                onclick="return confirm('このアカウントを完全に削除します。この操作は取り消せません。よろしいですか？');">このアカウントを完全に削除する</button>
+        <div class="note">案件を登録していない誤登録アカウント等の掃除に使います。完全に削除され、元に戻せません。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- パターン③：無効化済みのアカウント（再有効化できる） -->
+  <div class="card" style="border-color:var(--color-danger);">
+    <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger);">アカウント状態［③無効化済み］</div>
+    <div class="form-grid">
+      <label>現在の状態</label>
+      <div><span class="badge badge-status-未対応">無効化済み</span></div>
+
+      <label>有効／無効</label>
+      <div>
+        <!-- 再有効化のボタンは btn-primary（破壊的操作ではないため）。 -->
+        <button type="button" class="btn btn-primary"
+                onclick="return confirm('このアカウントを再有効化します。よろしいですか？');">このアカウントを再有効化する</button>
+        <div class="note">再有効化すると、このユーザーは再びログインできるようになります。</div>
+      </div>
+
+      <label>削除</label>
+      <div>
+        <button type="button" class="btn btn-danger" disabled>このアカウントを完全に削除する</button>
+        <div class="note">このユーザーは案件を登録しているため削除できません（登録者表示を保つため）。利用を停止する場合は「無効化」してください。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- パターン④：自分自身のアカウント（無効化も削除もできない。「削除」の行自体が出ない） -->
+  <div class="card" style="border-color:var(--color-danger);">
+    <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger);">アカウント状態［④自分自身のアカウント］</div>
+    <div class="form-grid">
+      <label>現在の状態</label>
+      <div><span class="badge badge-status-対応完了">有効</span></div>
+
+      <label>有効／無効</label>
+      <div>
+        <button type="button" class="btn btn-danger" disabled>このアカウントを無効化する</button>
+        <div class="note">自分自身のアカウントは無効化・削除できません。</div>
+      </div>
+      <!-- 自分自身の場合、「削除」の行は表示されない。 -->
     </div>
   </div>
 </main>

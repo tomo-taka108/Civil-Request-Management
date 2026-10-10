@@ -16,18 +16,28 @@
     <span class="brand-sub">土木施設要望・対応管理システム</span>
   </div>
   <nav>
+    <a href="dashboard.html">ダッシュボード</a>
     <a href="list.html">案件一覧</a>
     <a class="active" href="map.html">地図表示</a>
     <a href="register.html">新規登録</a>
   </nav>
-  <div class="user">〇〇土木事務所 道路課 山田　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
+  <div class="user">〇〇土木事務所 道路課 山田 太郎　<a href="password-change.html">パスワード変更</a>｜<!-- ログアウトはPOSTで行うため、実装はリンクではなくリンク風ボタン（.btn-link） --><button type="button" class="btn-link">ログアウト</button></div>
 </header>
 
-<main class="app-main" style="max-width:1300px;">
+<main class="app-main">
   <h1 class="page-title">地図表示</h1>
 
   <div class="card">
     <form class="search-form">
+      <!-- 事務所での絞り込みはシステム管理者のみ表示される（一覧画面と同じ条件・同じクエリ形式）。 -->
+      <div class="field span-3 field-office">
+        <label>事務所</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" checked>〇〇土木事務所</label>
+          <label><input type="checkbox">△△土木事務所</label>
+          <label><input type="checkbox">□□土木事務所</label>
+        </div>
+      </div>
       <div class="field">
         <label>対応部署</label>
         <div class="checkbox-group">
@@ -84,6 +94,8 @@
       <!-- ピン一覧（地図と連動） -->
       <div style="width:300px; border-left:1px solid var(--color-border); max-height:520px; overflow-y:auto;">
         <div class="note" style="padding:12px 14px 4px;">検索結果：4件をピン表示中</div>
+        <!-- 該当0件のときは、件数表示の下に
+             「該当する案件（位置情報あり）はありません。」を表示する。 -->
 
         <div class="map-pin-list-item">
           <div style="display:flex; justify-content:space-between; align-items:center;">
