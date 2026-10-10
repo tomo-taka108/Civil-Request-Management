@@ -87,7 +87,12 @@
        追加機能：対応履歴（request_logs）＋ 現場写真（request_photos）
        写真は「いつの時点の写真か」が分かるよう、各対応履歴に紐づけて登録する
        （request_photos.request_log_id）。受付時点の写真など、特定の対応に
-       紐づかないものは下の「受付時の写真」に登録する（request_log_id は NULL）。
+       紐づかないものは下の「受付時の写真（要望者提供分など）」に登録する
+       （request_log_id は NULL）。
+
+       枚数上限は「対応履歴ごとに5枚」。案件合計での上限は設けない。
+       案件合計で制限すると、対応が長期化して履歴が重なったときに、後の対応で
+       写真を登録できなくなり現場の運用に合わないため。
 
        追加・編集・削除ができるのは、対応部署が一致する職員とシステム管理者のみ。
        他部署の職員は閲覧のみ（フォーム・操作ボタンは表示されない）。
@@ -188,7 +193,7 @@
         <label>写真を追加</label>
         <div>
           <input type="file" accept="image/jpeg,image/png" multiple>
-          <div class="note">この対応履歴に紐づく写真として登録されます。JPEG・PNG のみ、1ファイル5MBまで。</div>
+          <div class="note">この対応履歴に紐づく写真として登録されます。JPEG・PNG のみ、1ファイル5MBまで、1件の対応履歴につき最大5枚まで（この履歴は現在2枚）。</div>
         </div>
       </div>
       <div class="btn-row">
@@ -215,7 +220,7 @@
       <label>現場写真</label>
       <div>
         <input type="file" accept="image/jpeg,image/png" multiple>
-        <div class="note">この対応で撮影した写真を一緒に登録できます。JPEG・PNG のみ、1ファイル5MBまで、1案件につき最大10枚まで。</div>
+        <div class="note">この対応で撮影した写真を一緒に登録できます。JPEG・PNG のみ、1ファイル5MBまで、1件の対応履歴につき最大5枚まで。</div>
       </div>
     </form>
     <div class="btn-row">
@@ -228,12 +233,12 @@
   </div>
 
   <!-- ============================================================
-       受付時の写真（特定の対応履歴に紐づかない写真）
+       受付時の写真（要望者提供分など・特定の対応履歴に紐づかない写真）
        要望を受け付けた時点の写真や、要望者から提供された写真を登録する。
        request_photos.request_log_id が NULL のもの。
        ============================================================ -->
   <div class="card">
-    <div class="section-heading">受付時の写真</div>
+    <div class="section-heading">受付時の写真（要望者提供分など）</div>
 
     <div class="photo-grid">
       <div class="photo-item">
@@ -256,7 +261,7 @@
       <label>画像ファイル</label>
       <div>
         <input type="file" accept="image/jpeg,image/png" multiple>
-        <div class="note">JPEG・PNG のみ、1ファイル5MBまで。1案件につき最大10枚まで登録できます（現在4枚）。対応時の写真は、上の対応履歴から登録してください。</div>
+        <div class="note">JPEG・PNG のみ、1ファイル5MBまで、最大5枚まで登録できます（現在1枚）。対応時に撮影した写真は、上の対応履歴から登録してください。</div>
       </div>
     </form>
     <div class="btn-row">
@@ -264,6 +269,7 @@
     </div>
 
     <!-- 写真が1枚もない場合は「受付時の写真は登録されていません。」と表示する。 -->
+    <!-- 受付時の写真も、対応履歴と同じく5枚を上限とする（request_log_id が NULL のものを数える）。 -->
   </div>
 
   <div class="note" style="margin-bottom:24px;">
