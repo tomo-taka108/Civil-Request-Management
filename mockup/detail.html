@@ -16,11 +16,12 @@
     <span class="brand-sub">土木施設要望・対応管理システム</span>
   </div>
   <nav>
-    <a href="list.html">案件一覧</a>
+    <a href="dashboard.html">ダッシュボード</a>
+    <a class="active" href="list.html">案件一覧</a>
     <a href="map.html">地図表示</a>
     <a href="register.html">新規登録</a>
   </nav>
-  <div class="user">〇〇土木事務所 道路課 山田　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
+  <div class="user">〇〇土木事務所 道路課 山田 太郎　<a href="password-change.html">パスワード変更</a>｜<!-- ログアウトはPOSTで行うため、実装はリンクではなくリンク風ボタン（.btn-link） --><button type="button" class="btn-link">ログアウト</button></div>
 </header>
 
 <main class="app-main">
@@ -28,8 +29,16 @@
     <h1 class="page-title">案件詳細（受付番号：2026-0142）</h1>
     <div style="display:flex; gap:10px;">
       <a class="btn btn-secondary" href="list.html">一覧に戻る</a>
+      <!-- 編集ボタンは編集権限がある場合のみ表示（対応部署が一致する職員・管理者）。
+           この画面は「道路課の職員が道路案件を開いた」＝権限ありの状態。 -->
       <a class="btn btn-primary" href="edit.html">編集する</a>
     </div>
+  </div>
+
+  <!-- 対応部署が異なる一般職員が開いた場合のみ表示される案内。
+       この画面（権限あり）では実際には表示されないが、文言確認のため併記している。 -->
+  <div class="alert alert-info">
+    ［対応部署が異なる職員が開いた場合の表示］この案件の対応部署は「道路」です。対応部署が異なるため、案件情報の編集・削除はできません（閲覧のみ可能）。編集は対応部署の担当職員または管理者が行えます。
   </div>
 
   <div class="card">
@@ -38,9 +47,10 @@
       <dt>事務所</dt><dd>〇〇土木事務所</dd>
       <dt>受付番号</dt><dd>2026-0142</dd>
       <dt>受付日時</dt><dd>2026-07-18 09:15</dd>
+      <!-- 受付方法が「その他」の場合は、括弧内に自由記述の補足を表示する。 -->
       <dt>受付方法</dt><dd>電話</dd>
       <dt>登録者（受付職員）</dt><dd>山田 太郎</dd>
-      <dt>最終更新日時</dt><dd>2026-07-18 17:40</dd>
+      <dt>最終更新日時</dt><dd>2026-08-05 14:20</dd>
     </dl>
 
     <div class="section-heading">相手方情報</div>
@@ -57,7 +67,9 @@
       <dt>要望箇所</dt>
       <dd>
         〇〇市△△町1丁目付近（緯度: 35.1234, 経度: 136.9876）
-        <div class="map-placeholder" style="margin-top:8px;">地図表示エリア（ピン表示）</div>
+        <!-- 実装は Leaflet（国土地理院タイル）でピンを静的表示する。住所・緯度経度が
+             未登録の場合は「（住所未登録）」を表示し、地図は描画しない。 -->
+        <div class="map-placeholder" style="margin-top:8px;">地図表示エリア（Leaflet／ピン表示・操作なし）</div>
       </dd>
     </dl>
 
@@ -66,9 +78,142 @@
       <dt>対応の必要性</dt><dd>あり</dd>
       <dt>緊急性</dt><dd><span class="badge badge-urgency-高">高</span></dd>
       <dt>対応方針</dt><dd>現地確認のうえ、応急措置として仮補修を実施予定</dd>
-      <dt>対応状況</dt><dd><span class="badge badge-status-未対応">未対応</span></dd>
+      <dt>対応状況</dt><dd><span class="badge badge-status-対応中">対応中</span></dd>
       <dt>対応完了日</dt><dd>-</dd>
     </dl>
+  </div>
+
+  <!-- ============================================================
+       追加機能：対応履歴（request_logs）
+       対応部署が一致する職員・管理者のみ追加／削除できる。
+       他部署の職員はタイムラインの閲覧のみ（追加フォーム・削除ボタンは出ない）。
+       ============================================================ -->
+  <div class="card">
+    <div class="section-heading">対応履歴</div>
+
+    <ul class="timeline">
+      <li>
+        <div class="log-head">
+          <span class="log-date">2026-08-05</span>
+          <span class="log-author">記録者：山田 太郎</span>
+          <span class="log-actions">
+            <button type="button" class="btn-link">削除</button>
+          </span>
+        </div>
+        <div class="log-body">補修業者と現地立会いを実施。8月中旬に本補修を行う工程で調整した。</div>
+      </li>
+      <li>
+        <div class="log-head">
+          <span class="log-date">2026-07-25</span>
+          <span class="log-author">記録者：山田 太郎</span>
+          <span class="log-actions">
+            <button type="button" class="btn-link">削除</button>
+          </span>
+        </div>
+        <div class="log-body">応急措置として常温合材による仮補修を実施。通行への支障は解消した。</div>
+      </li>
+      <li>
+        <div class="log-head">
+          <span class="log-date">2026-07-19</span>
+          <span class="log-author">記録者：鈴木 花子</span>
+          <span class="log-actions">
+            <button type="button" class="btn-link">削除</button>
+          </span>
+        </div>
+        <div class="log-body">現地確認を実施。陥没の規模は約50cm×30cm、深さ約8cm。緊急性「高」と判断し対応中に変更。</div>
+      </li>
+    </ul>
+
+    <!-- 対応履歴の追加フォーム。編集権限がある場合のみ表示する。
+         登録後は「最終更新日時」も自動で更新される（$touches）。 -->
+    <div class="section-heading">履歴を追加</div>
+    <form class="form-grid">
+      <label class="required">対応日</label>
+      <div>
+        <input type="date" value="2026-10-11">
+        <div class="note">実際に対応した日を入力してください（未来日は登録できません）。</div>
+      </div>
+
+      <label class="required">対応内容</label>
+      <div>
+        <textarea placeholder="実施した対応・経過を入力（1000文字以内）"></textarea>
+        <div class="note">誤って登録した履歴は削除して再登録してください（履歴の編集機能はありません）。</div>
+      </div>
+    </form>
+    <div class="btn-row">
+      <button type="button" class="btn btn-primary">履歴を追加する</button>
+    </div>
+
+    <!-- 対応部署が異なる職員には上の「履歴を追加」セクションは表示されない。
+         履歴が1件もない場合は「対応履歴はまだありません。」と表示する。 -->
+  </div>
+
+  <!-- ============================================================
+       追加機能：現場写真（request_photos）
+       画像は非公開のS3バケットに保存し、署名付きURL経由で表示する。
+       アップロード／削除は対応部署が一致する職員・管理者のみ。
+       ============================================================ -->
+  <div class="card">
+    <div class="section-heading">現場写真</div>
+
+    <div class="photo-grid">
+      <div class="photo-item">
+        <a href="photos/road-pothole.svg" target="_blank" rel="noopener">
+          <img src="photos/road-pothole.svg" alt="路面の陥没（サンプル画像）">
+        </a>
+        <div class="photo-meta">
+          <span class="photo-name">2026-07-19 現況</span>
+          <button type="button" class="btn-link">削除</button>
+        </div>
+      </div>
+      <div class="photo-item">
+        <a href="photos/road-crack.svg" target="_blank" rel="noopener">
+          <img src="photos/road-crack.svg" alt="舗装のひび割れ（サンプル画像）">
+        </a>
+        <div class="photo-meta">
+          <span class="photo-name">2026-07-19 周辺</span>
+          <button type="button" class="btn-link">削除</button>
+        </div>
+      </div>
+      <div class="photo-item">
+        <a href="photos/road-sign-faded.svg" target="_blank" rel="noopener">
+          <img src="photos/road-sign-faded.svg" alt="標識の退色（サンプル画像）">
+        </a>
+        <div class="photo-meta">
+          <span class="photo-name">2026-07-25 仮補修後</span>
+          <button type="button" class="btn-link">削除</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:12px;">
+      サムネイルをクリックすると別タブで拡大表示します。写真は非公開の保存領域に置き、一定時間のみ有効な署名付きURLで表示するため、URLを共有しても第三者は閲覧できません。
+    </div>
+
+    <!-- アップロードフォーム。編集権限がある場合のみ表示する。 -->
+    <div class="section-heading">写真を追加</div>
+    <form class="form-grid">
+      <label>画像ファイル</label>
+      <div>
+        <input type="file" accept="image/jpeg,image/png" multiple>
+        <div class="note">JPEG・PNG のみ、1ファイル5MBまで。1案件につき最大10枚まで登録できます（現在3枚）。</div>
+      </div>
+    </form>
+    <div class="btn-row">
+      <button type="button" class="btn btn-primary">写真をアップロードする</button>
+    </div>
+
+    <div class="alert alert-info" style="margin-top:18px; margin-bottom:0;">
+      撮影の際は、通行人の顔・表札・車両のナンバー等、対応に不要な個人情報が写り込まないようご注意ください（要件定義書 4.1）。
+    </div>
+
+    <!-- 対応部署が異なる職員には上の「写真を追加」セクションと各写真の「削除」は
+         表示されない（閲覧のみ）。写真が1枚もない場合は
+         「現場写真はまだ登録されていません。」と表示する。 -->
+  </div>
+
+  <div class="note" style="margin-bottom:24px;">
+    ※ 上記のサンプル画像は実写真ではなく、著作権・個人情報の懸念がないSVGのプレースホルダです（将来CC0の実写真へ差し替え可能）。
   </div>
 </main>
 </body>

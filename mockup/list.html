@@ -16,11 +16,12 @@
     <span class="brand-sub">土木施設要望・対応管理システム</span>
   </div>
   <nav>
+    <a href="dashboard.html">ダッシュボード</a>
     <a class="active" href="list.html">案件一覧</a>
     <a href="map.html">地図表示</a>
     <a href="register.html">新規登録</a>
   </nav>
-  <div class="user">〇〇土木事務所 道路課 山田　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
+  <div class="user">〇〇土木事務所 道路課 山田 太郎　<a href="password-change.html">パスワード変更</a>｜<!-- ログアウトはPOSTで行うため、実装はリンクではなくリンク風ボタン（.btn-link） --><button type="button" class="btn-link">ログアウト</button></div>
 </header>
 
 <main class="app-main">
@@ -28,6 +29,17 @@
 
   <div class="card">
     <form class="search-form">
+      <!-- 事務所での絞り込みはシステム管理者のみ表示される（全事務所が混在するため）。
+           一般職員は自事務所の案件しか見えないため、この条件自体が出ない。
+           重要な条件のため単独で1行に置き、下に区切り線を入れて他条件と分ける。 -->
+      <div class="field span-3 field-office">
+        <label>事務所</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" checked>〇〇土木事務所</label>
+          <label><input type="checkbox">△△土木事務所</label>
+          <label><input type="checkbox">□□土木事務所</label>
+        </div>
+      </div>
       <div class="field">
         <label>受付日時（期間）</label>
         <div style="display:flex; gap:6px; align-items:center;">
@@ -35,6 +47,8 @@
           <span>〜</span>
           <input type="date" value="2026-07-19">
         </div>
+        <!-- 不正な日付・期間が入力された場合に項目ごとにエラーを表示する。 -->
+        <div class="error">［エラー時の表示例］受付日時（終了）には受付日時（開始）以降の日付を入力してください。</div>
       </div>
       <div class="field">
         <label>対応部署</label>
@@ -95,6 +109,12 @@
         </tr>
       </thead>
       <tbody>
+        <!-- 事務所グループ見出し行は、システム管理者の一覧のみ表示される
+             （一覧は「事務所ID → 受付日時降順」で並び、事務所が変わる箇所に挟む）。
+             一般職員は自事務所のみのため、この行は出ない。 -->
+        <tr class="group-row">
+          <th colspan="8">〇〇土木事務所</th>
+        </tr>
         <tr onclick="location.href='detail.html'">
           <td>2026-0142</td>
           <td>2026-07-18 09:15</td>
@@ -285,6 +305,35 @@
           <td><span class="badge badge-urgency-高">高</span></td>
           <td><span class="badge badge-status-対応中">対応中</span></td>
         </tr>
+        <!-- 次の事務所に切り替わる箇所にも見出し行が入る（管理者のみ）。 -->
+        <tr class="group-row">
+          <th colspan="8">△△土木事務所</th>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0088</td>
+          <td>2026-07-16 11:25</td>
+          <td>道路</td>
+          <td>要望</td>
+          <td>△△市〇〇町4丁目</td>
+          <td>通学路の路側帯を広げてほしい</td>
+          <td><span class="badge badge-urgency-中">中</span></td>
+          <td><span class="badge badge-status-未対応">未対応</span></td>
+        </tr>
+        <tr onclick="location.href='detail.html'">
+          <td>2026-0087</td>
+          <td>2026-07-14 15:50</td>
+          <td>砂防</td>
+          <td>異常発見</td>
+          <td>△△市◇◇沢</td>
+          <td>パトロール中に小規模な落石を確認</td>
+          <td><span class="badge badge-urgency-高">高</span></td>
+          <td><span class="badge badge-status-対応中">対応中</span></td>
+        </tr>
+        <!-- 検索結果が0件の場合は、tbody にこの1行だけを表示する。
+        <tr>
+          <td colspan="8" style="text-align:center; padding:24px 0;">該当する案件はありません。</td>
+        </tr>
+        -->
       </tbody>
     </table>
 

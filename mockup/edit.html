@@ -16,15 +16,20 @@
     <span class="brand-sub">土木施設要望・対応管理システム</span>
   </div>
   <nav>
+    <a href="dashboard.html">ダッシュボード</a>
     <a class="active" href="list.html">案件一覧</a>
     <a href="map.html">地図表示</a>
     <a href="register.html">新規登録</a>
   </nav>
-  <div class="user">〇〇土木事務所 道路課 山田　<a href="password-change.html">パスワード変更</a>｜<a href="login.html">ログアウト</a></div>
+  <div class="user">〇〇土木事務所 道路課 山田 太郎　<a href="password-change.html">パスワード変更</a>｜<!-- ログアウトはPOSTで行うため、実装はリンクではなくリンク風ボタン（.btn-link） --><button type="button" class="btn-link">ログアウト</button></div>
 </header>
 
 <main class="app-main">
   <h1 class="page-title">案件編集（受付番号：2026-0142）</h1>
+
+  <!-- バリデーションエラーがある場合、フォーム上部にまとめて表示し、
+       各項目の下に個別のエラー文言を表示する。 -->
+  <div class="alert alert-danger">［エラー時の表示例］入力内容にエラーがあります。各項目をご確認ください。</div>
 
   <form class="card">
     <div class="section-heading">管理情報</div>
@@ -33,30 +38,36 @@
       <input type="text" value="2026-0142" disabled>
 
       <label class="required">受付日時</label>
-      <div style="display:flex; gap:8px;">
-        <input type="date" value="2026-07-18" style="flex:1;">
-        <input type="time" value="09:15" style="flex:1;">
+      <div>
+        <div style="display:flex; gap:8px;">
+          <input type="date" value="2026-07-18" style="flex:1;">
+          <input type="time" value="09:15" style="flex:1;">
+        </div>
+        <div class="error">［エラー時の表示例］受付日時（日付）は必須です。</div>
       </div>
 
       <label class="required">受付方法</label>
       <div>
-        <select onchange="document.getElementById('reception-method-other').style.display = (this.value === 'その他') ? 'block' : 'none';">
-          <option>窓口</option>
-          <option selected>電話</option>
-          <option>メール</option>
-          <option>要望書</option>
-          <option>FAX</option>
-          <option>職員パトロール</option>
-          <option>その他</option>
+        <!-- 「その他」の判定は表示ラベルではなく value（other）で行う。 -->
+        <select onchange="document.getElementById('reception-method-other').style.display = (this.value === 'other') ? 'block' : 'none';">
+          <option value="window">窓口</option>
+          <option value="phone" selected>電話</option>
+          <option value="email">メール</option>
+          <option value="letter">要望書</option>
+          <option value="fax">FAX</option>
+          <option value="patrol">職員パトロール</option>
+          <option value="other">その他</option>
         </select>
-        <input type="text" id="reception-method-other" placeholder="その他の場合は具体的に入力" style="display:none; margin-top:8px;">
+        <div id="reception-method-other" style="display:none; margin-top:8px;">
+          <input type="text" placeholder="その他の場合は具体的に入力">
+        </div>
       </div>
 
       <label>登録者（受付職員）</label>
       <input type="text" value="山田 太郎" disabled>
 
       <label>最終更新日時</label>
-      <input type="text" value="2026-07-18 17:40" disabled>
+      <input type="text" value="2026-08-05 14:20" disabled>
     </div>
 
     <div class="section-heading">相手方情報</div>
@@ -73,16 +84,19 @@
       </div>
 
       <label>要望者</label>
-      <input type="text" value="近隣住民（サンプル太郎）">
+      <div>
+        <input type="text" value="近隣住民（サンプル太郎）">
+        <div class="note">区分が「匿名」「職員パトロール」の場合は入力不要</div>
+      </div>
     </div>
 
     <div class="section-heading">案件情報</div>
     <div class="form-grid">
       <label class="required">対応部署</label>
       <select>
-        <option selected>道路</option>
-        <option>河川</option>
-        <option>砂防</option>
+        <option value="road" selected>道路</option>
+        <option value="river">河川</option>
+        <option value="sabo">砂防</option>
       </select>
 
       <label class="required">種別</label>
@@ -100,8 +114,12 @@
 
       <label>要望箇所（地図）</label>
       <div>
-        <div class="map-placeholder">地図上のピン位置（クリックで再設置可能）</div>
-        <div class="note">緯度: 35.1234 / 経度: 136.9876</div>
+        <!-- 既存の緯度経度をピンで初期表示し、クリック/ドラッグで再設定できる。 -->
+        <div class="map-placeholder" style="height:320px;">地図表示エリア（Leaflet／既存ピンを表示・クリックで再設置）</div>
+        <div class="note" style="margin-top:6px;">
+          地図をクリックすると要望箇所を設定できます（ピンはドラッグで移動可）。
+          <button type="button" class="btn-link">位置をクリア</button>
+        </div>
       </div>
     </div>
 
@@ -125,19 +143,25 @@
       <textarea>現地確認のうえ、応急措置として仮補修を実施予定</textarea>
 
       <label class="required">対応状況</label>
-      <select>
-        <option selected>未対応</option>
-        <option>対応中</option>
-        <option>対応完了</option>
+      <select id="response-status" onchange="document.getElementById('response-completed-date').disabled = (this.value !== 'completed');">
+        <option value="not_started">未対応</option>
+        <option value="in_progress" selected>対応中</option>
+        <option value="completed">対応完了</option>
       </select>
 
       <label>対応完了日</label>
-      <input type="date" disabled>
-      <div class="note" style="grid-column:2;">対応状況が「対応完了」になると入力可能</div>
+      <div>
+        <!-- 対応状況が「対応完了」以外のときは disabled。切り替えると入力できるようになる。 -->
+        <input type="date" id="response-completed-date" disabled>
+        <div class="note">対応状況が「対応完了」の場合のみ入力できます</div>
+      </div>
     </div>
 
     <div class="btn-row" style="justify-content:space-between;">
-      <a class="btn btn-danger" href="list.html">この案件を削除する</a>
+      <!-- 削除は確認ダイアログを経てから実行する（実装：
+           「この案件を削除します。よろしいですか？」）。論理削除のため復旧は可能。 -->
+      <button type="button" class="btn btn-danger"
+              onclick="return confirm('この案件を削除します。よろしいですか？');">この案件を削除する</button>
       <div style="display:flex; gap:10px;">
         <a class="btn btn-secondary" href="detail.html">キャンセル</a>
         <a class="btn btn-primary" href="detail.html">更新する</a>

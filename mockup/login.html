@@ -15,6 +15,8 @@
     <h1>CivilTrack</h1>
     <div class="tagline">土木施設要望・対応管理システム</div>
     <div class="subtitle">土木事務所 職員ログイン</div>
+    <!-- 認証に失敗した場合のみ表示される。実装は最初のエラー1件のみを表示する。 -->
+    <div class="alert alert-danger">［エラー時の表示例］ユーザーIDまたはパスワードが正しくありません。</div>
     <form>
       <div class="field">
         <label for="user-id">ユーザーID</label>
@@ -24,7 +26,7 @@
         <label for="password">パスワード</label>
         <input type="password" id="password" placeholder="パスワードを入力">
       </div>
-      <a class="btn btn-primary" href="list.html">ログイン</a>
+      <button type="button" class="btn btn-primary">ログイン</button>
     </form>
     <div class="login-footer">
       ID・パスワードを忘れた場合は管理者にお問い合わせください

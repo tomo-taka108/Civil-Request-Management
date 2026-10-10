@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  サンプル画像（路面の陥没）。実写真ではなく、著作権・個人情報の懸念がない
+  SVGプレースホルダ。将来 CC0 の実写真に差し替えられるよう、参照はパスのみに
+  依存させている（要件定義書 4.1 / CLAUDE.md 6章）。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" role="img" aria-label="路面の陥没（サンプル画像）">
+  <rect width="320" height="240" fill="#8d949e"/>
+  <!-- 路肩と白線 -->
+  <rect y="150" width="320" height="90" fill="#7a818b"/>
+  <rect x="0" y="146" width="320" height="4" fill="#cfd4da"/>
+  <g fill="#e8ebee">
+    <rect x="20" y="196" width="46" height="7"/>
+    <rect x="106" y="196" width="46" height="7"/>
+    <rect x="192" y="196" width="46" height="7"/>
+    <rect x="278" y="196" width="42" height="7"/>
+  </g>
+  <!-- 陥没（穴） -->
+  <ellipse cx="150" cy="128" rx="54" ry="24" fill="#3f444b"/>
+  <ellipse cx="150" cy="124" rx="44" ry="17" fill="#23272c"/>
+  <path d="M106 128 q20 -16 44 -14 t44 14" fill="none" stroke="#5c636c" stroke-width="3"/>
+  <!-- ひび割れ -->
+  <path d="M96 140 l-22 16 M204 140 l24 14 M150 152 l-6 22" stroke="#5c636c" stroke-width="2" fill="none"/>
+  <rect x="0" y="0" width="320" height="26" fill="#2b3040" opacity="0.72"/>
+  <text x="10" y="18" font-family="sans-serif" font-size="13" fill="#ffffff">路面の陥没（サンプル画像）</text>
+</svg>
