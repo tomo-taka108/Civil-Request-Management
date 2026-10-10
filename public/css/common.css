@@ -671,3 +671,72 @@ table.list-table tbody tr.group-row th {
   padding: 0;
   text-decoration: underline;
 }
+
+/* 対応履歴タイムライン（要件定義書 §2.6） */
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.timeline > li {
+  position: relative;
+  padding: 0 0 18px 22px;
+  border-left: 2px solid var(--color-border);
+}
+
+.timeline > li:last-child {
+  padding-bottom: 0;
+  border-left-color: transparent;
+}
+
+/* 各エントリの丸印。border-left の線上に重ねる。 */
+.timeline > li::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 2px solid #fff;
+}
+
+.timeline .log-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.timeline .log-date {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.timeline .log-author {
+  font-size: 12px;
+  color: var(--color-text-sub);
+}
+
+.timeline .log-body {
+  margin-top: 4px;
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+
+.timeline .log-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+}
+
+/* 編集された履歴であることを示すしるし。記録の訂正を隠さず明示する。 */
+.timeline .log-edited {
+  font-size: 11px;
+  color: var(--color-text-sub);
+  background: #f1f4fc;
+  border-radius: 10px;
+  padding: 1px 8px;
+}

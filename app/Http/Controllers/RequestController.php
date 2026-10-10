@@ -69,7 +69,7 @@ class RequestController extends Controller
      */
     public function show(Request $request): View
     {
-        $request->load(['office', 'registeredBy']);
+        $request->load(['office', 'registeredBy', 'logs.recordedBy']);
 
         return view('requests.show', ['request' => $request]);
     }

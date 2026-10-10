@@ -5,9 +5,11 @@ namespace App\Models;
 use App\Models\Scopes\OfficeScope;
 use Database\Factories\RequestFactory;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -31,6 +33,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read Office $office
  * @property-read User $registeredBy
+ * @property-read Collection<int, RequestLog> $logs
  */
 #[ScopedBy(OfficeScope::class)]
 class Request extends Model
@@ -96,5 +99,17 @@ class Request extends Model
     public function registeredBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'registered_by');
+    }
+
+    /**
+     * 対応履歴（タイムライン表示用に対応日の降順）。要件定義書 §2.6。
+     *
+     * @return HasMany<RequestLog, $this>
+     */
+    public function logs(): HasMany
+    {
+        return $this->hasMany(RequestLog::class)
+            ->orderByDesc('logged_on')
+            ->orderByDesc('id');
     }
 }

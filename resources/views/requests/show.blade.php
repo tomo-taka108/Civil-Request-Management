@@ -91,4 +91,10 @@
             <dt>対応完了日</dt><dd>{{ $request->response_completed_date?->format('Y-m-d') ?? '-' }}</dd>
         </dl>
     </div>
+
+    {{-- 対応履歴（要件定義書 §2.6）。対応部署一致の職員・管理者は追加・編集・削除ができ、
+         他部署の職員は閲覧のみ（partial 内で @can により出し分ける）。 --}}
+    <div class="card">
+        @include('requests.partials.log-timeline', ['request' => $request])
+    </div>
 @endsection

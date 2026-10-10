@@ -47,4 +47,18 @@ class RequestPolicy
     {
         return $this->update($user, $request);
     }
+
+    /**
+     * 対応履歴の追加・編集・削除（要件定義書 §2.6）。
+     *
+     * 編集・削除と同じ判定（担当部署一致の一般職員、または管理者）に委譲する。
+     * 対応履歴は案件対応そのものであり、編集権限と同一にすることで
+     * 「自事務所の職員なら誰でも書き込める」事態（他部署の案件への書き込み）を防ぐ。
+     * 管理者は案件の新規登録はできないが（office_id が無いため）、update に委譲した
+     * 結果として履歴の追加・編集・削除は可能になる（一貫した権限モデル）。
+     */
+    public function manageLog(User $user, Request $request): bool
+    {
+        return $this->update($user, $request);
+    }
 }

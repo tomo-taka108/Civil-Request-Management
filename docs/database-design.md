@@ -1,6 +1,6 @@
 # データベース設計書
 
-最終更新日: 2026-08-12
+最終更新日: 2026-10-11
 
 対象DB：MySQL（既存 `famigo-mysql` インスタンス内に新規スキーマを作成）。
 本設計は [要件定義書](requirements.md) の「3. 登録項目」「1.3 想定利用者・権限方針」を正規化したもの。変更履歴は`git log docs/database-design.md`を参照。
@@ -14,6 +14,8 @@ erDiagram
     offices ||--o{ users : "所属する"
     offices ||--o{ requests : "管理する"
     users ||--o{ requests : "登録する"
+    requests ||--o{ request_logs : "対応履歴を持つ"
+    users ||--o{ request_logs : "記録する"
 
     offices {
         bigint id PK
@@ -62,6 +64,17 @@ erDiagram
         date response_completed_date
         timestamp created_at
         timestamp updated_at
+        timestamp deleted_at "論理削除"
+    }
+
+    request_logs {
+        bigint id PK
+        bigint request_id FK
+        date logged_on "対応日"
+        text content "対応内容・経過"
+        bigint recorded_by FK "記録者。編集後も変更されない"
+        timestamp created_at
+        timestamp updated_at "created_atと異なれば編集済みと判定"
         timestamp deleted_at "論理削除"
     }
 ```
@@ -142,7 +155,7 @@ erDiagram
 | response_status | ENUM('not_started','in_progress','completed') | NOT NULL, DEFAULT 'not_started' | 対応状況（未対応／対応中／対応完了） |
 | response_completed_date | DATE | NULL | 対応状況が「対応完了」になった日 |
 | created_at | TIMESTAMP | NOT NULL | |
-| updated_at | TIMESTAMP | NOT NULL | 表示用「最終更新日時」を兼ねる（要件定義書 2.1：変更履歴は保持しないが最終更新日時のみ表示。Laravel標準の自動更新カラムをそのまま画面表示に用い、専用カラムは持たない） |
+| updated_at | TIMESTAMP | NOT NULL | 表示用「最終更新日時」を兼ねる（要件定義書 2.1：変更履歴は保持しないが最終更新日時のみ表示。Laravel標準の自動更新カラムをそのまま画面表示に用い、専用カラムは持たない）。**`request_logs` の追加・編集・削除でも更新される**（Eloquentの`$touches`。2.4参照） |
 | deleted_at | TIMESTAMP | NULL | 論理削除（Laravel SoftDeletes を使用） |
 
 **インデックス**
@@ -158,6 +171,30 @@ erDiagram
 **緯度経度について**
 - `DECIMAL(9,6)` は小数点以下6桁（約11cm精度）まで保持可能で、地図ピン表示・範囲検索に十分な精度
 - 要望箇所が未確定（住所のみ入力）の登録を許容するため NULL 許容とする
+
+### 2.4 request_logs（対応履歴）
+
+要件定義書 §2.6 に対応。案件に対する対応内容・経過を複数回記録する。
+
+| カラム名 | 型 | 制約 | 備考 |
+|---|---|---|---|
+| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | 内部キー |
+| request_id | BIGINT UNSIGNED | NOT NULL, FK → requests.id (RESTRICT) | 対応履歴が属する案件 |
+| logged_on | DATE | NOT NULL | 対応日（実際に対応した日）。未来日は不可（アプリケーション層でバリデーション） |
+| content | TEXT | NOT NULL | 対応内容・経過（自由記述。最大1,000文字はアプリケーション層でバリデーション） |
+| recorded_by | BIGINT UNSIGNED | NOT NULL, FK → users.id (RESTRICT) | 記録者。**編集後も変更されない**（誰が記録したかの事実を保持する） |
+| created_at | TIMESTAMP | NOT NULL | |
+| updated_at | TIMESTAMP | NOT NULL | 内容を訂正すると更新される。`created_at` と異なれば「編集済み」として画面表示する（`RequestLog::wasEdited()`） |
+| deleted_at | TIMESTAMP | NULL | 論理削除 |
+
+**インデックス**
+- `INDEX(request_id, logged_on)` — 案件ごとのタイムライン表示（対応日降順）
+
+**office_id を持たない理由**：対応履歴は必ず親 `requests` 経由でアクセスされる（ルートも `/requests/{request}/logs/{log}` の形）。事務所スコープは `Request` モデルの `OfficeScope` に一元化し、`request_logs` 側に重複して持たせない。
+
+**`$touches` について**：`RequestLog` モデルに `protected $touches = ['request'];` を設定しており、追加・編集・削除（論理削除含む）のたびに親 `requests.updated_at` が自動更新される。これにより「最終更新日時」表示と、ダッシュボードの放置案件判定（進捗ダッシュボード機能）が対応履歴の動きを正しく反映する。
+
+**権限**：追加・編集・削除は、案件の編集権限（`RequestPolicy::update`）と同一（対応部署が一致する一般職員、またはシステム管理者）。他部署の職員は閲覧のみ可能（4章参照）。
 
 ---
 
@@ -183,6 +220,7 @@ erDiagram
 | 一般職員は事務所をまたいだ閲覧は不可 | 全クエリに `office_id` 条件を必須とする（アプリケーション層の責務）。Laravelのグローバルスコープ（`OfficeScope`）でモデル層に一元化済みで、コントローラ側での書き漏らしを構造的に防いでいる |
 | システム管理者は全事務所の案件を担当部署によらず閲覧・編集・削除できる | アプリケーション層で `users.role = 'admin'` の場合、`office_id`スコープ・`department`一致判定の両方を適用しない例外ルートとする |
 | システム管理者のみユーザー管理可能（全事務所横断） | アプリケーション層で `users.role = 'admin'` を確認。管理者は`office_id`によるスコープを持たないため、全事務所のユーザーが対象になる |
+| 対応履歴の追加・編集・削除は対応部署の担当者・管理者のみ | `RequestPolicy::manageLog` が `update` に委譲して判定（DB制約では担保しない。2.4参照） |
 
 > DB制約（外部キー等）だけでは「同一事務所内のみ」「担当部署のみ編集可」という業務ルールを完全には表現できないため、アプリケーション層（Laravelのミドルウェア・ポリシー）での制御を前提とする。本設計書はデータ構造の定義に留め、アクセス制御の実装方針は基本設計（ルーティング・コントローラ設計）で別途詳細化する。
 
