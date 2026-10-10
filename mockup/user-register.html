@@ -66,8 +66,11 @@
       <div style="grid-column:2;" class="note">システム管理者は特定の事務所に所属せず、全事務所のユーザー管理・全案件の編集/削除が可能です（要件定義書1.3参照）</div>
 
       <div id="staff-fields" style="display:contents;">
-        <label class="required">所属事務所</label>
-        <div>
+        <!-- 注記が複数行になるため、上の権限区分・下の担当部署と詰まって見えないよう
+             field-roomy / label-roomy で縦の余白を確保する。
+             所属事務所・担当部署は登録/編集で共通の部品（role-fields）。 -->
+        <label class="required label-roomy">所属事務所</label>
+        <div class="field-roomy">
           <select>
             <option value="">選択してください</option>
             <option>〇〇土木事務所</option>
@@ -76,6 +79,7 @@
           </select>
           <!-- 実装ではこの注記は所属事務所の下に置かれている。 -->
           <div class="note">担当部署に応じて該当案件の編集・削除権限が付与されます（閲覧は自事務所の全案件が可能）。</div>
+          <div class="note">異動時はここで変更してください。案件は登録時点の事務所に残るため、異動後は新しい事務所の案件のみ閲覧・編集できるようになります（以前の事務所の案件は見えなくなります）。</div>
           <div class="error">［エラー時の表示例］所属事務所は必須です。</div>
         </div>
 

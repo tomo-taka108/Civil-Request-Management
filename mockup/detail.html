@@ -84,9 +84,13 @@
   </div>
 
   <!-- ============================================================
-       追加機能：対応履歴（request_logs）
-       対応部署が一致する職員・管理者のみ追加／削除できる。
-       他部署の職員はタイムラインの閲覧のみ（追加フォーム・削除ボタンは出ない）。
+       追加機能：対応履歴（request_logs）＋ 現場写真（request_photos）
+       写真は「いつの時点の写真か」が分かるよう、各対応履歴に紐づけて登録する
+       （request_photos.request_log_id）。受付時点の写真など、特定の対応に
+       紐づかないものは下の「受付時の写真」に登録する（request_log_id は NULL）。
+
+       追加・編集・削除ができるのは、対応部署が一致する職員とシステム管理者のみ。
+       他部署の職員は閲覧のみ（フォーム・操作ボタンは表示されない）。
        ============================================================ -->
   <div class="card">
     <div class="section-heading">対応履歴</div>
@@ -97,35 +101,104 @@
           <span class="log-date">2026-08-05</span>
           <span class="log-author">記録者：山田 太郎</span>
           <span class="log-actions">
+            <button type="button" class="btn-link">編集</button>
             <button type="button" class="btn-link">削除</button>
           </span>
         </div>
         <div class="log-body">補修業者と現地立会いを実施。8月中旬に本補修を行う工程で調整した。</div>
       </li>
+
       <li>
         <div class="log-head">
           <span class="log-date">2026-07-25</span>
           <span class="log-author">記録者：山田 太郎</span>
+          <!-- 内容を後から訂正した履歴には「編集済み」を表示し、訂正の事実を残す。 -->
+          <span class="log-edited">編集済み（2026-07-26 09:10）</span>
           <span class="log-actions">
+            <button type="button" class="btn-link">編集</button>
             <button type="button" class="btn-link">削除</button>
           </span>
         </div>
         <div class="log-body">応急措置として常温合材による仮補修を実施。通行への支障は解消した。</div>
+        <!-- この対応で撮影した写真。どの時点の写真かがタイムライン上で分かる。 -->
+        <div class="photo-grid">
+          <div class="photo-item">
+            <a href="photos/road-pothole.svg" target="_blank" rel="noopener">
+              <img src="photos/road-pothole.svg" alt="仮補修前の路面の陥没（サンプル画像）">
+            </a>
+            <div class="photo-meta">
+              <span class="photo-name">仮補修前</span>
+              <button type="button" class="btn-link">削除</button>
+            </div>
+          </div>
+          <div class="photo-item">
+            <a href="photos/road-crack.svg" target="_blank" rel="noopener">
+              <img src="photos/road-crack.svg" alt="仮補修後の路面（サンプル画像）">
+            </a>
+            <div class="photo-meta">
+              <span class="photo-name">仮補修後</span>
+              <button type="button" class="btn-link">削除</button>
+            </div>
+          </div>
+        </div>
       </li>
+
       <li>
         <div class="log-head">
           <span class="log-date">2026-07-19</span>
           <span class="log-author">記録者：鈴木 花子</span>
           <span class="log-actions">
+            <button type="button" class="btn-link">編集</button>
             <button type="button" class="btn-link">削除</button>
           </span>
         </div>
         <div class="log-body">現地確認を実施。陥没の規模は約50cm×30cm、深さ約8cm。緊急性「高」と判断し対応中に変更。</div>
+        <div class="photo-grid">
+          <div class="photo-item">
+            <a href="photos/road-sign-faded.svg" target="_blank" rel="noopener">
+              <img src="photos/road-sign-faded.svg" alt="現地確認時の状況（サンプル画像）">
+            </a>
+            <div class="photo-meta">
+              <span class="photo-name">現地確認時</span>
+              <button type="button" class="btn-link">削除</button>
+            </div>
+          </div>
+        </div>
       </li>
     </ul>
 
+    <!-- 対応履歴が1件もない場合は「対応履歴はまだありません。」と表示する。 -->
+
+    <!-- ［編集］を押したときの表示。対応日・対応内容を修正して保存できる。
+         実装では該当の履歴がこのフォームに切り替わる（モックでは常時表示）。 -->
+    <div class="section-heading">履歴を編集［編集ボタンを押した場合の表示］</div>
+    <form class="card" style="margin-bottom:0; background:#f8fafe;">
+      <div class="form-grid">
+        <label class="required">対応日</label>
+        <div>
+          <input type="date" value="2026-07-25">
+        </div>
+
+        <label class="required">対応内容</label>
+        <div>
+          <textarea>応急措置として常温合材による仮補修を実施。通行への支障は解消した。</textarea>
+          <div class="note">内容を訂正すると「編集済み」と訂正日時が表示されます（記録の訂正を隠さないため）。</div>
+        </div>
+
+        <label>写真を追加</label>
+        <div>
+          <input type="file" accept="image/jpeg,image/png" multiple>
+          <div class="note">この対応履歴に紐づく写真として登録されます。JPEG・PNG のみ、1ファイル5MBまで。</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button type="button" class="btn btn-secondary">キャンセル</button>
+        <button type="button" class="btn btn-primary">保存する</button>
+      </div>
+    </form>
+
     <!-- 対応履歴の追加フォーム。編集権限がある場合のみ表示する。
-         登録後は「最終更新日時」も自動で更新される（$touches）。 -->
+         登録後は案件の「最終更新日時」も自動で更新される（$touches）。 -->
     <div class="section-heading">履歴を追加</div>
     <form class="form-grid">
       <label class="required">対応日</label>
@@ -137,50 +210,38 @@
       <label class="required">対応内容</label>
       <div>
         <textarea placeholder="実施した対応・経過を入力（1000文字以内）"></textarea>
-        <div class="note">誤って登録した履歴は削除して再登録してください（履歴の編集機能はありません）。</div>
+      </div>
+
+      <label>現場写真</label>
+      <div>
+        <input type="file" accept="image/jpeg,image/png" multiple>
+        <div class="note">この対応で撮影した写真を一緒に登録できます。JPEG・PNG のみ、1ファイル5MBまで、1案件につき最大10枚まで。</div>
       </div>
     </form>
     <div class="btn-row">
       <button type="button" class="btn btn-primary">履歴を追加する</button>
     </div>
 
-    <!-- 対応部署が異なる職員には上の「履歴を追加」セクションは表示されない。
-         履歴が1件もない場合は「対応履歴はまだありません。」と表示する。 -->
+    <div class="alert alert-info" style="margin-top:18px; margin-bottom:0;">
+      撮影の際は、通行人の顔・表札・車両のナンバー等、対応に不要な個人情報が写り込まないようご注意ください（要件定義書 4.1）。
+    </div>
   </div>
 
   <!-- ============================================================
-       追加機能：現場写真（request_photos）
-       画像は非公開のS3バケットに保存し、署名付きURL経由で表示する。
-       アップロード／削除は対応部署が一致する職員・管理者のみ。
+       受付時の写真（特定の対応履歴に紐づかない写真）
+       要望を受け付けた時点の写真や、要望者から提供された写真を登録する。
+       request_photos.request_log_id が NULL のもの。
        ============================================================ -->
   <div class="card">
-    <div class="section-heading">現場写真</div>
+    <div class="section-heading">受付時の写真</div>
 
     <div class="photo-grid">
       <div class="photo-item">
         <a href="photos/road-pothole.svg" target="_blank" rel="noopener">
-          <img src="photos/road-pothole.svg" alt="路面の陥没（サンプル画像）">
+          <img src="photos/road-pothole.svg" alt="受付時の路面の陥没（サンプル画像）">
         </a>
         <div class="photo-meta">
-          <span class="photo-name">2026-07-19 現況</span>
-          <button type="button" class="btn-link">削除</button>
-        </div>
-      </div>
-      <div class="photo-item">
-        <a href="photos/road-crack.svg" target="_blank" rel="noopener">
-          <img src="photos/road-crack.svg" alt="舗装のひび割れ（サンプル画像）">
-        </a>
-        <div class="photo-meta">
-          <span class="photo-name">2026-07-19 周辺</span>
-          <button type="button" class="btn-link">削除</button>
-        </div>
-      </div>
-      <div class="photo-item">
-        <a href="photos/road-sign-faded.svg" target="_blank" rel="noopener">
-          <img src="photos/road-sign-faded.svg" alt="標識の退色（サンプル画像）">
-        </a>
-        <div class="photo-meta">
-          <span class="photo-name">2026-07-25 仮補修後</span>
+          <span class="photo-name">2026-07-18 受付時</span>
           <button type="button" class="btn-link">削除</button>
         </div>
       </div>
@@ -190,26 +251,19 @@
       サムネイルをクリックすると別タブで拡大表示します。写真は非公開の保存領域に置き、一定時間のみ有効な署名付きURLで表示するため、URLを共有しても第三者は閲覧できません。
     </div>
 
-    <!-- アップロードフォーム。編集権限がある場合のみ表示する。 -->
     <div class="section-heading">写真を追加</div>
     <form class="form-grid">
       <label>画像ファイル</label>
       <div>
         <input type="file" accept="image/jpeg,image/png" multiple>
-        <div class="note">JPEG・PNG のみ、1ファイル5MBまで。1案件につき最大10枚まで登録できます（現在3枚）。</div>
+        <div class="note">JPEG・PNG のみ、1ファイル5MBまで。1案件につき最大10枚まで登録できます（現在4枚）。対応時の写真は、上の対応履歴から登録してください。</div>
       </div>
     </form>
     <div class="btn-row">
       <button type="button" class="btn btn-primary">写真をアップロードする</button>
     </div>
 
-    <div class="alert alert-info" style="margin-top:18px; margin-bottom:0;">
-      撮影の際は、通行人の顔・表札・車両のナンバー等、対応に不要な個人情報が写り込まないようご注意ください（要件定義書 4.1）。
-    </div>
-
-    <!-- 対応部署が異なる職員には上の「写真を追加」セクションと各写真の「削除」は
-         表示されない（閲覧のみ）。写真が1枚もない場合は
-         「現場写真はまだ登録されていません。」と表示する。 -->
+    <!-- 写真が1枚もない場合は「受付時の写真は登録されていません。」と表示する。 -->
   </div>
 
   <div class="note" style="margin-bottom:24px;">

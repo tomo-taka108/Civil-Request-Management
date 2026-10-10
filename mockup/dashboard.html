@@ -33,20 +33,28 @@
     集計対象：〇〇土木事務所（自事務所の案件のみ）　／　2026-10-11 時点
   </div>
 
-  <!-- ① 要対応サマリー。クリックで該当条件の案件一覧へ遷移する。 -->
+  <!-- ① 要対応サマリー。
+       各カードはクリックすると、そのカードが数えている条件だけで絞り込んだ
+       案件一覧へ遷移する（全案件ではない）。検索条件は既存の一覧画面と同じ
+       クエリ形式（配列）で渡すため、一覧側の実装は変更不要。
+         例）未対応かつ緊急性「高」
+             list.html?response_status[]=not_started&urgency[]=high -->
   <div class="section-heading" style="margin-top:0;">要対応サマリー</div>
   <div class="stat-cards">
-    <a class="stat-card is-danger" href="list.html">
+    <a class="stat-card is-danger" href="list.html?response_status[]=not_started&urgency[]=high">
       <div class="stat-label">未対応 かつ 緊急性「高」</div>
       <div class="stat-value">5<span class="stat-unit">件</span></div>
       <div class="stat-note">最優先で着手が必要です</div>
     </a>
-    <a class="stat-card is-warning" href="list.html">
+    <!-- 「30日以上動きなし」は updated_at による判定で、現在の検索条件には
+         対応する項目が無い。実装時は一覧側に専用の絞り込み（例 stale=1）を
+         追加して、この5件だけが表示されるようにする。 -->
+    <a class="stat-card is-warning" href="list.html?stale=1">
       <div class="stat-label">30日以上 動きなし</div>
       <div class="stat-value">3<span class="stat-unit">件</span></div>
       <div class="stat-note">対応完了していない案件のうち、30日以上更新がないもの</div>
     </a>
-    <a class="stat-card is-info" href="list.html">
+    <a class="stat-card is-info" href="list.html?response_status[]=in_progress">
       <div class="stat-label">対応中</div>
       <div class="stat-value">8<span class="stat-unit">件</span></div>
       <div class="stat-note">着手済み・完了前</div>
@@ -54,28 +62,29 @@
     <a class="stat-card" href="list.html">
       <div class="stat-label">全案件</div>
       <div class="stat-value">45<span class="stat-unit">件</span></div>
-      <div class="stat-note">削除済みを除く</div>
+      <div class="stat-note">削除済みを除く（条件を指定しない一覧へ）</div>
     </a>
   </div>
 
   <!-- ②③ 内訳グラフ。横棒＋数値併記（色だけに依存しない）。 -->
   <div class="dash-row">
+    <!-- 件数はいずれもリンク。その区分だけで絞り込んだ一覧へ遷移する。 -->
     <div class="card">
       <div class="section-heading">対応状況の内訳</div>
       <div class="bar-chart">
         <div class="bar-label">未対応</div>
         <div class="bar-track"><div class="bar-fill is-danger" style="width:48%;"></div></div>
-        <div class="bar-value">12件</div>
+        <div class="bar-value"><a href="list.html?response_status[]=not_started">12件</a></div>
 
         <div class="bar-label">対応中</div>
         <div class="bar-track"><div class="bar-fill is-warning" style="width:32%;"></div></div>
-        <div class="bar-value">8件</div>
+        <div class="bar-value"><a href="list.html?response_status[]=in_progress">8件</a></div>
 
         <div class="bar-label">対応完了</div>
         <div class="bar-track"><div class="bar-fill is-success" style="width:100%;"></div></div>
-        <div class="bar-value">25件</div>
+        <div class="bar-value"><a href="list.html?response_status[]=completed">25件</a></div>
       </div>
-      <div class="note">棒の長さは最大件数（25件）を100%とした相対表示です。</div>
+      <div class="note">棒の長さは最大件数（25件）を100%とした相対表示です。件数をクリックすると、その対応状況の案件一覧を表示します。</div>
     </div>
 
     <div class="card">
@@ -83,21 +92,27 @@
       <div class="bar-chart">
         <div class="bar-label">高</div>
         <div class="bar-track"><div class="bar-fill is-danger" style="width:20%;"></div></div>
-        <div class="bar-value">5件</div>
+        <div class="bar-value"><a href="list.html?urgency[]=high">5件</a></div>
 
         <div class="bar-label">中</div>
         <div class="bar-track"><div class="bar-fill is-warning" style="width:60%;"></div></div>
-        <div class="bar-value">15件</div>
+        <div class="bar-value"><a href="list.html?urgency[]=medium">15件</a></div>
 
         <div class="bar-label">低</div>
         <div class="bar-track"><div class="bar-fill is-muted" style="width:100%;"></div></div>
-        <div class="bar-value">25件</div>
+        <div class="bar-value"><a href="list.html?urgency[]=low">25件</a></div>
       </div>
-      <div class="note">棒の長さは最大件数（25件）を100%とした相対表示です。</div>
+      <div class="note">棒の長さは最大件数（25件）を100%とした相対表示です。件数をクリックすると、その緊急性の案件一覧を表示します。</div>
     </div>
   </div>
 
-  <!-- ④ 対応部署 × 対応状況のマトリクス。数値クリックで絞り込み一覧へ。 -->
+  <!-- ④ 対応部署 × 対応状況のマトリクス。
+       すべての件数（各セル・部署別の計・対応状況別の計・全合計）がリンクで、
+       クリックするとその条件だけで絞り込んだ一覧へ遷移する。
+         各セル        … department[] と response_status[] の両方を指定
+         部署別の計    … department[] のみ
+         対応状況別の計… response_status[] のみ
+         全合計        … 条件なし -->
   <div class="card">
     <div class="section-heading">対応部署 × 対応状況</div>
     <table class="matrix-table">
@@ -113,37 +128,37 @@
       <tbody>
         <tr>
           <th>道路</th>
-          <td><a href="list.html">5</a></td>
-          <td><a href="list.html">3</a></td>
-          <td><a href="list.html">12</a></td>
-          <td class="total">20</td>
+          <td><a href="list.html?department[]=road&response_status[]=not_started">5</a></td>
+          <td><a href="list.html?department[]=road&response_status[]=in_progress">3</a></td>
+          <td><a href="list.html?department[]=road&response_status[]=completed">12</a></td>
+          <td class="total"><a href="list.html?department[]=road">20</a></td>
         </tr>
         <tr>
           <th>河川</th>
-          <td><a href="list.html">4</a></td>
-          <td><a href="list.html">3</a></td>
-          <td><a href="list.html">8</a></td>
-          <td class="total">15</td>
+          <td><a href="list.html?department[]=river&response_status[]=not_started">4</a></td>
+          <td><a href="list.html?department[]=river&response_status[]=in_progress">3</a></td>
+          <td><a href="list.html?department[]=river&response_status[]=completed">8</a></td>
+          <td class="total"><a href="list.html?department[]=river">15</a></td>
         </tr>
         <tr>
           <th>砂防</th>
-          <td><a href="list.html">3</a></td>
-          <td><a href="list.html">2</a></td>
-          <td><a href="list.html">5</a></td>
-          <td class="total">10</td>
+          <td><a href="list.html?department[]=sabo&response_status[]=not_started">3</a></td>
+          <td><a href="list.html?department[]=sabo&response_status[]=in_progress">2</a></td>
+          <td><a href="list.html?department[]=sabo&response_status[]=completed">5</a></td>
+          <td class="total"><a href="list.html?department[]=sabo">10</a></td>
         </tr>
       </tbody>
       <tfoot>
         <tr>
           <th>計</th>
-          <td>12</td>
-          <td>8</td>
-          <td>25</td>
-          <td>45</td>
+          <td><a href="list.html?response_status[]=not_started">12</a></td>
+          <td><a href="list.html?response_status[]=in_progress">8</a></td>
+          <td><a href="list.html?response_status[]=completed">25</a></td>
+          <td><a href="list.html">45</a></td>
         </tr>
       </tfoot>
     </table>
-    <div class="note">件数をクリックすると、その条件で絞り込んだ案件一覧を表示します。</div>
+    <div class="note">件数をクリックすると、その条件で絞り込んだ案件一覧を表示します（計の件数も、部署のみ・対応状況のみ・全件での絞り込みとして機能します）。</div>
   </div>
 
   <!-- ⑤ 月別受付件数（直近12ヶ月）。インラインSVGの矩形で描画し、新規JS依存を入れない。 -->
@@ -321,36 +336,38 @@
           <th>計</th>
         </tr>
       </thead>
+      <!-- 事務所の絞り込みは office[] に事務所IDを渡す（管理者のみ利用できる条件）。
+           ここでも各セル・事務所別の計・対応状況別の計・全合計のすべてがリンク。 -->
       <tbody>
         <tr>
           <th>〇〇土木事務所</th>
-          <td><a href="list.html">12</a></td>
-          <td><a href="list.html">8</a></td>
-          <td><a href="list.html">25</a></td>
-          <td class="total">45</td>
+          <td><a href="list.html?office[]=1&response_status[]=not_started">12</a></td>
+          <td><a href="list.html?office[]=1&response_status[]=in_progress">8</a></td>
+          <td><a href="list.html?office[]=1&response_status[]=completed">25</a></td>
+          <td class="total"><a href="list.html?office[]=1">45</a></td>
         </tr>
         <tr>
           <th>△△土木事務所</th>
-          <td><a href="list.html">7</a></td>
-          <td><a href="list.html">5</a></td>
-          <td><a href="list.html">18</a></td>
-          <td class="total">30</td>
+          <td><a href="list.html?office[]=2&response_status[]=not_started">7</a></td>
+          <td><a href="list.html?office[]=2&response_status[]=in_progress">5</a></td>
+          <td><a href="list.html?office[]=2&response_status[]=completed">18</a></td>
+          <td class="total"><a href="list.html?office[]=2">30</a></td>
         </tr>
         <tr>
           <th>□□土木事務所</th>
-          <td><a href="list.html">4</a></td>
-          <td><a href="list.html">3</a></td>
-          <td><a href="list.html">11</a></td>
-          <td class="total">18</td>
+          <td><a href="list.html?office[]=3&response_status[]=not_started">4</a></td>
+          <td><a href="list.html?office[]=3&response_status[]=in_progress">3</a></td>
+          <td><a href="list.html?office[]=3&response_status[]=completed">11</a></td>
+          <td class="total"><a href="list.html?office[]=3">18</a></td>
         </tr>
       </tbody>
       <tfoot>
         <tr>
           <th>計</th>
-          <td>23</td>
-          <td>16</td>
-          <td>54</td>
-          <td>93</td>
+          <td><a href="list.html?response_status[]=not_started">23</a></td>
+          <td><a href="list.html?response_status[]=in_progress">16</a></td>
+          <td><a href="list.html?response_status[]=completed">54</a></td>
+          <td><a href="list.html">93</a></td>
         </tr>
       </tfoot>
     </table>

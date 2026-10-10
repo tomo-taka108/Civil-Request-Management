@@ -69,17 +69,16 @@
     </div>
 
     <div class="form-grid" id="staff-fields">
-      <label class="required">所属事務所</label>
-      <div>
+      <!-- 注記が複数行になるため、上の権限区分・下の担当部署と詰まって見えないよう
+           field-roomy / label-roomy で縦の余白を確保する。 -->
+      <label class="required label-roomy">所属事務所</label>
+      <div class="field-roomy">
         <select>
           <option selected>〇〇土木事務所</option>
           <option>△△土木事務所</option>
           <option>□□土木事務所</option>
         </select>
         <div class="note">担当部署に応じて該当案件の編集・削除権限が付与されます（閲覧は自事務所の全案件が可能）。</div>
-        <!-- TODO（要判断）：下記の「異動時は…」の注記はモックにのみ存在し、実装には無い。
-             運用上は有用な説明のため、実装側に追加するか・モックから削除するかを決める。
-             Issue #79 のコメントに記録し、ユーザー管理機能の見直し時に対応する。 -->
         <div class="note">異動時はここで変更してください。案件は登録時点の事務所に残るため、異動後は新しい事務所の案件のみ閲覧・編集できるようになります（以前の事務所の案件は見えなくなります）。</div>
       </div>
 

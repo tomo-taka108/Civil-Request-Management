@@ -144,6 +144,21 @@ a {
   color: var(--color-text-sub);
 }
 
+/* 注記が複数行になる項目。上下の項目と詰まって見えないよう余白を足し、
+   項目名は（縦中央ではなく）入力欄の高さに合わせて上寄せにする。 */
+.form-grid .field-roomy {
+  padding: 6px 0 10px;
+}
+
+.form-grid .label-roomy {
+  align-self: start;
+  padding-top: 13px;
+}
+
+.form-grid .field-roomy .note:not(:last-child) {
+  margin-bottom: 6px;
+}
+
 .form-grid .required::after {
   content: "必須";
   font-size: 10px;
@@ -793,6 +808,14 @@ table.matrix-table td {
   text-align: right;
 }
 
+/* 件数は一覧へのリンクとして押しやすく・読み取りやすくするため、
+   見出しや注記より大きめの文字にする。 */
+table.matrix-table tbody td,
+table.matrix-table tfoot td {
+  font-size: 18px;
+  font-weight: 700;
+}
+
 table.matrix-table thead th {
   background: #f1f4fc;
   color: var(--color-text-sub);
@@ -903,6 +926,28 @@ table.matrix-table td a {
 
 .timeline .log-actions {
   margin-left: auto;
+  display: flex;
+  gap: 10px;
+}
+
+/* 編集された履歴であることを示すしるし。記録の訂正を隠さず明示する。 */
+.timeline .log-edited {
+  font-size: 11px;
+  color: var(--color-text-sub);
+  background: #f1f4fc;
+  border-radius: 10px;
+  padding: 1px 8px;
+}
+
+/* 各対応履歴に紐づく現場写真（その日の対応で撮影したもの）。
+   タイムライン内に置くため、本体のギャラリーより小さいサムネイルにする。 */
+.timeline .photo-grid {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  margin-top: 10px;
+}
+
+.timeline .photo-item img {
+  height: 90px;
 }
 
 /* 現場写真ギャラリー */
