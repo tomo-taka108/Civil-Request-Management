@@ -19,8 +19,24 @@
 @section('content')
     <h1 class="page-title">案件一覧</h1>
 
+    {{-- 「30日以上動きなし」（ダッシュボードの要対応サマリーからの遷移）で絞り込まれている間は、
+         検索フォームのどの項目にも現れない条件のため、何で絞られているかを明示する。
+         これが無いと「条件なしの全件表示」と見分けがつかない（要件定義書 §2.7）。 --}}
+    @if (! empty($filters['stale']))
+        <div class="alert alert-info">
+            <strong>30日以上 対応の動きがない案件のみ表示中</strong>
+            （最新の対応日、対応履歴が無ければ受付日から起算）
+            ｜<a href="{{ route('requests.index', collect($filters)->except('stale')->filter()->all()) }}">この絞り込みを解除</a>
+        </div>
+    @endif
+
     <div class="card">
         <form class="search-form" method="GET" action="{{ route('requests.index') }}">
+            {{-- 検索フォームには項目として出さないが、絞り込み中に他の条件で再検索しても
+                 stale が外れないよう hidden で引き継ぐ。 --}}
+            @if (! empty($filters['stale']))
+                <input type="hidden" name="stale" value="1">
+            @endif
             @if ($offices->isNotEmpty())
                 {{-- 事務所での絞り込みは管理者のみ（全事務所が混在するため）。重要な条件のため
                      単独で1行に置き、下に区切りと余白を設けて他条件と視覚的に分ける。 --}}

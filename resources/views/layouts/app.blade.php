@@ -18,6 +18,9 @@
         <span class="brand-sub">土木施設要望・対応管理システム</span>
     </div>
     <nav>
+        @if (Route::has('dashboard.index'))
+            <a href="{{ route('dashboard.index') }}" class="@yield('nav-dashboard')">ダッシュボード</a>
+        @endif
         {{-- 一覧・地図は未実装のため、ルートが存在する場合のみリンクを出す（実装フェーズで有効化） --}}
         @if (Route::has('requests.index'))
             <a href="{{ route('requests.index') }}" class="@yield('nav-requests')">案件一覧</a>

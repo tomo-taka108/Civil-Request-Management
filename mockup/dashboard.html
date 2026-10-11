@@ -43,7 +43,9 @@
     実装では一覧画面がサーバ側で条件を解釈するため、<strong>クリックした件数の対象だけが表示されます</strong>
     （既存の検索処理が <code>office[]</code> / <code>department[]</code> /
     <code>response_status[]</code> / <code>urgency[]</code> に対応済みのため、一覧側の変更は不要）。
-    例外として「30日以上動きなし」のみ既存の検索条件に該当する項目が無く、実装時に一覧へ専用の絞り込みを追加します。
+    例外として「30日以上動きなし」のみ既存の検索条件に該当する項目が無いため、一覧へ専用の絞り込み（<code>stale=1</code>）を追加しています。
+    これは検索フォームには項目として現れない「このカード専用の導線」で、遷移先の一覧には
+    絞り込み中であることを示す帯（<code>list.html</code> 上部）が出ます。
   </div>
 
   <!-- ① 要対応サマリー。
@@ -59,13 +61,16 @@
       <div class="stat-value">5<span class="stat-unit">件</span></div>
       <div class="stat-note">最優先で着手が必要です</div>
     </a>
-    <!-- 「30日以上動きなし」は updated_at による判定で、現在の検索条件には
-         対応する項目が無い。実装時は一覧側に専用の絞り込み（例 stale=1）を
-         追加して、この5件だけが表示されるようにする。 -->
+    <!-- 「30日以上動きなし」は、最新の対応履歴の対応日（対応履歴が無ければ受付日）
+         による判定。案件レコードの最終更新日時（updated_at）は使わない
+         （対応履歴が無くても住所等を直しただけで更新されてしまい、
+         「受付から一切動いていない案件」を取りこぼすため）。
+         現在の検索条件には対応する項目が無いので、一覧側に専用の絞り込み
+         （stale=1）を追加している。 -->
     <a class="stat-card is-warning" href="list.html?stale=1">
       <div class="stat-label">30日以上 動きなし</div>
       <div class="stat-value">3<span class="stat-unit">件</span></div>
-      <div class="stat-note">対応完了していない案件のうち、30日以上更新がないもの</div>
+      <div class="stat-note">対応完了していない案件のうち、30日以上対応の動きがないもの（最新の対応日、対応履歴が無ければ受付日から起算）</div>
     </a>
     <a class="stat-card is-info" href="list.html?response_status[]=in_progress">
       <div class="stat-label">対応中</div>
@@ -217,7 +222,7 @@
     <div class="note">受付日を月単位で集計しています。当月（2026-10）は集計途中です。</div>
   </div>
 
-  <!-- ⑥ 要対応案件リスト。緊急性「高」かつ未対応、または30日以上動きのないものを上位10件。 -->
+  <!-- ⑥ 要対応案件リスト。緊急性「高」かつ未対応、または30日以上対応の動きがないものを上位10件。 -->
   <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
       <div class="section-heading" style="margin:0; border:none; padding:0;">要対応の案件（上位10件）</div>
@@ -232,7 +237,7 @@
           <th>緊急性</th>
           <th>対応状況</th>
           <th>要望の内容</th>
-          <th>最終更新</th>
+          <th>最終対応日</th>
         </tr>
       </thead>
       <tbody>
@@ -328,7 +333,7 @@
         </tr>
       </tbody>
     </table>
-    <div class="note">緊急性「高」かつ未対応、または30日以上更新のない未完了案件を、緊急性・最終更新日の順に表示しています。</div>
+    <div class="note">緊急性「高」かつ未対応、または30日以上対応の動きがない未完了案件を、緊急性・動きのない順に表示しています。</div>
   </div>
 
   <!-- ⑦ 事務所別の内訳（システム管理者のみ表示）。

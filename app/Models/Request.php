@@ -30,6 +30,7 @@ use Illuminate\Support\Carbon;
  *
  * @property Carbon $reception_date
  * @property Carbon|null $response_completed_date
+ * @property-read string|null $last_activity_on 最終対応日。ダッシュボードの要対応リストでのみ付与される集計列（RequestSearch::LAST_ACTIVITY_SQL）
  * @property Carbon|null $updated_at
  * @property-read Office $office
  * @property-read User $registeredBy

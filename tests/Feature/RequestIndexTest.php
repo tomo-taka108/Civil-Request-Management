@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Office;
 use App\Models\Request;
+use App\Models\RequestLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -173,6 +174,108 @@ class RequestIndexTest extends TestCase
         $this->get(route('requests.index', ['urgency' => ['high']]))
             ->assertSee($high->reception_number)
             ->assertDontSee($low->reception_number);
+    }
+
+    /**
+     * stale は「最後に対応した日」（最新の対応履歴の対応日。履歴が無ければ受付日）が
+     * 30日以上前の未完了案件を絞り込む。案件の最終更新日時では判定しない（Issue #85）。
+     */
+    public function test_stale指定で30日以上対応の動きがない未完了案件のみ絞り込まれる(): void
+    {
+        $office = Office::factory()->create();
+        $user = $this->actingAsStaff($office);
+
+        // 対応履歴なし・受付から31日 → 対象
+        $stale = Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'not_started',
+            'reception_date' => now()->subDays(31),
+        ]);
+        // 項目を直しただけで updated_at が新しくても、対応履歴が無ければ対象のまま
+        $stale->forceFill(['updated_at' => now()])->save();
+
+        // 対応履歴なし・受付から10日 → 対象外
+        $recent = Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'not_started',
+            'reception_date' => now()->subDays(10),
+        ]);
+
+        // 受付は古いが最近の対応履歴あり → 対象外
+        $hasRecentLog = Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'in_progress',
+            'reception_date' => now()->subDays(90),
+        ]);
+        $log = new RequestLog(['logged_on' => now()->subDays(3), 'content' => '現地確認を実施']);
+        $log->forceFill(['request_id' => $hasRecentLog->id, 'recorded_by' => $user->id])->save();
+
+        // 対応完了は対象外
+        $completedStale = Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'completed',
+            'reception_date' => now()->subDays(31),
+        ]);
+
+        $this->get(route('requests.index', ['stale' => 1]))
+            ->assertSee($stale->reception_number)
+            ->assertDontSee($recent->reception_number)
+            ->assertDontSee($hasRecentLog->reception_number)
+            ->assertDontSee($completedStale->reception_number);
+    }
+
+    /**
+     * stale は検索フォームに項目が無いため、絞り込み中であることを画面に明示する。
+     * これが無いと「条件なしの全件表示」と見分けがつかない。
+     */
+    public function test_stale絞り込み中は一覧に絞り込み中の表示が出る(): void
+    {
+        $office = Office::factory()->create();
+        Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'not_started',
+            'reception_date' => now()->subDays(31),
+        ]);
+
+        $this->actingAsStaff($office);
+
+        $this->get(route('requests.index', ['stale' => 1]))
+            ->assertOk()
+            ->assertSee('30日以上 対応の動きがない案件のみ表示中')
+            // 他の条件で再検索しても stale が外れないよう hidden で引き継ぐ
+            ->assertSee('name="stale" value="1"', false);
+    }
+
+    public function test_stale絞り込みでない一覧には絞り込み中の表示が出ない(): void
+    {
+        $office = Office::factory()->create();
+        Request::factory()->create(['office_id' => $office->id]);
+
+        $this->actingAsStaff($office);
+
+        $this->get(route('requests.index'))
+            ->assertOk()
+            ->assertDontSee('30日以上 対応の動きがない案件のみ表示中');
+    }
+
+    /**
+     * 「この絞り込みを解除」は stale のみ外し、併用中の他条件は保持する。
+     */
+    public function test_stale解除リンクは他の検索条件を保持する(): void
+    {
+        $office = Office::factory()->create();
+        Request::factory()->create([
+            'office_id' => $office->id,
+            'department' => 'road',
+            'response_status' => 'not_started',
+            'reception_date' => now()->subDays(31),
+        ]);
+
+        $this->actingAsStaff($office);
+
+        $this->get(route('requests.index', ['stale' => 1, 'department' => ['road']]))
+            ->assertOk()
+            ->assertSee(route('requests.index', ['department' => ['road']]), false);
     }
 
     public function test_受付日の期間で検索できる(): void
