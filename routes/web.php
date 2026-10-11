@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\RequestController;
+use App\Http\Controllers\RequestLogController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -42,6 +43,21 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
         ->middleware('can:update,request')->name('requests.update');
     Route::delete('/requests/{request}', [RequestController::class, 'destroy'])
         ->middleware('can:delete,request')->name('requests.destroy');
+
+    // 対応履歴（要件定義書 §2.6）。対応部署一致の一般職員・管理者のみ
+    // 追加・編集・削除できる（can:manageLog）。scopeBindings() により、
+    // 別案件のURLから他案件のログを操作しようとすると404になる
+    // （{request}->logs()->findOrFail({log}) 相当の暗黙解決。暗黙バインディングは
+    // パラメータ名 {log} から Request::logs() リレーションを推測するため、
+    // パラメータ名をリレーション名の単数形に合わせている）。
+    Route::scopeBindings()->group(function () {
+        Route::post('/requests/{request}/logs', [RequestLogController::class, 'store'])
+            ->middleware('can:manageLog,request')->name('requests.logs.store');
+        Route::put('/requests/{request}/logs/{log}', [RequestLogController::class, 'update'])
+            ->middleware('can:manageLog,request')->name('requests.logs.update');
+        Route::delete('/requests/{request}/logs/{log}', [RequestLogController::class, 'destroy'])
+            ->middleware('can:manageLog,request')->name('requests.logs.destroy');
+    });
 
     // 地図表示（画面設計書 画面#7）。pins は非同期でピン（GeoJSON）を返す。
     Route::get('/map', [MapController::class, 'index'])->name('map.index');
