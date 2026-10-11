@@ -38,7 +38,9 @@ body {
     var(--color-bg);
   background-attachment: fixed;
   color: var(--color-text);
-  font-size: 14px;
+  /* 業務で長時間見る画面のため、本文を15pxに上げる（14pxでは小さく読みにくい）。
+     以下の各要素の font-size も、これに合わせて一段ずつ上げている。 */
+  font-size: 15px;
   letter-spacing: 0.01em;
   /* 日本語は字面が大きく、欧文より広い行間が要る。既定のままでは文字が詰まって見える。 */
   line-height: 1.7;
@@ -89,7 +91,7 @@ a {
 }
 
 .app-header .brand .brand-name {
-  font-size: 19px;
+  font-size: 21px;
   font-weight: 900;
   letter-spacing: 0.03em;
   background: linear-gradient(120deg, var(--color-primary-deep), var(--color-primary-2));
@@ -99,7 +101,7 @@ a {
 }
 
 .app-header .brand .brand-sub {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.04em;
   color: var(--color-text-sub);
@@ -113,7 +115,7 @@ a {
 .app-header nav a {
   color: var(--color-text-sub);
   text-decoration: none;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   padding-bottom: 4px;
   border-bottom: 2px solid transparent;
@@ -132,7 +134,7 @@ a {
 }
 
 .app-header .user {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--color-text-sub);
 }
 
@@ -153,7 +155,7 @@ a {
 }
 
 .page-title {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 900;
   letter-spacing: 0.02em;
   line-height: 1.4;
@@ -204,7 +206,7 @@ a {
 
 .form-grid .required::after {
   content: "必須";
-  font-size: 10px;
+  font-size: 11px;
   color: #fff;
   background: var(--color-danger);
   border-radius: 3px;
@@ -223,7 +225,7 @@ textarea {
   padding: 9px 12px;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: 15px;
   font-family: inherit;
   color: var(--color-text);
   background: #fff;
@@ -264,10 +266,10 @@ textarea {
    （従来は状態変化が一切なく、画像のように見えていた）。 */
 .btn {
   display: inline-block;
-  padding: 9px 22px;
+  padding: 10px 24px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   line-height: 1.5;
   cursor: pointer;
@@ -348,17 +350,17 @@ table.list-table {
 
 table.list-table th,
 table.list-table td {
-  padding: 12px 14px;
+  padding: 13px 14px;
   border-bottom: 1px solid var(--color-border);
   text-align: left;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* 見出し行は本文より小さく・字間を広げて「ラベル」として読ませる。 */
 table.list-table th {
   background: #f1f4fc;
   color: var(--color-text-sub);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.04em;
   white-space: nowrap;
@@ -388,19 +390,19 @@ table.list-table tbody tr.group-row th {
   background: var(--color-primary-dark);
   color: #fff;
   /* 事務所名の見出し行を、下の案件データ行と明確に区別できるよう大きめ・太字にする。 */
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 900;
   letter-spacing: 0.03em;
-  padding: 10px 14px;
+  padding: 11px 14px;
 }
 
 /* バッジ。淡い塗りだけでは輪郭が無くぼんやり見えるため、同系色の枠線を1px足して締める。 */
 .badge {
   display: inline-block;
-  padding: 2px 10px;
+  padding: 3px 11px;
   border: 1px solid transparent;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.6;
   white-space: nowrap;
@@ -427,7 +429,7 @@ table.list-table tbody tr.group-row th {
    直下ではないため対象外で、通常フォントのまま（項目と条件の見た目を分ける）。 */
 .search-form .field > label {
   display: block;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--color-text);
   margin-bottom: 6px;
   font-weight: 900;
@@ -461,7 +463,7 @@ table.list-table tbody tr.group-row th {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* ページネーション */
@@ -470,7 +472,7 @@ table.list-table tbody tr.group-row th {
   justify-content: center;
   gap: 6px;
   margin-top: 16px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .pagination a, .pagination span {
@@ -521,7 +523,7 @@ table.list-table tbody tr.group-row th {
 /* 見出し。本文と同じ14pxでは見出しとして機能していなかったため、
    サイズ・太さを上げ、左の縦線で色のアクセントを付ける。 */
 .section-heading {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 900;
   color: var(--color-text);
   line-height: 1.4;
@@ -545,11 +547,11 @@ table.list-table tbody tr.group-row th {
   align-items: center;
   justify-content: center;
   color: var(--color-text-sub);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .note {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.75;
   color: var(--color-text-sub);
   margin-top: 6px;
@@ -603,7 +605,7 @@ table.list-table tbody tr.group-row th {
 }
 
 .map-pin-list-item {
-  padding: 12px 14px;
+  padding: 13px 14px;
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -637,7 +639,7 @@ table.list-table tbody tr.group-row th {
 }
 
 .pin-desc {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--color-text);
   margin-top: 2px;
   overflow: hidden;
@@ -709,7 +711,7 @@ table.list-table tbody tr.group-row th {
 
 .login-card .tagline {
   text-align: center;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--color-primary-deep);
@@ -718,7 +720,7 @@ table.list-table tbody tr.group-row th {
 
 .login-card .subtitle {
   text-align: center;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-text-sub);
   margin-bottom: 28px;
 }
@@ -729,7 +731,7 @@ table.list-table tbody tr.group-row th {
 
 .login-card label {
   display: block;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--color-text-sub);
   margin-bottom: 6px;
@@ -737,21 +739,21 @@ table.list-table tbody tr.group-row th {
 
 .login-card input[type="text"],
 .login-card input[type="password"] {
-  font-size: 15px;
+  font-size: 16px;
   padding: 10px 12px;
 }
 
 .login-card .btn-primary {
   width: 100%;
   padding: 12px;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   margin-top: 8px;
 }
 
 .login-footer {
   text-align: center;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-text-sub);
   margin-top: 20px;
   line-height: 1.6;
@@ -767,8 +769,8 @@ table.list-table tbody tr.group-row th {
   border-radius: var(--radius-sm);
   /* 左に太い線を入れて、注意・成功・情報の種別を色で即座に示す。 */
   border-left-width: 4px !important;
-  padding: 12px 16px;
-  font-size: 13px;
+  padding: 13px 16px;
+  font-size: 14px;
   margin-bottom: 18px;
   line-height: 1.7;
 }
@@ -794,7 +796,7 @@ table.list-table tbody tr.group-row th {
 /* フィールド別のバリデーションエラー（.field 内・フォームグリッド内どちらでも効く） */
 .error {
   color: var(--color-danger);
-  font-size: 12px;
+  font-size: 13px;
   margin-top: 4px;
 }
 
@@ -818,7 +820,7 @@ table.list-table tbody tr.group-row th {
 /* ダッシュボード：要対応サマリーのカード（クリックで該当条件の一覧へ） */
 .stat-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -860,7 +862,7 @@ table.list-table tbody tr.group-row th {
 .stat-card.is-info { border-left-color: var(--color-primary); }
 
 .stat-card .stat-label {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.03em;
   line-height: 1.5;
@@ -868,7 +870,7 @@ table.list-table tbody tr.group-row th {
 }
 
 .stat-card .stat-value {
-  font-size: 36px;
+  font-size: 38px;
   font-weight: 900;
   line-height: 1.15;
   letter-spacing: -0.01em;
@@ -876,7 +878,7 @@ table.list-table tbody tr.group-row th {
 }
 
 .stat-card .stat-value .stat-unit {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   margin-left: 3px;
 }
@@ -886,7 +888,7 @@ table.list-table tbody tr.group-row th {
 .stat-card.is-info .stat-value { color: var(--color-primary-deep); }
 
 .stat-card .stat-note {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.65;
   color: var(--color-text-sub);
   /* 注記は常にカード下端へ。上の margin-top:auto で数値との間隔を自動で埋める。 */
@@ -910,14 +912,15 @@ table.list-table tbody tr.group-row th {
 /* 件数の内訳：CSSの横棒グラフ。数値を併記するので色だけに依存しない。 */
 .bar-chart {
   display: grid;
-  grid-template-columns: 72px 1fr 56px;
+  /* 文字を1段上げたため、ラベル（「対応完了」等）と件数の列幅も広げる。 */
+  grid-template-columns: 80px 1fr 64px;
   align-items: center;
   row-gap: 10px;
   column-gap: 10px;
 }
 
 .bar-chart .bar-label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-text-sub);
 }
@@ -944,7 +947,7 @@ table.list-table tbody tr.group-row th {
 .bar-chart .bar-fill.is-muted { background: #9aa5b1; }
 
 .bar-chart .bar-value {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   text-align: right;
 }
@@ -970,12 +973,13 @@ table.matrix-table th,
 table.matrix-table td {
   padding: 11px 14px;
   border: 1px solid var(--color-border);
-  font-size: 13px;
+  font-size: 14px;
   text-align: right;
 }
 
 /* 件数は一覧へのリンクとして押しやすく・読み取りやすくするため、
-   見出しや注記より大きめの文字にする。 */
+   見出しや注記より大きめの文字にする。本文を15pxに上げた際も、
+   ここは既に十分な大きさがあるため18pxのまま据え置いた。 */
 table.matrix-table tbody td,
 table.matrix-table tfoot td {
   font-size: 18px;
@@ -985,7 +989,7 @@ table.matrix-table tfoot td {
 table.matrix-table thead th {
   background: #f1f4fc;
   color: var(--color-text-sub);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-align: center;
@@ -1072,11 +1076,11 @@ table.matrix-table tfoot td:hover {
 
 .timeline .log-date {
   font-weight: 900;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .timeline .log-author {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--color-text-sub);
 }
 
@@ -1094,7 +1098,7 @@ table.matrix-table tfoot td:hover {
 
 /* 編集された履歴であることを示すしるし。記録の訂正を隠さず明示する。 */
 .timeline .log-edited {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-sub);
   background: #f1f4fc;
   border-radius: 10px;
@@ -1146,8 +1150,8 @@ table.matrix-table tfoot td:hover {
 }
 
 .photo-meta {
-  padding: 6px 8px;
-  font-size: 11px;
+  padding: 7px 9px;
+  font-size: 12px;
   color: var(--color-text-sub);
   display: flex;
   justify-content: space-between;
@@ -1165,7 +1169,7 @@ table.matrix-table tfoot td:hover {
   background: #fff3cd;
   color: #856404;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.03em;
   padding: 5px;
