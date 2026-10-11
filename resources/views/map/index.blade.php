@@ -81,7 +81,7 @@
             <div id="map" style="flex:1; height:520px;"></div>
 
             {{-- ピン一覧（地図と連動）。JS が GeoJSON から生成する。 --}}
-            <div style="width:300px; border-left:1px solid var(--color-border); max-height:520px; overflow-y:auto;">
+            <div style="width:300px; border-left:1px solid var(--color-border-strong); max-height:520px; overflow-y:auto;">
                 <div id="pin-count" class="note" style="padding:12px 14px 4px;">読み込み中…</div>
                 <div id="pin-list"></div>
             </div>
@@ -151,7 +151,7 @@
                         marker.bindPopup(
                             '<div style="min-width:180px;">' +
                             '<div style="font-weight:700;">' + esc(p.reception_datetime) + '</div>' +
-                            '<div style="font-size:12px;color:#666;">' + esc(p.department) + '／' + esc(p.address) + '</div>' +
+                            '<div style="font-size:13px;color:var(--color-text-sub);">' + esc(p.department) + '／' + esc(p.address) + '</div>' +
                             '<div style="margin:6px 0;">' + esc(p.content) + '</div>' +
                             '<a href="' + esc(p.url) + '">詳細を見る</a>' +
                             '</div>'

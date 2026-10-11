@@ -14,9 +14,9 @@
 @endphp
 
 @section('content')
-    <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:16px;">
         <h1 class="page-title">案件詳細（受付番号：{{ $request->reception_number }}）</h1>
-        <div style="display:flex; gap:10px;">
+        <div style="display:flex; gap:10px; flex-shrink:0;">
             <a class="btn btn-secondary" href="{{ route('requests.index') }}">一覧に戻る</a>
             {{-- 編集画面（#6）は次フェーズ。編集権限がある場合のみボタンを表示する（画面設計書 3.2） --}}
             @can('update', $request)

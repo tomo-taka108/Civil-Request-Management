@@ -34,7 +34,10 @@
     $hasPoint = $lat !== null && $lng !== null;
 @endphp
 
-<div id="{{ $mapId }}" class="location-map" style="height:320px; border-radius:var(--radius); overflow:hidden;"></div>
+{{-- 高さ・角丸・枠線は .location-map（common.css）で指定する。
+     以前は同じ内容をインラインで書いていたが、CSS側にクラスが無かったための
+     暫定措置だった（モックには .location-map があり実装に無いドリフト）。 --}}
+<div id="{{ $mapId }}" class="location-map"></div>
 
 @if ($editable)
     <div class="note" style="margin-top:6px;">
