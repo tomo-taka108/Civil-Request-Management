@@ -44,6 +44,11 @@ class SearchRequestRequest extends FormRequest
 
             'address' => ['nullable', 'string', 'max:255'],
             'keyword' => ['nullable', 'string', 'max:255'],
+
+            // ダッシュボードの「30日以上動きなし」からの絞り込み専用（真偽フラグ）。
+            // 対応状況が未完了かつ updated_at が30日以上前の案件のみを表す
+            // （DashboardStats::STALE_DAYS と同じ基準。RequestSearch::applyFilters 参照）。
+            'stale' => ['nullable', 'boolean'],
         ];
     }
 
@@ -61,6 +66,7 @@ class SearchRequestRequest extends FormRequest
             'urgency' => '緊急性',
             'address' => '地区・場所',
             'keyword' => 'キーワード',
+            'stale' => '30日以上動きなし',
         ];
     }
 }

@@ -86,6 +86,13 @@ class RequestSearch
         if (! empty($filters['keyword'])) {
             $query->where('content', 'like', '%'.self::escapeLike($filters['keyword']).'%');
         }
+
+        // 30日以上動きなし（ダッシュボードから）。未完了かつ最終更新が
+        // DashboardStats::STALE_DAYS 日以上前の案件のみ。
+        if (! empty($filters['stale'])) {
+            $query->where('response_status', '!=', 'completed')
+                ->where('updated_at', '<', now()->subDays(DashboardStats::STALE_DAYS));
+        }
     }
 
     /**

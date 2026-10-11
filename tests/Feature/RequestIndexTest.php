@@ -175,6 +175,27 @@ class RequestIndexTest extends TestCase
             ->assertDontSee($low->reception_number);
     }
 
+    public function test_stale指定で30日以上更新のない未完了案件のみ絞り込まれる(): void
+    {
+        $office = Office::factory()->create();
+
+        $stale = Request::factory()->create(['office_id' => $office->id, 'response_status' => 'not_started']);
+        $stale->forceFill(['updated_at' => now()->subDays(31)])->save();
+
+        $recent = Request::factory()->create(['office_id' => $office->id, 'response_status' => 'not_started']);
+        $recent->forceFill(['updated_at' => now()->subDays(10)])->save();
+
+        $completedStale = Request::factory()->create(['office_id' => $office->id, 'response_status' => 'completed']);
+        $completedStale->forceFill(['updated_at' => now()->subDays(31)])->save();
+
+        $this->actingAsStaff($office);
+
+        $this->get(route('requests.index', ['stale' => 1]))
+            ->assertSee($stale->reception_number)
+            ->assertDontSee($recent->reception_number)
+            ->assertDontSee($completedStale->reception_number);
+    }
+
     public function test_受付日の期間で検索できる(): void
     {
         $office = Office::factory()->create();

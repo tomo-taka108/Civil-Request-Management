@@ -12,6 +12,7 @@ Laravel（Blade）でのルーティング・コントローラ・権限制御�
 
 | # | 画面名 | 対応モックアップ | 権限 |
 |---|---|---|---|
+| 0 | 進捗ダッシュボード（ログイン後のトップ画面） | `dashboard.html` | 認証済み全ユーザー（システム管理者は事務所別の内訳も表示） |
 | 1 | ログイン | `login.html` | 未認証ユーザー |
 | 2 | パスワード変更 | `password-change.html` | 認証済み全ユーザー |
 | 3 | 案件一覧・検索 | `list.html` | 認証済み全ユーザー |
@@ -23,7 +24,7 @@ Laravel（Blade）でのルーティング・コントローラ・権限制御�
 | 9 | ユーザー登録 | `user-register.html` | システム管理者のみ |
 | 10 | ユーザー編集・無効化 | `user-edit.html` | システム管理者のみ |
 
-> 全10画面のモックアップ作成が完了。#7（地図表示）・#8（ユーザー一覧）・#10（ユーザー編集・無効化）は、機能要件（2.4・2.5章）から存在が必須と判明していたが未作成だったもので、本改訂までに順次作成した。
+> 全11画面のモックアップ作成が完了。#7（地図表示）・#8（ユーザー一覧）・#10（ユーザー編集・無効化）は、機能要件（2.4・2.5章）から存在が必須と判明していたが未作成だったもので、本改訂までに順次作成した。#0（進捗ダッシュボード）は要件定義書 §2.7 の追加に伴い作成した。
 
 ---
 
@@ -49,6 +50,9 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
     // パスワード変更（初回強制変更を含む）
     Route::get('/password/change', [PasswordController::class, 'edit'])->name('password.edit');
     Route::put('/password/change', [PasswordController::class, 'update'])->name('password.update');
+
+    // 進捗ダッシュボード（要件定義書 §2.7）。ログイン後のトップ画面。
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
 
     // 案件（要望・苦情・異常箇所）
     Route::get('/requests', [RequestController::class, 'index'])->name('requests.index');
@@ -91,8 +95,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
         Route::put('/users/{user}/reissue-password', [UserController::class, 'reissuePassword'])->name('users.reissue-password'); // パスワード再発行
     });
 
-    // 認証後のトップは案件一覧へリダイレクト
-    Route::get('/', fn () => redirect()->route('requests.index'))->name('home');
+    // 認証後のトップはダッシュボードへリダイレクト
+    Route::get('/', fn () => redirect()->route('dashboard.index'))->name('home');
 });
 ```
 
@@ -105,6 +109,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
   - 件数が多くてもメモリを圧迫しないよう、`streamDownload` ＋ `chunk` で1件ずつ書き出す。事務所スコープ・並び順は一覧（index）と同一（`RequestController::searchQuery` を共用）
 - 地図のピン取得はページ本体（`/map`）とは別に非同期エンドポイント（`/map/pins`）を用意し、検索結果のフィルタ表示（要件2.4）に対応する
 - 対応部署・対応状況・緊急性は複数選択検索（要件定義書2.3）に対応するため、クエリパラメータは配列形式（例：`?department[]=road&department[]=river`）とし、コントローラ側で`whereIn`により絞り込む。`/map/pins`も同じクエリパラメータ形式を共有し、一覧画面と地図画面で検索条件を揃える
+- ダッシュボードの「30日以上動きなし」からの絞り込み専用に、`?stale=1` という真偽フラグ条件を一覧検索（`SearchRequestRequest`）に追加した（対応状況が未完了かつ`updated_at`が30日以上前。`App\Support\DashboardStats::STALE_DAYS`と基準を共有）
 
 ---
 
@@ -120,6 +125,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
   - コントローラ側で個別に `where('office_id', ...)` を書き漏らすリスクを避けるため、モデル層で一元化する
 - **システム管理者（`role === 'admin'`）は`office_id`を持たない（DB設計書2.2参照）ため、上記グローバルスコープの対象外とする**。管理者ログイン時はスコープを適用せず、全事務所の`requests`を検索・取得できるようにする
 - 一般職員が他事務所のレコードIDを直接URLで指定した場合（例：`/requests/999`が他事務所の案件）は404を返す（グローバルスコープにより取得自体ができないため自然に404になる）。管理者はこの制限を受けない
+- **進捗ダッシュボード**（要件定義書 §2.7）の集計も同じスコープに従う。`DashboardController` は `Request::query()` から集計するのみで、専用のスコープ処理は持たない（`App\Support\DashboardStats`）
 
 ### 3.2 編集・削除権限（対応部署）
 
@@ -168,6 +174,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
 |---|---|---|---|
 | AuthController | showLoginForm / login / logout | `auth/login.blade.php` | `users`を検索し認証 |
 | PasswordController | edit / update | `auth/password.blade.php` | `users.password_hash`, `must_change_password` 更新 |
+| DashboardController | index | `dashboard/index.blade.php` | `requests`から集計のみ（INSERT/UPDATEなし）。一般職員は事務所スコープ適用、管理者は全事務所＋事務所別内訳（`App\Support\DashboardStats`） |
 | RequestController | index | `requests/index.blade.php` | `requests`を条件検索（一般職員は事務所スコープ適用、管理者は全事務所） |
 | RequestController | create / store | `requests/create.blade.php` | `requests`へINSERT（採番処理を含む） |
 | RequestController | show | `requests/show.blade.php` | `requests`を1件取得（`logs.recordedBy`をeager load） |

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\RequestController;
@@ -28,6 +29,9 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
     // パスワード変更（初回強制変更を含む）
     Route::get('/password/change', [PasswordController::class, 'edit'])->name('password.edit');
     Route::put('/password/change', [PasswordController::class, 'update'])->name('password.update');
+
+    // 進捗ダッシュボード（要件定義書 §2.7）。ログイン後のトップ画面。
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
 
     // 案件（苦情・要望・異常箇所）。一覧・検索・新規登録・詳細・編集・削除。
     // create / edit は {request} の show より前に定義すること。
@@ -79,6 +83,6 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
         Route::put('/users/{user}/reissue-password', [UserController::class, 'reissuePassword'])->name('users.reissue-password');
     });
 
-    // 認証後のトップは案件一覧にリダイレクトする。
-    Route::get('/', fn () => redirect()->route('requests.index'))->name('home');
+    // 認証後のトップはダッシュボードにリダイレクトする（要件定義書 §2.7）。
+    Route::get('/', fn () => redirect()->route('dashboard.index'))->name('home');
 });
