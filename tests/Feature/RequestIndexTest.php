@@ -224,6 +224,60 @@ class RequestIndexTest extends TestCase
             ->assertDontSee($completedStale->reception_number);
     }
 
+    /**
+     * stale は検索フォームに項目が無いため、絞り込み中であることを画面に明示する。
+     * これが無いと「条件なしの全件表示」と見分けがつかない。
+     */
+    public function test_stale絞り込み中は一覧に絞り込み中の表示が出る(): void
+    {
+        $office = Office::factory()->create();
+        Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'not_started',
+            'reception_date' => now()->subDays(31),
+        ]);
+
+        $this->actingAsStaff($office);
+
+        $this->get(route('requests.index', ['stale' => 1]))
+            ->assertOk()
+            ->assertSee('30日以上 対応の動きがない案件のみ表示中')
+            // 他の条件で再検索しても stale が外れないよう hidden で引き継ぐ
+            ->assertSee('name="stale" value="1"', false);
+    }
+
+    public function test_stale絞り込みでない一覧には絞り込み中の表示が出ない(): void
+    {
+        $office = Office::factory()->create();
+        Request::factory()->create(['office_id' => $office->id]);
+
+        $this->actingAsStaff($office);
+
+        $this->get(route('requests.index'))
+            ->assertOk()
+            ->assertDontSee('30日以上 対応の動きがない案件のみ表示中');
+    }
+
+    /**
+     * 「この絞り込みを解除」は stale のみ外し、併用中の他条件は保持する。
+     */
+    public function test_stale解除リンクは他の検索条件を保持する(): void
+    {
+        $office = Office::factory()->create();
+        Request::factory()->create([
+            'office_id' => $office->id,
+            'department' => 'road',
+            'response_status' => 'not_started',
+            'reception_date' => now()->subDays(31),
+        ]);
+
+        $this->actingAsStaff($office);
+
+        $this->get(route('requests.index', ['stale' => 1, 'department' => ['road']]))
+            ->assertOk()
+            ->assertSee(route('requests.index', ['department' => ['road']]), false);
+    }
+
     public function test_受付日の期間で検索できる(): void
     {
         $office = Office::factory()->create();

@@ -44,6 +44,8 @@
     （既存の検索処理が <code>office[]</code> / <code>department[]</code> /
     <code>response_status[]</code> / <code>urgency[]</code> に対応済みのため、一覧側の変更は不要）。
     例外として「30日以上動きなし」のみ既存の検索条件に該当する項目が無いため、一覧へ専用の絞り込み（<code>stale=1</code>）を追加しています。
+    これは検索フォームには項目として現れない「このカード専用の導線」で、遷移先の一覧には
+    絞り込み中であることを示す帯（<code>list.html</code> 上部）が出ます。
   </div>
 
   <!-- ① 要対応サマリー。
