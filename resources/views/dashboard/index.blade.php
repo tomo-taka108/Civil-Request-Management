@@ -121,14 +121,17 @@
         <div class="note">件数をクリックすると、その条件で絞り込んだ案件一覧を表示します（計の件数も、部署のみ・対応状況のみ・全件での絞り込みとして機能します）。</div>
     </div>
 
-    {{-- ⑤ 要対応案件リスト。緊急性「高」かつ未対応、または30日以上動きのないものを上位10件。 --}}
+    {{-- ⑤ 対応を急ぐ案件。緊急性「高」かつ未対応、または30日以上動きのないものを上位10件。
+         「未対応」（対応状況の値）と混同されやすいため、見出しは status 名と重ならない
+         表記にし、抽出条件を見出しの直下に注釈として置く（リストを見る前に目に入るように）。 --}}
     <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <div class="section-heading" style="margin:0; border:none; padding:0;">要対応の案件（上位{{ $stats->attentionList->count() }}件）</div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="section-heading" style="margin:0; border:none; padding:0;">対応を急ぐ案件（上位{{ $stats->attentionList->count() }}件）</div>
             <a class="btn btn-secondary" href="{{ route('requests.index') }}">案件一覧で見る</a>
         </div>
+        <div class="note" style="margin:6px 0 14px;">※ 緊急性「高」かつ未対応、または30日以上対応の動きがない未完了案件を、緊急性・動きのない順に表示しています。</div>
         @if ($stats->attentionList->isEmpty())
-            <div class="note">現在、要対応の案件はありません。</div>
+            <div class="note">現在、対応を急ぐ案件はありません。</div>
         @else
             <table class="list-table">
                 <thead>
@@ -158,7 +161,6 @@
                 </tbody>
             </table>
         @endif
-        <div class="note">緊急性「高」かつ未対応、または30日以上対応の動きがない未完了案件を、緊急性・動きのない順に表示しています。</div>
     </div>
 
     {{-- ⑥ 事務所別の内訳（システム管理者のみ表示）。一般職員は自事務所しか
