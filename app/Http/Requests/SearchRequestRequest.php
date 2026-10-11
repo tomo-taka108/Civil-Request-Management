@@ -46,8 +46,9 @@ class SearchRequestRequest extends FormRequest
             'keyword' => ['nullable', 'string', 'max:255'],
 
             // ダッシュボードの「30日以上動きなし」からの絞り込み専用（真偽フラグ）。
-            // 対応状況が未完了かつ updated_at が30日以上前の案件のみを表す
-            // （DashboardStats::STALE_DAYS と同じ基準。RequestSearch::applyFilters 参照）。
+            // 対応状況が未完了かつ、最後に対応した日（最新の対応履歴の対応日。
+            // 対応履歴が無ければ受付日）が30日以上前の案件のみを表す
+            // （判定は RequestSearch::applyStale に集約）。
             'stale' => ['nullable', 'boolean'],
         ];
     }

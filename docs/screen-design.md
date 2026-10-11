@@ -109,7 +109,9 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
   - 件数が多くてもメモリを圧迫しないよう、`streamDownload` ＋ `chunk` で1件ずつ書き出す。事務所スコープ・並び順は一覧（index）と同一（`RequestController::searchQuery` を共用）
 - 地図のピン取得はページ本体（`/map`）とは別に非同期エンドポイント（`/map/pins`）を用意し、検索結果のフィルタ表示（要件2.4）に対応する
 - 対応部署・対応状況・緊急性は複数選択検索（要件定義書2.3）に対応するため、クエリパラメータは配列形式（例：`?department[]=road&department[]=river`）とし、コントローラ側で`whereIn`により絞り込む。`/map/pins`も同じクエリパラメータ形式を共有し、一覧画面と地図画面で検索条件を揃える
-- ダッシュボードの「30日以上動きなし」からの絞り込み専用に、`?stale=1` という真偽フラグ条件を一覧検索（`SearchRequestRequest`）に追加した（対応状況が未完了かつ`updated_at`が30日以上前。`App\Support\DashboardStats::STALE_DAYS`と基準を共有）
+- ダッシュボードの「30日以上動きなし」からの絞り込み専用に、`?stale=1` という真偽フラグ条件を一覧検索（`SearchRequestRequest`）に追加した。判定は `App\Support\RequestSearch::applyStale` に集約し、ダッシュボード（`DashboardStats`）と一覧で基準がずれないようにしている
+  - 判定基準は「対応状況が対応完了以外」かつ「最後に対応した日が `DashboardStats::STALE_DAYS`（30日）以上前」。「最後に対応した日」＝最新の対応履歴の対応日（`request_logs.logged_on`、論理削除を除く）で、対応履歴が無い案件は受付日（`reception_date`）を起点とする（SQL式は `RequestSearch::LAST_ACTIVITY_SQL`）
+  - `requests.updated_at` は使わない。案件レコードの最終更新日時のため、対応履歴が一件も無くても項目を修正しただけで更新され、「受付から一切対応が進んでいない案件」を取りこぼすため
 
 ---
 

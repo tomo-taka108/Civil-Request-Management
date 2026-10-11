@@ -24,7 +24,7 @@
         <a class="stat-card is-warning" href="{{ route('requests.index', ['stale' => 1]) }}">
             <div class="stat-label">30日以上 動きなし</div>
             <div class="stat-value">{{ $stats->staleCount }}<span class="stat-unit">件</span></div>
-            <div class="stat-note">対応完了していない案件のうち、30日以上更新がないもの</div>
+            <div class="stat-note">対応完了していない案件のうち、30日以上対応の動きがないもの（最新の対応日、対応履歴が無ければ受付日から起算）</div>
         </a>
         <a class="stat-card is-info" href="{{ route('requests.index', ['response_status' => ['in_progress']]) }}">
             <div class="stat-label">対応中</div>
@@ -182,7 +182,7 @@
                         <th>緊急性</th>
                         <th>対応状況</th>
                         <th>要望の内容</th>
-                        <th>最終更新</th>
+                        <th>最終対応日</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -194,13 +194,14 @@
                             <td><span class="badge badge-urgency-{{ \App\Support\RequestLabels::label(\App\Support\RequestLabels::URGENCIES, $request->urgency) }}">{{ \App\Support\RequestLabels::label(\App\Support\RequestLabels::URGENCIES, $request->urgency) }}</span></td>
                             <td><span class="badge badge-status-{{ \App\Support\RequestLabels::label(\App\Support\RequestLabels::STATUSES, $request->response_status) }}">{{ \App\Support\RequestLabels::label(\App\Support\RequestLabels::STATUSES, $request->response_status) }}</span></td>
                             <td>{{ \Illuminate\Support\Str::limit($request->content, 40) }}</td>
-                            <td>{{ $request->updated_at->format('Y-m-d') }}</td>
+                            {{-- 最新の対応日。対応履歴が無い案件は受付日（＝受付したまま動いていない）。 --}}
+                            <td>{{ \Illuminate\Support\Carbon::parse($request->last_activity_on)->format('Y-m-d') }}</td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
         @endif
-        <div class="note">緊急性「高」かつ未対応、または30日以上更新のない未完了案件を、緊急性・最終更新日の順に表示しています。</div>
+        <div class="note">緊急性「高」かつ未対応、または30日以上対応の動きがない未完了案件を、緊急性・動きのない順に表示しています。</div>
     </div>
 
     {{-- ⑦ 事務所別の内訳（システム管理者のみ表示）。一般職員は自事務所しか

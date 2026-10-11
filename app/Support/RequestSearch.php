@@ -87,13 +87,44 @@ class RequestSearch
             $query->where('content', 'like', '%'.self::escapeLike($filters['keyword']).'%');
         }
 
-        // 30日以上動きなし（ダッシュボードから）。未完了かつ最終更新が
-        // DashboardStats::STALE_DAYS 日以上前の案件のみ。
+        // 30日以上動きなし（ダッシュボードから）
         if (! empty($filters['stale'])) {
-            $query->where('response_status', '!=', 'completed')
-                ->where('updated_at', '<', now()->subDays(DashboardStats::STALE_DAYS));
+            self::applyStale($query);
         }
     }
+
+    /**
+     * 「30日以上動きなし」の条件を適用する（ダッシュボードと一覧で基準を共有する）。
+     *
+     * 「最後に実際に対応した日」＝対応履歴の最新の対応日（logged_on）とし、
+     * 対応履歴が無い案件は受付日（reception_date）を起点とする。
+     *
+     * requests.updated_at は使わない。updated_at は案件レコードの最終更新日時であり、
+     * 対応履歴が一件も無くても住所や対応方針を直しただけで更新されるため、
+     * 「受付から一切対応が進んでいない案件」を取りこぼしてしまう。
+     * 現場で実際に動いた日を見るため、記録日時（created_at）ではなく対応日を使う。
+     *
+     * @param  Builder<Request>  $query
+     */
+    public static function applyStale(Builder $query): void
+    {
+        $threshold = now()->subDays(DashboardStats::STALE_DAYS)->toDateString();
+
+        $query->where('response_status', '!=', 'completed')
+            ->whereRaw(self::LAST_ACTIVITY_SQL.' < ?', [$threshold]);
+    }
+
+    /**
+     * 「最後に実際に対応した日」を表すSQL式。
+     *
+     * 対応履歴（論理削除を除く）の最新の対応日。対応履歴が無い案件は受付日。
+     * applyStale の判定と、ダッシュボードの要対応リストの並び順で共用する。
+     */
+    public const LAST_ACTIVITY_SQL = 'GREATEST(requests.reception_date, COALESCE((
+        select max(logged_on) from request_logs
+        where request_logs.request_id = requests.id
+          and request_logs.deleted_at is null
+    ), requests.reception_date))';
 
     /**
      * LIKE 検索用に特殊文字（\ % _）をエスケープする。

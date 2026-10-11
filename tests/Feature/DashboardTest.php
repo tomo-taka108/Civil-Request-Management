@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Office;
 use App\Models\Request;
+use App\Models\RequestLog;
 use App\Models\User;
 use App\Support\DashboardStats;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -138,23 +139,101 @@ class DashboardTest extends TestCase
         $this->assertSame(1, $stats->highNotStartedCount);
     }
 
-    public function test_30日以上更新がなく未完了の案件がstale件数に含まれる(): void
+    public function test_対応履歴のない古い受付案件がstale件数に含まれる(): void
     {
         $office = Office::factory()->create();
 
-        $stale = Request::factory()->create(['office_id' => $office->id, 'response_status' => 'not_started']);
-        $stale->forceFill(['updated_at' => now()->subDays(31)])->save();
+        // 対応履歴なし・受付から31日経過 → 動きなし
+        Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'not_started',
+            'reception_date' => now()->subDays(31),
+        ]);
 
-        $recent = Request::factory()->create(['office_id' => $office->id, 'response_status' => 'not_started']);
-        $recent->forceFill(['updated_at' => now()->subDays(10)])->save();
+        // 対応履歴なしだが受付から10日 → まだ動きなしではない
+        Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'not_started',
+            'reception_date' => now()->subDays(10),
+        ]);
 
-        $completed = Request::factory()->create(['office_id' => $office->id, 'response_status' => 'completed']);
-        $completed->forceFill(['updated_at' => now()->subDays(31)])->save();
+        // 対応完了は対象外
+        Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'completed',
+            'reception_date' => now()->subDays(31),
+        ]);
 
         $this->actingAsStaff($office);
 
-        $stats = $this->currentDashboardStats();
-        $this->assertSame(1, $stats->staleCount);
+        $this->assertSame(1, $this->currentDashboardStats()->staleCount);
+    }
+
+    /**
+     * 受付から日が経っていても、最近の対応履歴があれば「動きあり」と判定する。
+     */
+    public function test_最近の対応履歴がある案件はstale件数に含まれない(): void
+    {
+        $office = Office::factory()->create();
+        $user = $this->actingAsStaff($office);
+
+        $request = Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'in_progress',
+            'reception_date' => now()->subDays(90),
+        ]);
+
+        $log = new RequestLog(['logged_on' => now()->subDays(5), 'content' => '現地確認を実施']);
+        $log->forceFill(['request_id' => $request->id, 'recorded_by' => $user->id])->save();
+
+        $this->assertSame(0, $this->currentDashboardStats()->staleCount);
+    }
+
+    /**
+     * 案件の項目を直しただけ（updated_at が新しい）でも、対応履歴が無ければ
+     * 受付日から起算して「動きなし」と判定する。updated_at で判定していた頃の
+     * 取りこぼしに対する回帰テスト（Issue #85）。
+     */
+    public function test_対応履歴がなければupdated_atが新しくてもstale件数に含まれる(): void
+    {
+        $office = Office::factory()->create();
+
+        $request = Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'not_started',
+            'reception_date' => now()->subDays(70),
+        ]);
+        // 受付から2か月後に住所の誤記だけ訂正した状況を作る
+        $request->forceFill(['updated_at' => now()])->save();
+
+        $this->actingAsStaff($office);
+
+        $this->assertSame(1, $this->currentDashboardStats()->staleCount);
+    }
+
+    /**
+     * 古い対応履歴しか無い案件は「動きなし」。論理削除した履歴は数えない。
+     */
+    public function test_古い対応履歴しかない案件はstale件数に含まれる(): void
+    {
+        $office = Office::factory()->create();
+        $user = $this->actingAsStaff($office);
+
+        $request = Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'in_progress',
+            'reception_date' => now()->subDays(90),
+        ]);
+
+        $old = new RequestLog(['logged_on' => now()->subDays(40), 'content' => '関係者へ連絡']);
+        $old->forceFill(['request_id' => $request->id, 'recorded_by' => $user->id])->save();
+
+        // 新しい履歴を入れてから論理削除すると、判定は古い履歴に戻る
+        $deleted = new RequestLog(['logged_on' => now()->subDays(2), 'content' => '誤登録']);
+        $deleted->forceFill(['request_id' => $request->id, 'recorded_by' => $user->id])->save();
+        $deleted->delete();
+
+        $this->assertSame(1, $this->currentDashboardStats()->staleCount);
     }
 
     public function test_要対応リストは事務所スコープ内かつ最大10件(): void

@@ -4,7 +4,9 @@ namespace App\Support;
 
 use App\Models\Office;
 use App\Models\Request;
+use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * ダッシュボードの集計ロジック（要件定義書 §2.7 / mockup/dashboard.html）。
@@ -125,39 +127,56 @@ class DashboardStats
     }
 
     /**
-     * 要対応サマリーのカウント（未対応×緊急性高、30日以上動きなし）を条件付き集計で取得する。
+     * 要対応サマリーのカウント（未対応×緊急性高、30日以上動きなし）を取得する。
+     *
+     * 「30日以上動きなし」は対応履歴の対応日を見る相関サブクエリになるため、
+     * 条件付き集計にまとめず RequestSearch::applyStale を共用して別に数える
+     * （一覧の stale フィルタと基準がずれないようにする）。
      */
     private function loadAttentionCounts(): void
     {
-        $row = Request::query()->selectRaw("
-            SUM(CASE WHEN response_status = 'not_started' AND urgency = 'high' THEN 1 ELSE 0 END) AS high_not_started,
-            SUM(CASE WHEN response_status <> 'completed' AND updated_at < ? THEN 1 ELSE 0 END) AS stale
-        ", [now()->subDays(self::STALE_DAYS)])->first();
+        $this->highNotStartedCount = Request::query()
+            ->where('response_status', 'not_started')
+            ->where('urgency', 'high')
+            ->count();
 
-        $this->highNotStartedCount = (int) ($row->high_not_started ?? 0);
-        $this->staleCount = (int) ($row->stale ?? 0);
+        $staleQuery = Request::query();
+        RequestSearch::applyStale($staleQuery);
+        $this->staleCount = $staleQuery->count();
     }
 
     /**
      * 要対応案件リスト（上位10件）。緊急性「高」かつ未対応、または30日以上
-     * 更新のない未完了案件を、緊急性・最終更新日の順に表示する。
+     * 動きのない未完了案件を、緊急性・動きのない順に表示する。
      */
     private function loadAttentionList(): void
     {
-        $staleBefore = now()->subDays(self::STALE_DAYS);
-
         $this->attentionList = Request::query()
+            // 画面に「最終対応日」として出すため、判定と同じ式を列としても取得する。
+            ->select('requests.*')
+            ->selectRaw(RequestSearch::LAST_ACTIVITY_SQL.' AS last_activity_on')
             ->where('response_status', '!=', 'completed')
-            ->where(function ($query) use ($staleBefore) {
+            ->where(function ($query) {
                 $query->where(function ($q) {
                     $q->where('response_status', 'not_started')->where('urgency', 'high');
-                })->orWhere('updated_at', '<', $staleBefore);
+                })->orWhere(function ($q) {
+                    RequestSearch::applyStale($q);
+                });
             })
             ->with('office')
             ->orderByRaw("urgency = 'high' DESC")
-            ->orderBy('updated_at')
+            ->orderBy(self::lastActivityExpression())
             ->limit(self::ATTENTION_LIMIT)
             ->get();
+    }
+
+    /**
+     * 「最後に実際に対応した日」を表すSQL式（並び順に使う）。
+     * 判定条件（RequestSearch::applyStale）と同じ定義を共用する。
+     */
+    private static function lastActivityExpression(): Expression
+    {
+        return DB::raw(RequestSearch::LAST_ACTIVITY_SQL);
     }
 
     /**

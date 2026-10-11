@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Office;
 use App\Models\Request;
+use App\Models\RequestLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -175,24 +176,51 @@ class RequestIndexTest extends TestCase
             ->assertDontSee($low->reception_number);
     }
 
-    public function test_stale指定で30日以上更新のない未完了案件のみ絞り込まれる(): void
+    /**
+     * stale は「最後に対応した日」（最新の対応履歴の対応日。履歴が無ければ受付日）が
+     * 30日以上前の未完了案件を絞り込む。案件の最終更新日時では判定しない（Issue #85）。
+     */
+    public function test_stale指定で30日以上対応の動きがない未完了案件のみ絞り込まれる(): void
     {
         $office = Office::factory()->create();
+        $user = $this->actingAsStaff($office);
 
-        $stale = Request::factory()->create(['office_id' => $office->id, 'response_status' => 'not_started']);
-        $stale->forceFill(['updated_at' => now()->subDays(31)])->save();
+        // 対応履歴なし・受付から31日 → 対象
+        $stale = Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'not_started',
+            'reception_date' => now()->subDays(31),
+        ]);
+        // 項目を直しただけで updated_at が新しくても、対応履歴が無ければ対象のまま
+        $stale->forceFill(['updated_at' => now()])->save();
 
-        $recent = Request::factory()->create(['office_id' => $office->id, 'response_status' => 'not_started']);
-        $recent->forceFill(['updated_at' => now()->subDays(10)])->save();
+        // 対応履歴なし・受付から10日 → 対象外
+        $recent = Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'not_started',
+            'reception_date' => now()->subDays(10),
+        ]);
 
-        $completedStale = Request::factory()->create(['office_id' => $office->id, 'response_status' => 'completed']);
-        $completedStale->forceFill(['updated_at' => now()->subDays(31)])->save();
+        // 受付は古いが最近の対応履歴あり → 対象外
+        $hasRecentLog = Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'in_progress',
+            'reception_date' => now()->subDays(90),
+        ]);
+        $log = new RequestLog(['logged_on' => now()->subDays(3), 'content' => '現地確認を実施']);
+        $log->forceFill(['request_id' => $hasRecentLog->id, 'recorded_by' => $user->id])->save();
 
-        $this->actingAsStaff($office);
+        // 対応完了は対象外
+        $completedStale = Request::factory()->create([
+            'office_id' => $office->id,
+            'response_status' => 'completed',
+            'reception_date' => now()->subDays(31),
+        ]);
 
         $this->get(route('requests.index', ['stale' => 1]))
             ->assertSee($stale->reception_number)
             ->assertDontSee($recent->reception_number)
+            ->assertDontSee($hasRecentLog->reception_number)
             ->assertDontSee($completedStale->reception_number);
     }
 
