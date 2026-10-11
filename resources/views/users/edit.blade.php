@@ -9,7 +9,7 @@
 @endphp
 
 @section('content')
-    <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:16px;">
         <h1 class="page-title">ユーザー編集</h1>
         <a class="btn btn-secondary" href="{{ route('users.index') }}">ユーザー一覧に戻る</a>
     </div>
@@ -58,7 +58,7 @@
 
     {{-- アカウント状態（無効化）。自分自身は無効化できない。 --}}
     <div class="card" style="border-color:var(--color-danger);">
-        <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger);">アカウント状態</div>
+        <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger); border-left-color:var(--color-danger);">アカウント状態</div>
         <div class="form-grid">
             <label>現在の状態</label>
             <div>

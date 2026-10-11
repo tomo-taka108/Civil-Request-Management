@@ -80,7 +80,9 @@ a {
   box-shadow: var(--shadow-sm);
   position: sticky;
   top: 0;
-  z-index: 10;
+  /* Leaflet のペイン・コントロールが最大 z-index: 1000 を使うため、
+     地図画面でスクロールしてもヘッダーが隠れないよう、それより上に置く。 */
+  z-index: 1100;
 }
 
 .app-header .brand {

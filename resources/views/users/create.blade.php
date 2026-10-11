@@ -9,7 +9,7 @@
 @endphp
 
 @section('content')
-    <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:16px;">
         <h1 class="page-title">ユーザー登録</h1>
         <a class="btn btn-secondary" href="{{ route('users.index') }}">ユーザー一覧に戻る</a>
     </div>

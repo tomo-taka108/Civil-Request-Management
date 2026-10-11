@@ -125,11 +125,13 @@
          「未対応」（対応状況の値）と混同されやすいため、見出しは status 名と重ならない
          表記にし、抽出条件を見出しの直下に注釈として置く（リストを見る前に目に入るように）。 --}}
     <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div class="section-heading" style="margin:0; border:none; padding:0;">対応を急ぐ案件（上位{{ $stats->attentionList->count() }}件）</div>
-            <a class="btn btn-secondary" href="{{ route('requests.index') }}">案件一覧で見る</a>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:16px;">
+            {{-- ボタンと横並びにするため、見出しの下線と上下の余白だけ打ち消す。
+                 左のアクセント線（border-left）は他の見出しと揃えるため残す。 --}}
+            <div class="section-heading" style="margin:0; border-bottom:none; padding:0 0 0 12px;">対応を急ぐ案件（上位{{ $stats->attentionList->count() }}件）</div>
+            <a class="btn btn-secondary" href="{{ route('requests.index') }}" style="white-space:nowrap;">案件一覧で見る</a>
         </div>
-        <div class="note" style="margin:6px 0 14px;">※ 緊急性「高」かつ未対応、または30日以上対応の動きがない未完了案件を、緊急性・動きのない順に表示しています。</div>
+        <div class="note" style="margin:10px 0 16px;">※ 緊急性「高」かつ未対応、または30日以上対応の動きがない未完了案件を、緊急性・動きのない順に表示しています。</div>
         @if ($stats->attentionList->isEmpty())
             <div class="note">現在、対応を急ぐ案件はありません。</div>
         @else

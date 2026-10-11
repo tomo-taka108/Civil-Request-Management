@@ -9,7 +9,7 @@
 @endphp
 
 @section('content')
-    <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:16px;">
         <h1 class="page-title">ユーザー一覧</h1>
         <a class="btn btn-primary" href="{{ route('users.create') }}">ユーザーを登録する</a>
     </div>
