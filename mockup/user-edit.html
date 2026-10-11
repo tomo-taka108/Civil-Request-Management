@@ -26,7 +26,7 @@
 </header>
 
 <main class="app-main">
-  <div style="display:flex; justify-content:space-between; align-items:center;">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:16px;">
     <h1 class="page-title">ユーザー編集</h1>
     <a class="btn btn-secondary" href="user-list.html">ユーザー一覧に戻る</a>
   </div>
@@ -105,7 +105,7 @@
 
   <!-- パターン①：有効なアカウント／案件の登録あり（削除不可）＝最も一般的なケース -->
   <div class="card" style="border-color:var(--color-danger);">
-    <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger);">アカウント状態［①有効・案件の登録あり］</div>
+    <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger); border-left-color:var(--color-danger);">アカウント状態［①有効・案件の登録あり］</div>
     <div class="form-grid">
       <label>現在の状態</label>
       <div><span class="badge badge-status-対応完了">有効</span></div>
@@ -127,7 +127,7 @@
 
   <!-- パターン②：有効なアカウント／案件の登録なし（完全削除が可能） -->
   <div class="card" style="border-color:var(--color-danger);">
-    <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger);">アカウント状態［②有効・案件の登録なし］</div>
+    <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger); border-left-color:var(--color-danger);">アカウント状態［②有効・案件の登録なし］</div>
     <div class="form-grid">
       <label>現在の状態</label>
       <div><span class="badge badge-status-対応完了">有効</span></div>
@@ -150,7 +150,7 @@
 
   <!-- パターン③：無効化済みのアカウント（再有効化できる） -->
   <div class="card" style="border-color:var(--color-danger);">
-    <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger);">アカウント状態［③無効化済み］</div>
+    <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger); border-left-color:var(--color-danger);">アカウント状態［③無効化済み］</div>
     <div class="form-grid">
       <label>現在の状態</label>
       <div><span class="badge badge-status-未対応">無効化済み</span></div>
@@ -173,7 +173,7 @@
 
   <!-- パターン④：自分自身のアカウント（無効化も削除もできない。「削除」の行自体が出ない） -->
   <div class="card" style="border-color:var(--color-danger);">
-    <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger);">アカウント状態［④自分自身のアカウント］</div>
+    <div class="section-heading" style="color:var(--color-danger); border-bottom-color:var(--color-danger); border-left-color:var(--color-danger);">アカウント状態［④自分自身のアカウント］</div>
     <div class="form-grid">
       <label>現在の状態</label>
       <div><span class="badge badge-status-対応完了">有効</span></div>
