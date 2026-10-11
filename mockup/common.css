@@ -843,33 +843,6 @@ table.matrix-table td a {
   font-weight: 700;
 }
 
-/* 月別推移グラフ（インラインSVG）の軸・ラベル */
-.trend-chart {
-  width: 100%;
-  height: auto;
-}
-
-.trend-chart .trend-bar {
-  fill: var(--color-primary);
-}
-
-.trend-chart .trend-axis {
-  stroke: var(--color-border);
-  stroke-width: 1;
-}
-
-.trend-chart .trend-label,
-.trend-chart .trend-count {
-  font-size: 10px;
-  fill: var(--color-text-sub);
-  font-family: inherit;
-}
-
-.trend-chart .trend-count {
-  font-weight: 700;
-  fill: var(--color-text);
-}
-
 /* 対応履歴タイムライン */
 .timeline {
   list-style: none;

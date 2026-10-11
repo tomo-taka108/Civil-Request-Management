@@ -6,7 +6,6 @@
 @php
     $maxStatus = max(1, max($stats->byStatus));
     $maxUrgency = max(1, max($stats->byUrgency));
-    $maxTrend = max(1, max(array_column($stats->trend, 'n')));
 @endphp
 
 @section('content')
@@ -122,49 +121,7 @@
         <div class="note">件数をクリックすると、その条件で絞り込んだ案件一覧を表示します（計の件数も、部署のみ・対応状況のみ・全件での絞り込みとして機能します）。</div>
     </div>
 
-    {{-- ⑤ 月別受付件数（直近12ヶ月）。インラインSVGの矩形で描画し、新規JS依存を入れない。 --}}
-    <div class="card">
-        <div class="section-heading">月別受付件数（直近12ヶ月）</div>
-        @php
-            $barCount = count($stats->trend);
-            $chartWidth = 720;
-            $chartHeight = 220;
-            $barAreaWidth = $chartWidth - 30;
-            $step = $barAreaWidth / $barCount;
-            $barWidth = $step * 0.6;
-            $maxBarHeight = 140;
-            $baseline = 180;
-            $ariaLabel = '月別受付件数の推移。'.implode('、', array_map(
-                fn ($row) => $row['ym'].' '.$row['n'].'件',
-                $stats->trend
-            )).'。';
-        @endphp
-        <svg class="trend-chart" viewBox="0 0 {{ $chartWidth }} {{ $chartHeight }}" preserveAspectRatio="xMidYMid meet" role="img"
-             aria-label="{{ $ariaLabel }}">
-            <line class="trend-axis" x1="30" y1="{{ $baseline }}" x2="{{ $chartWidth - 10 }}" y2="{{ $baseline }}"/>
-            <g>
-                @foreach ($stats->trend as $i => $row)
-                    @php
-                        $barHeight = (int) round($row['n'] / $maxTrend * $maxBarHeight);
-                        $x = 30 + $i * $step + ($step - $barWidth) / 2;
-                        $y = $baseline - $barHeight;
-                        $cx = $x + $barWidth / 2;
-                    @endphp
-                    <rect class="trend-bar" x="{{ $x }}" y="{{ $y }}" width="{{ $barWidth }}" height="{{ $barHeight }}"/>
-                    <text class="trend-count" x="{{ $cx }}" y="{{ $y - 5 }}" text-anchor="middle">{{ $row['n'] }}</text>
-                @endforeach
-            </g>
-            <g>
-                @foreach ($stats->trend as $i => $row)
-                    @php $cx = 30 + $i * $step + $step / 2; @endphp
-                    <text class="trend-label" x="{{ $cx }}" y="{{ $baseline + 16 }}" text-anchor="middle">{{ $row['ym'] }}</text>
-                @endforeach
-            </g>
-        </svg>
-        <div class="note">受付日を月単位で集計しています。当月（{{ now()->format('Y-m') }}）は集計途中です。</div>
-    </div>
-
-    {{-- ⑥ 要対応案件リスト。緊急性「高」かつ未対応、または30日以上動きのないものを上位10件。 --}}
+    {{-- ⑤ 要対応案件リスト。緊急性「高」かつ未対応、または30日以上動きのないものを上位10件。 --}}
     <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <div class="section-heading" style="margin:0; border:none; padding:0;">要対応の案件（上位{{ $stats->attentionList->count() }}件）</div>
@@ -204,7 +161,7 @@
         <div class="note">緊急性「高」かつ未対応、または30日以上対応の動きがない未完了案件を、緊急性・動きのない順に表示しています。</div>
     </div>
 
-    {{-- ⑦ 事務所別の内訳（システム管理者のみ表示）。一般職員は自事務所しか
+    {{-- ⑥ 事務所別の内訳（システム管理者のみ表示）。一般職員は自事務所しか
          集計対象にならないため、このカードは出さない。 --}}
     @if ($stats->isAdmin)
         <div class="card" style="border-color:var(--color-primary);">

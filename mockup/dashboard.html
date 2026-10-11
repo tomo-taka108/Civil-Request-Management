@@ -179,50 +179,7 @@
     <div class="note">件数をクリックすると、その条件で絞り込んだ案件一覧を表示します（計の件数も、部署のみ・対応状況のみ・全件での絞り込みとして機能します）。</div>
   </div>
 
-  <!-- ⑤ 月別受付件数（直近12ヶ月）。インラインSVGの矩形で描画し、新規JS依存を入れない。 -->
-  <div class="card">
-    <div class="section-heading">月別受付件数（直近12ヶ月）</div>
-    <svg class="trend-chart" viewBox="0 0 720 220" preserveAspectRatio="xMidYMid meet" role="img"
-         aria-label="月別受付件数の推移。2025年11月3件、12月5件、2026年1月4件、2月6件、3月8件、4月7件、5月5件、6月9件、7月12件、8月6件、9月4件、10月2件。">
-      <!-- 横軸 -->
-      <line class="trend-axis" x1="30" y1="180" x2="710" y2="180"/>
-
-      <!-- 棒と件数ラベル。高さは最大値12件を基準にスケールする（最大140px）。 -->
-      <g>
-        <rect class="trend-bar" x="40"  y="145" width="34" height="35"/><text class="trend-count" x="57"  y="140" text-anchor="middle">3</text>
-        <rect class="trend-bar" x="96"  y="122" width="34" height="58"/><text class="trend-count" x="113" y="117" text-anchor="middle">5</text>
-        <rect class="trend-bar" x="152" y="133" width="34" height="47"/><text class="trend-count" x="169" y="128" text-anchor="middle">4</text>
-        <rect class="trend-bar" x="208" y="110" width="34" height="70"/><text class="trend-count" x="225" y="105" text-anchor="middle">6</text>
-        <rect class="trend-bar" x="264" y="87"  width="34" height="93"/><text class="trend-count" x="281" y="82"  text-anchor="middle">8</text>
-        <rect class="trend-bar" x="320" y="98"  width="34" height="82"/><text class="trend-count" x="337" y="93"  text-anchor="middle">7</text>
-        <rect class="trend-bar" x="376" y="122" width="34" height="58"/><text class="trend-count" x="393" y="117" text-anchor="middle">5</text>
-        <rect class="trend-bar" x="432" y="75"  width="34" height="105"/><text class="trend-count" x="449" y="70"  text-anchor="middle">9</text>
-        <rect class="trend-bar" x="488" y="40"  width="34" height="140"/><text class="trend-count" x="505" y="35"  text-anchor="middle">12</text>
-        <rect class="trend-bar" x="544" y="110" width="34" height="70"/><text class="trend-count" x="561" y="105" text-anchor="middle">6</text>
-        <rect class="trend-bar" x="600" y="133" width="34" height="47"/><text class="trend-count" x="617" y="128" text-anchor="middle">4</text>
-        <rect class="trend-bar" x="656" y="157" width="34" height="23"/><text class="trend-count" x="673" y="152" text-anchor="middle">2</text>
-      </g>
-
-      <!-- 月ラベル -->
-      <g>
-        <text class="trend-label" x="57"  y="196" text-anchor="middle">2025-11</text>
-        <text class="trend-label" x="113" y="196" text-anchor="middle">2025-12</text>
-        <text class="trend-label" x="169" y="196" text-anchor="middle">2026-01</text>
-        <text class="trend-label" x="225" y="196" text-anchor="middle">2026-02</text>
-        <text class="trend-label" x="281" y="196" text-anchor="middle">2026-03</text>
-        <text class="trend-label" x="337" y="196" text-anchor="middle">2026-04</text>
-        <text class="trend-label" x="393" y="196" text-anchor="middle">2026-05</text>
-        <text class="trend-label" x="449" y="196" text-anchor="middle">2026-06</text>
-        <text class="trend-label" x="505" y="196" text-anchor="middle">2026-07</text>
-        <text class="trend-label" x="561" y="196" text-anchor="middle">2026-08</text>
-        <text class="trend-label" x="617" y="196" text-anchor="middle">2026-09</text>
-        <text class="trend-label" x="673" y="196" text-anchor="middle">2026-10</text>
-      </g>
-    </svg>
-    <div class="note">受付日を月単位で集計しています。当月（2026-10）は集計途中です。</div>
-  </div>
-
-  <!-- ⑥ 要対応案件リスト。緊急性「高」かつ未対応、または30日以上対応の動きがないものを上位10件。 -->
+  <!-- ⑤ 要対応案件リスト。緊急性「高」かつ未対応、または30日以上対応の動きがないものを上位10件。 -->
   <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
       <div class="section-heading" style="margin:0; border:none; padding:0;">要対応の案件（上位10件）</div>
@@ -336,7 +293,7 @@
     <div class="note">緊急性「高」かつ未対応、または30日以上対応の動きがない未完了案件を、緊急性・動きのない順に表示しています。</div>
   </div>
 
-  <!-- ⑦ 事務所別の内訳（システム管理者のみ表示）。
+  <!-- ⑥ 事務所別の内訳（システム管理者のみ表示）。
        一般職員は自事務所しか集計対象にならないため、このカードは出さない。
        モックでは管理者で見た場合のイメージを確認できるよう、常時表示している。 -->
   <div class="card" style="border-color:var(--color-primary);">

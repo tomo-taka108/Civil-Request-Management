@@ -24,9 +24,6 @@ class DashboardStats
     /** 要対応案件リストの最大表示件数。 */
     private const ATTENTION_LIMIT = 10;
 
-    /** 月別受付件数の対象期間（直近Nヶ月）。 */
-    private const TREND_MONTHS = 12;
-
     public bool $isAdmin;
 
     public int $totalCount;
@@ -53,9 +50,6 @@ class DashboardStats
     /** @var \Illuminate\Database\Eloquent\Collection<int, Request> */
     public \Illuminate\Database\Eloquent\Collection $attentionList;
 
-    /** @var list<array{ym:string, n:int}> */
-    public array $trend;
-
     public function __construct(bool $isAdmin)
     {
         $this->isAdmin = $isAdmin;
@@ -63,7 +57,6 @@ class DashboardStats
         $this->loadBreakdown();
         $this->loadAttentionCounts();
         $this->loadAttentionList();
-        $this->loadTrend();
     }
 
     /**
@@ -177,30 +170,5 @@ class DashboardStats
     private static function lastActivityExpression(): Expression
     {
         return DB::raw(RequestSearch::LAST_ACTIVITY_SQL);
-    }
-
-    /**
-     * 月別受付件数（直近12ヶ月）。テストDBがMySQLであることを確認済みのため
-     * DATE_FORMAT をそのまま使う（SQLite互換は考慮しない）。
-     */
-    private function loadTrend(): void
-    {
-        $from = now()->subMonths(self::TREND_MONTHS - 1)->startOfMonth();
-
-        $rows = Request::query()
-            ->selectRaw("DATE_FORMAT(reception_date, '%Y-%m') AS ym, COUNT(*) AS n")
-            ->where('reception_date', '>=', $from)
-            ->groupBy('ym')
-            ->orderBy('ym')
-            ->get()
-            ->keyBy('ym');
-
-        $trend = [];
-        for ($i = self::TREND_MONTHS - 1; $i >= 0; $i--) {
-            $ym = now()->subMonths($i)->format('Y-m');
-            $trend[] = ['ym' => $ym, 'n' => (int) ($rows->get($ym)->n ?? 0)];
-        }
-
-        $this->trend = $trend;
     }
 }
