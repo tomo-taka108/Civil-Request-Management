@@ -356,11 +356,12 @@ table.list-table td {
   font-size: 14px;
 }
 
-/* 見出し行は本文より小さく・字間を広げて「ラベル」として読ませる。 */
+/* 見出し行は字間を広げて「ラベル」として読ませる。
+   サイズは本文と同じにする（本文より小さくすると読みにくいため）。 */
 table.list-table th {
   background: #f1f4fc;
   color: var(--color-text-sub);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.04em;
   white-space: nowrap;
@@ -989,16 +990,19 @@ table.matrix-table tfoot td {
 table.matrix-table thead th {
   background: #f1f4fc;
   color: var(--color-text-sub);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-align: center;
   border-bottom-color: var(--color-border-strong);
 }
 
+/* 行の見出し（部署名・事務所名）。列見出しと違い色を落としていないので、
+   本文と同じサイズにして件数と対等に読めるようにする。 */
 table.matrix-table tbody th {
   background: #f8fafe;
   color: var(--color-text);
+  font-size: 15px;
   font-weight: 700;
   text-align: left;
   white-space: nowrap;
@@ -1009,6 +1013,11 @@ table.matrix-table tfoot th,
 table.matrix-table tfoot td {
   background: #f1f4fc;
   font-weight: 900;
+}
+
+/* 合計行の見出し「計」。行見出し（部署名）と同じサイズに揃える。 */
+table.matrix-table tfoot th {
+  font-size: 15px;
 }
 
 table.matrix-table tfoot td,
