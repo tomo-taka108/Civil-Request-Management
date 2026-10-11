@@ -178,9 +178,11 @@ a {
 /* フォーム */
 .form-grid {
   display: grid;
-  grid-template-columns: 160px 1fr;
-  row-gap: 14px;
-  column-gap: 12px;
+  /* 項目名を15pxに上げたため、「必須」バッジ付きの長い項目名
+     （「要望箇所（住所）」等）が折り返さないよう列幅を広げる。 */
+  grid-template-columns: 180px 1fr;
+  row-gap: 16px;
+  column-gap: 14px;
   align-items: center;
 }
 
@@ -368,7 +370,10 @@ table.list-table th {
   border-bottom-color: var(--color-border-strong);
 }
 
-table.list-table td:first-child {
+/* 受付番号と受付日時は途中で折り返させない（「2026-07-18 09:15」が2行に割れると
+   読みづらいため）。文字を大きくした分、列が詰まっても改行されないようにする。 */
+table.list-table td:first-child,
+table.list-table td:nth-child(2) {
   white-space: nowrap;
 }
 
@@ -691,10 +696,11 @@ table.list-table tbody tr.group-row th {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(6px);
   border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 48px 40px;
-  width: 400px;
-  box-shadow: 0 20px 50px rgba(91, 141, 239, 0.18);
+  /* 文字を一段上げたぶん、タグラインが折り返さないよう少し広げる。 */
+  width: 420px;
+  box-shadow: var(--shadow-lg);
   position: relative;
 }
 
