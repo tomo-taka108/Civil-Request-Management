@@ -16,7 +16,7 @@ Laravel（Blade）でのルーティング・コントローラ・権限制御�
 | 1 | ログイン | `login.html` | 未認証ユーザー |
 | 2 | パスワード変更 | `password-change.html` | 認証済み全ユーザー |
 | 3 | 案件一覧・検索 | `list.html` | 認証済み全ユーザー |
-| 4 | 案件詳細（対応履歴タイムラインを含む） | `detail.html` | 認証済み全ユーザー（対応履歴の追加・編集・削除は対応部署が一致する担当者・管理者のみ） |
+| 4 | 案件詳細（対応履歴タイムライン・現場写真を含む） | `detail.html` | 認証済み全ユーザー（対応履歴・現場写真の追加・編集・削除は対応部署が一致する担当者・管理者のみ） |
 | 5 | 案件新規登録 | `register.html` | 認証済み全ユーザー |
 | 6 | 案件編集・削除 | `edit.html` | 対応部署が一致する担当者のみ |
 | 7 | 地図表示 | `map.html` | 認証済み全ユーザー |
@@ -76,6 +76,13 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
             ->middleware('can:manageLog,request')->name('requests.logs.update');
         Route::delete('/requests/{request}/logs/{log}', [RequestLogController::class, 'destroy'])
             ->middleware('can:manageLog,request')->name('requests.logs.destroy');
+
+        // 現場写真（要件定義書 §2.8）。対応履歴の写真は logs.store / logs.update で一緒に登録する。
+        // ここは受付時の写真の登録と、写真の削除。can:managePhoto も update に委譲。
+        Route::post('/requests/{request}/photos', [RequestPhotoController::class, 'store'])
+            ->middleware('can:managePhoto,request')->name('requests.photos.store');
+        Route::delete('/requests/{request}/photos/{photo}', [RequestPhotoController::class, 'destroy'])
+            ->middleware('can:managePhoto,request')->name('requests.photos.destroy');
     });
 
     // 地図表示
@@ -154,6 +161,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
 - 新規登録（`store`）は担当部署を問わないため、一般職員であれば担当部署によらず許可する。ただし**システム管理者は登録できない**：`requests.office_id` は NOT NULL であり、`office_id` を持たない管理者は登録主体になれないため、`RequestPolicy::create` は `role === 'staff'` かつ `office_id` が非NULLの場合のみ許可する（管理者の主務は是正のための閲覧・編集・削除）
 - 閲覧（`show`・`index`）も担当部署を問わないため、一般職員は事務所スコープのみで制御し、Policyでの追加制限はしない。管理者は3.1の通り事務所スコープの対象外
 - **対応履歴**（`request_logs`。要件定義書 §2.6）の追加・編集・削除も、`RequestPolicy::manageLog` が `update` に委譲して同一基準で判定する。対応履歴は案件対応そのものであり、編集権限と異なる基準にすると部署を横断した書き込みが生じるため。他部署の職員は案件詳細の閲覧時にタイムラインを見られるが、追加・編集・削除の操作は表示されない
+- **現場写真**（`request_photos`。要件定義書 §2.8）の登録・削除も、`RequestPolicy::managePhoto` が `update` に委譲して同一基準で判定する。写真は対応履歴に紐づけて登録するため、履歴を書ける人と写真を扱える人を一致させる。他部署の職員は写真を閲覧できるが、登録フォーム・削除ボタンは表示されない
+- 写真の画像そのものへのアクセスは、ログイン認証ではなく**期限付きの署名付きURL**（30分）で制御する。ローカルは Laravel の非公開ディスク配信（`storage.local` ルート）、本番は S3 の署名付きURL。どちらも詳細画面の表示時（＝閲覧権限の確認後）にのみ発行する
 
 ### 3.3 システム管理者限定機能
 
@@ -179,13 +188,15 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
 | DashboardController | index | `dashboard/index.blade.php` | `requests`から集計のみ（INSERT/UPDATEなし）。一般職員は事務所スコープ適用、管理者は全事務所＋事務所別内訳（`App\Support\DashboardStats`） |
 | RequestController | index | `requests/index.blade.php` | `requests`を条件検索（一般職員は事務所スコープ適用、管理者は全事務所） |
 | RequestController | create / store | `requests/create.blade.php` | `requests`へINSERT（採番処理を含む） |
-| RequestController | show | `requests/show.blade.php` | `requests`を1件取得（`logs.recordedBy`をeager load） |
+| RequestController | show | `requests/show.blade.php` | `requests`を1件取得（`logs.recordedBy`・`logs.photos`・`receptionPhotos`をeager load） |
 | RequestController | edit / update | `requests/edit.blade.php` | `requests`をUPDATE（Policy適用） |
 | RequestController | destroy | - | `requests`を論理削除（Policy適用） |
 | RequestController | exportCsv | - (CSVダウンロードレスポンス) | `requests`を検索しCSV変換 |
-| RequestLogController | store | `requests/partials/log-timeline.blade.php`（`show`に含む） | `request_logs`へINSERT（Policy: manageLog）。recorded_by/request_idはforceFill |
-| RequestLogController | update | 同上 | `request_logs`をUPDATE（Policy: manageLog）。logged_on/contentのみ更新、recorded_byは変更しない |
+| RequestLogController | store | `requests/partials/log-timeline.blade.php`（`show`に含む） | `request_logs`へINSERT（Policy: manageLog）。recorded_by/request_idはforceFill。添付された写真は同一トランザクションで`request_photos`へINSERT |
+| RequestLogController | update | 同上 | `request_logs`をUPDATE（Policy: manageLog）。logged_on/contentのみ更新、recorded_byは変更しない。写真の追加も可（登録済み枚数と合わせて5枚まで） |
 | RequestLogController | destroy | - | `request_logs`を論理削除（Policy: manageLog） |
+| RequestPhotoController | store | `requests/show.blade.php`（受付時の写真カード） | `request_photos`へINSERT（`request_log_id`=NULL。Policy: managePhoto）。ファイルは非公開ディスクへ保存（`App\Support\RequestPhotoStore`） |
+| RequestPhotoController | destroy | - | `request_photos`を物理削除し、ファイルも削除（Policy: managePhoto） |
 | MapController | index / pins | `map/index.blade.php` | `requests`から緯度経度を持つ案件を条件検索（一般職員は事務所スコープ適用、管理者は全事務所）。`pins`は一覧の各件の緯度経度・受付日時・緊急性等をGeoJSON等で返す |
 | UserController | index / create / store / edit / update / deactivate / activate / destroy / reissuePassword | `users/*.blade.php` | `users`のCRUD（Gate: admin）。事務所スコープなし、全事務所のユーザーが対象。`index`は所属事務所によるフィルタをオプションで受け付ける。`deactivate`＝無効化・`activate`＝再有効化・`destroy`＝物理削除（案件を持たない誤登録アカウントのみ）・`reissuePassword`＝初期パスワード再発行（`must_change_password`を`true`に戻す） |
 | （ルート直書き） | GET /health | -（`OK`テキスト） | なし。ALBヘルスチェック用に認証なしで200を返す（インフラ設計書3.5） |

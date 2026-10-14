@@ -61,4 +61,15 @@ class RequestPolicy
     {
         return $this->update($user, $request);
     }
+
+    /**
+     * 現場写真の追加・削除（要件定義書 §2.8）。
+     *
+     * 対応履歴と同じ理由で編集権限（update）に委譲する。写真は対応履歴に
+     * 紐づけて登録するため、履歴を書ける人と写真を扱える人を一致させる。
+     */
+    public function managePhoto(User $user, Request $request): bool
+    {
+        return $this->update($user, $request);
+    }
 }

@@ -16,6 +16,9 @@ erDiagram
     users ||--o{ requests : "登録する"
     requests ||--o{ request_logs : "対応履歴を持つ"
     users ||--o{ request_logs : "記録する"
+    requests ||--o{ request_photos : "現場写真を持つ"
+    request_logs |o--o{ request_photos : "対応時の写真"
+    users ||--o{ request_photos : "登録する"
 
     offices {
         bigint id PK
@@ -76,6 +79,18 @@ erDiagram
         timestamp created_at
         timestamp updated_at "created_atと異なれば編集済みと判定"
         timestamp deleted_at "論理削除"
+    }
+
+    request_photos {
+        bigint id PK
+        bigint request_id FK
+        bigint request_log_id FK "NULL可：NULLは受付時の写真"
+        varchar path "保存ディスク上のパス（乱数ファイル名）"
+        varchar original_name "元のファイル名（表示用）"
+        int size "バイト"
+        bigint uploaded_by FK
+        timestamp created_at
+        timestamp updated_at
     }
 ```
 
@@ -196,6 +211,33 @@ erDiagram
 
 **権限**：追加・編集・削除は、案件の編集権限（`RequestPolicy::update`）と同一（対応部署が一致する一般職員、またはシステム管理者）。他部署の職員は閲覧のみ可能（4章参照）。
 
+### 2.5 request_photos（現場写真）
+
+要件定義書 §2.8 に対応。案件の現場写真を、撮影した時点（対応履歴）に紐づけて保存する。画像そのものはDBに入れず、非公開のストレージ（ローカル開発は `storage/app/private`、本番は S3）に置き、ここにはパスとメタ情報のみを持つ。
+
+| カラム名 | 型 | 制約 | 備考 |
+|---|---|---|---|
+| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | 内部キー |
+| request_id | BIGINT UNSIGNED | NOT NULL, FK → requests.id (RESTRICT) | 写真が属する案件 |
+| request_log_id | BIGINT UNSIGNED | NULL, FK → request_logs.id (RESTRICT) | 撮影時点の対応履歴。**NULL は「受付時の写真」**（要望者提供分など、特定の対応に紐づかない写真） |
+| path | VARCHAR(255) | NOT NULL | 保存ディスク上のパス（`request-photos/{request_id}/{乱数}.jpg`（PNG は `.png`））。利用者が付けたファイル名は使わない |
+| original_name | VARCHAR(255) | NOT NULL | アップロード時の元のファイル名（画面表示用） |
+| size | INT UNSIGNED | NOT NULL | ファイルサイズ（バイト） |
+| uploaded_by | BIGINT UNSIGNED | NOT NULL, FK → users.id (RESTRICT) | 登録者 |
+| created_at | TIMESTAMP | NOT NULL | |
+| updated_at | TIMESTAMP | NOT NULL | |
+
+**インデックス**
+- `INDEX(request_id, request_log_id)` — 案件の写真の取得と、対応履歴ごと・受付時の枚数カウント（上限5枚の判定）
+
+**request_id と request_log_id の両方を持つ理由**：受付時の写真は対応履歴を持たないため、`request_log_id` だけでは案件を特定できない。また、写真の削除ルート `/requests/{request}/photos/{photo}` を `Request::photos()` から解決し、別案件の写真を操作できないようにする（`scopeBindings()`）。
+
+**論理削除を持たない理由**：写真の削除は「誤登録」「個人情報の写り込み」を取り除くための操作であり、痕跡を残すと目的を果たせない。レコードと実ファイルの両方を物理削除する（`App\Support\RequestPhotoStore::delete`）。親の `requests`・`request_logs` は論理削除のため、RESTRICT の外部キーで写真が巻き込まれることはない。
+
+**`$touches` について**：`RequestPhoto` も `$touches = ['request']` を持ち、写真の追加・削除で案件の `updated_at`（最終更新日時）が更新される。写真の追加は対応履歴自身の `updated_at` を変えないため、履歴が「編集済み」になることはない。
+
+**枚数上限**（対応履歴ごと5枚・受付時5枚）はDB制約ではなくアプリケーション層のバリデーションで担保する（`App\Http\Requests\Concerns\PhotoUploadRules`）。
+
 ---
 
 ## 3. 受付番号の採番方式
@@ -221,6 +263,7 @@ erDiagram
 | システム管理者は全事務所の案件を担当部署によらず閲覧・編集・削除できる | アプリケーション層で `users.role = 'admin'` の場合、`office_id`スコープ・`department`一致判定の両方を適用しない例外ルートとする |
 | システム管理者のみユーザー管理可能（全事務所横断） | アプリケーション層で `users.role = 'admin'` を確認。管理者は`office_id`によるスコープを持たないため、全事務所のユーザーが対象になる |
 | 対応履歴の追加・編集・削除は対応部署の担当者・管理者のみ | `RequestPolicy::manageLog` が `update` に委譲して判定（DB制約では担保しない。2.4参照） |
+| 現場写真の登録・削除は対応部署の担当者・管理者のみ | `RequestPolicy::managePhoto` が `update` に委譲して判定（DB制約では担保しない。2.5参照） |
 | 進捗ダッシュボードの集計は事務所スコープに従う | 専用テーブルは持たず、`Request::query()` から集計する（`OfficeScope`・SoftDeletesが自動適用）。`DB::table('requests')` や `withoutGlobalScope()` は使わない（`App\Support\DashboardStats`） |
 
 > DB制約（外部キー等）だけでは「同一事務所内のみ」「担当部署のみ編集可」という業務ルールを完全には表現できないため、アプリケーション層（Laravelのミドルウェア・ポリシー）での制御を前提とする。本設計書はデータ構造の定義に留め、アクセス制御の実装方針は基本設計（ルーティング・コントローラ設計）で別途詳細化する。

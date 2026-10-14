@@ -15,6 +15,12 @@ return [
 
     'default' => env('FILESYSTEM_DISK', 'local'),
 
+    // 現場写真（要件定義書 §2.8）の保存先。どちらも非公開で、表示は期限付きの
+    // 署名付きURLで行う。ローカル開発は local（storage/app/private。Laravel の
+    // 署名付きルートで配信）、本番は s3 を指定する（EC2 のコンテナは作り直すと
+    // ファイルが消えるため、本番でローカルディスクは使えない）。
+    'photo_disk' => env('PHOTO_DISK', 'local'),
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks

@@ -1176,7 +1176,10 @@ table.matrix-table tfoot td:hover {
   gap: 6px;
 }
 
+/* 長いファイル名でも枠からはみ出さず「…」で省略させる（flex の子は既定で
+   中身より縮まないため、min-width: 0 が無いと省略が効かない）。 */
 .photo-meta .photo-name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

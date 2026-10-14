@@ -6,6 +6,7 @@ use App\Http\Controllers\MapController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\RequestLogController;
+use App\Http\Controllers\RequestPhotoController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -61,6 +62,14 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
             ->middleware('can:manageLog,request')->name('requests.logs.update');
         Route::delete('/requests/{request}/logs/{log}', [RequestLogController::class, 'destroy'])
             ->middleware('can:manageLog,request')->name('requests.logs.destroy');
+
+        // 現場写真（要件定義書 §2.8）。対応履歴に紐づく写真は上の logs.store / logs.update で
+        // 登録する。ここは受付時の写真の登録と、写真（受付時・対応履歴分とも）の削除。
+        // {photo} は Request::photos() から解決されるため、別案件の写真は404になる。
+        Route::post('/requests/{request}/photos', [RequestPhotoController::class, 'store'])
+            ->middleware('can:managePhoto,request')->name('requests.photos.store');
+        Route::delete('/requests/{request}/photos/{photo}', [RequestPhotoController::class, 'destroy'])
+            ->middleware('can:managePhoto,request')->name('requests.photos.destroy');
     });
 
     // 地図表示（画面設計書 画面#7）。pins は非同期でピン（GeoJSON）を返す。

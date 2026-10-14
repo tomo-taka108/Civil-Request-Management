@@ -97,4 +97,46 @@
     <div class="card">
         @include('requests.partials.log-timeline', ['request' => $request])
     </div>
+
+    {{-- 受付時の写真（要件定義書 §2.8）。要望者から提供された写真など、特定の対応履歴に
+         紐づかない写真。対応時に撮影した写真は上の対応履歴に紐づけて登録する。 --}}
+    @php
+        $receptionPhotos = $request->receptionPhotos;
+        $maxPhotos = \App\Models\RequestPhoto::MAX_PER_GROUP;
+        $receptionErrors = $errors->receptionPhotos;
+    @endphp
+    <div class="card">
+        <div class="section-heading">受付時の写真（要望者提供分など）</div>
+
+        @if ($receptionPhotos->isEmpty())
+            <div class="note">受付時の写真は登録されていません。</div>
+        @else
+            @include('requests.partials.photo-grid', ['request' => $request, 'photos' => $receptionPhotos])
+            <div class="note" style="margin-top:12px;">
+                サムネイルをクリックすると別タブで拡大表示します。写真は非公開の保存領域に置き、一定時間のみ有効な署名付きURLで表示するため、URLを共有しても第三者は閲覧できません。
+            </div>
+        @endif
+
+        @can('managePhoto', $request)
+            <div class="section-heading">写真を追加</div>
+            @if ($receptionPhotos->count() >= $maxPhotos)
+                <div class="note">受付時の写真は上限の{{ $maxPhotos }}枚が登録されています。追加するには、先に不要な写真を削除してください。</div>
+            @else
+                <form class="form-grid" method="POST" action="{{ route('requests.photos.store', $request) }}" enctype="multipart/form-data">
+                    @csrf
+                    <label class="required">画像ファイル</label>
+                    <div>
+                        <input type="file" name="photos[]" accept="image/jpeg,image/png" multiple>
+                        <div class="note">JPEG・PNG のみ、1ファイル5MBまで、最大{{ $maxPhotos }}枚まで登録できます（現在{{ $receptionPhotos->count() }}枚）。対応時に撮影した写真は、上の対応履歴から登録してください。</div>
+                        @if ($receptionErrors->any())
+                            <div class="error">{{ $receptionErrors->first('photos') ?: $receptionErrors->first('photos.*') }}</div>
+                        @endif
+                    </div>
+                    <div style="grid-column:2; display:flex; justify-content:flex-end;">
+                        <button type="submit" class="btn btn-primary">写真をアップロードする</button>
+                    </div>
+                </form>
+            @endif
+        @endcan
+    </div>
 @endsection

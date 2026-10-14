@@ -7,7 +7,11 @@ use App\Http\Requests\UpdateRequestLogRequest;
 use App\Models\Request;
 use App\Models\RequestLog;
 use App\Models\User;
+use App\Support\RequestPhotoStore;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 
 /**
  * 対応履歴（request_logs）。要件定義書 §2.6。
@@ -35,11 +39,17 @@ class RequestLogController extends Controller
         /** @var User $user */
         $user = $form->user();
 
-        $log = new RequestLog($form->validated());
-        $log->forceFill([
-            'request_id' => $request->id,
-            'recorded_by' => $user->id,
-        ])->save();
+        // 写真の保存に失敗したら履歴も残さない（写真付きで登録したつもりが
+        // 履歴だけ登録された、という状態を作らない）。
+        DB::transaction(function () use ($form, $request, $user) {
+            $log = new RequestLog($form->safe()->only(['logged_on', 'content']));
+            $log->forceFill([
+                'request_id' => $request->id,
+                'recorded_by' => $user->id,
+            ])->save();
+
+            RequestPhotoStore::store($request, $log, $this->uploadedPhotos($form), $user);
+        });
 
         return redirect()->route('requests.show', $request)
             ->with('status', '対応履歴を追加しました。');
@@ -54,10 +64,29 @@ class RequestLogController extends Controller
      */
     public function update(UpdateRequestLogRequest $form, Request $request, RequestLog $log): RedirectResponse
     {
-        $log->update($form->validated());
+        /** @var User $user */
+        $user = $form->user();
+
+        DB::transaction(function () use ($form, $request, $log, $user) {
+            $log->update($form->safe()->only(['logged_on', 'content']));
+            // 写真の追加だけでは履歴の内容は変わらないため「編集済み」にはならない
+            // （wasEdited は履歴自身の updated_at で判定する）。
+            RequestPhotoStore::store($request, $log, $this->uploadedPhotos($form), $user);
+        });
 
         return redirect()->route('requests.show', $request)
             ->with('status', '対応履歴を更新しました。');
+    }
+
+    /**
+     * @return array<int, UploadedFile>
+     */
+    private function uploadedPhotos(FormRequest $form): array
+    {
+        /** @var array<int, UploadedFile> $files */
+        $files = $form->file('photos', []);
+
+        return $files;
     }
 
     /**
