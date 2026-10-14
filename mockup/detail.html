@@ -125,14 +125,15 @@
           </span>
         </div>
         <div class="log-body">応急措置として常温合材による仮補修を実施。通行への支障は解消した。</div>
-        <!-- この対応で撮影した写真。どの時点の写真かがタイムライン上で分かる。 -->
+        <!-- この対応で撮影した写真。どの時点の写真かがタイムライン上で分かる。
+             写真名はアップロード時の元のファイル名を表示する（保存名は乱数）。 -->
         <div class="photo-grid">
           <div class="photo-item">
             <a href="photos/road-pothole.svg" target="_blank" rel="noopener">
               <img src="photos/road-pothole.svg" alt="仮補修前の路面の陥没（サンプル画像）">
             </a>
             <div class="photo-meta">
-              <span class="photo-name">仮補修前</span>
+              <span class="photo-name">IMG_0731.jpg</span>
               <button type="button" class="btn-link">削除</button>
             </div>
           </div>
@@ -141,7 +142,7 @@
               <img src="photos/road-crack.svg" alt="仮補修後の路面（サンプル画像）">
             </a>
             <div class="photo-meta">
-              <span class="photo-name">仮補修後</span>
+              <span class="photo-name">IMG_0735.jpg</span>
               <button type="button" class="btn-link">削除</button>
             </div>
           </div>
@@ -164,7 +165,7 @@
               <img src="photos/road-sign-faded.svg" alt="現地確認時の状況（サンプル画像）">
             </a>
             <div class="photo-meta">
-              <span class="photo-name">現地確認時</span>
+              <span class="photo-name">IMG_0702.jpg</span>
               <button type="button" class="btn-link">削除</button>
             </div>
           </div>
@@ -246,7 +247,7 @@
           <img src="photos/road-pothole.svg" alt="受付時の路面の陥没（サンプル画像）">
         </a>
         <div class="photo-meta">
-          <span class="photo-name">2026-07-18 受付時</span>
+          <span class="photo-name">提供写真_陥没箇所.jpg</span>
           <button type="button" class="btn-link">削除</button>
         </div>
       </div>
@@ -258,7 +259,7 @@
 
     <div class="section-heading">写真を追加</div>
     <form class="form-grid">
-      <label>画像ファイル</label>
+      <label class="required">画像ファイル</label>
       <div>
         <input type="file" accept="image/jpeg,image/png" multiple>
         <div class="note">JPEG・PNG のみ、1ファイル5MBまで、最大5枚まで登録できます（現在1枚）。対応時に撮影した写真は、上の対応履歴から登録してください。</div>
@@ -270,6 +271,7 @@
 
     <!-- 写真が1枚もない場合は「受付時の写真は登録されていません。」と表示する。 -->
     <!-- 受付時の写真も、対応履歴と同じく5枚を上限とする（request_log_id が NULL のものを数える）。 -->
+    <!-- 上限の5枚に達している場合は、ファイル選択欄の代わりに「上限の5枚が登録されています。追加するには、先に不要な写真を削除してください。」と表示する（対応履歴の編集フォームも同様）。 -->
   </div>
 
   <div class="note" style="margin-bottom:24px;">

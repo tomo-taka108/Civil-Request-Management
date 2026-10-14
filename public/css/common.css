@@ -1121,3 +1121,65 @@ table.matrix-table tfoot td:hover {
   padding: 1px 8px;
 }
 
+/* 各対応履歴に紐づく現場写真（その日の対応で撮影したもの）。
+   タイムライン内に置くため、本体のギャラリーより小さいサムネイルにする。 */
+.timeline .photo-grid {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  margin-top: 10px;
+}
+
+.timeline .photo-item img {
+  height: 90px;
+}
+
+/* 現場写真ギャラリー */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.photo-item {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.photo-item:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.photo-item a {
+  display: block;
+}
+
+.photo-item img {
+  display: block;
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  background: #eef1f8;
+}
+
+.photo-meta {
+  padding: 7px 9px;
+  font-size: 12px;
+  color: var(--color-text-sub);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 長いファイル名でも枠からはみ出さず「…」で省略させる（flex の子は既定で
+   中身より縮まないため、min-width: 0 が無いと省略が効かない）。 */
+.photo-meta .photo-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\PhotoUploadRules;
 use App\Http\Requests\Concerns\RequestLogFormRules;
+use App\Models\RequestLog;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -11,9 +13,12 @@ use Illuminate\Foundation\Http\FormRequest;
  * 内容が誤っていた場合に訂正できるよう編集機能を設ける（ユーザー判断。
  * 削除して再登録する運用では記録の作成日時が実際の記録時点とずれるため）。
  * recorded_by は編集対象に含めない（RequestLogController::update 参照）。
+ *
+ * 編集時にも写真を追加できる（§2.8）。枚数上限は登録済みの枚数を差し引いて判定する。
  */
 class UpdateRequestLogRequest extends FormRequest
 {
+    use PhotoUploadRules;
     use RequestLogFormRules;
 
     public function authorize(): bool
@@ -26,7 +31,7 @@ class UpdateRequestLogRequest extends FormRequest
      */
     public function rules(): array
     {
-        return $this->requestLogRules();
+        return [...$this->requestLogRules(), ...$this->photoRules($this->registeredPhotoCount())];
     }
 
     /**
@@ -34,7 +39,7 @@ class UpdateRequestLogRequest extends FormRequest
      */
     public function messages(): array
     {
-        return $this->requestLogMessages();
+        return [...$this->requestLogMessages(), ...$this->photoMessages($this->registeredPhotoCount())];
     }
 
     /**
@@ -43,5 +48,13 @@ class UpdateRequestLogRequest extends FormRequest
     public function attributes(): array
     {
         return $this->requestLogAttributes();
+    }
+
+    private function registeredPhotoCount(): int
+    {
+        /** @var RequestLog $log */
+        $log = $this->route('log');
+
+        return $log->photos()->count();
     }
 }

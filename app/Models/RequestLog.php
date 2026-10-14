@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Database\Factories\RequestLogFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -28,6 +30,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $logged_on
  * @property-read Request $request
  * @property-read User $recordedBy
+ * @property-read Collection<int, RequestPhoto> $photos
  */
 class RequestLog extends Model
 {
@@ -71,6 +74,19 @@ class RequestLog extends Model
     public function request(): BelongsTo
     {
         return $this->belongsTo(Request::class);
+    }
+
+    /**
+     * この対応で撮影した写真。要件定義書 §2.8。
+     *
+     * 対応履歴を削除（論理削除）しても写真は残る（履歴と同じく痕跡を残すため）。
+     * 削除済みの履歴はタイムラインに出ないので、その写真も表示されない。
+     *
+     * @return HasMany<RequestPhoto, $this>
+     */
+    public function photos(): HasMany
+    {
+        return $this->hasMany(RequestPhoto::class)->orderBy('id');
     }
 
     /**

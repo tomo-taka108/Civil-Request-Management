@@ -35,6 +35,8 @@ use Illuminate\Support\Carbon;
  * @property-read Office $office
  * @property-read User $registeredBy
  * @property-read Collection<int, RequestLog> $logs
+ * @property-read Collection<int, RequestPhoto> $receptionPhotos
+ * @property-read Collection<int, RequestPhoto> $photos
  */
 #[ScopedBy(OfficeScope::class)]
 class Request extends Model
@@ -112,5 +114,27 @@ class Request extends Model
         return $this->hasMany(RequestLog::class)
             ->orderByDesc('logged_on')
             ->orderByDesc('id');
+    }
+
+    /**
+     * 受付時の写真（特定の対応履歴に紐づかない写真）。要件定義書 §2.8。
+     *
+     * @return HasMany<RequestPhoto, $this>
+     */
+    public function receptionPhotos(): HasMany
+    {
+        return $this->hasMany(RequestPhoto::class)
+            ->whereNull('request_log_id')
+            ->orderBy('id');
+    }
+
+    /**
+     * 案件のすべての写真（対応履歴分を含む）。
+     *
+     * @return HasMany<RequestPhoto, $this>
+     */
+    public function photos(): HasMany
+    {
+        return $this->hasMany(RequestPhoto::class);
     }
 }
