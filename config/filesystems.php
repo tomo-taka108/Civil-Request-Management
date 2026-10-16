@@ -55,8 +55,12 @@ return [
 
         's3' => [
             'driver' => 's3',
+            // 本番（EC2）では key / secret を設定しない。未設定なら AWS SDK が
+            // EC2 のインスタンスプロファイル（IAM ロール）の一時認証を自動で使う。
+            // token は SSO などの一時認証で動作確認するときに使う。
             'key' => env('AWS_ACCESS_KEY_ID'),
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'token' => env('AWS_SESSION_TOKEN'),
             'region' => env('AWS_DEFAULT_REGION'),
             'bucket' => env('AWS_BUCKET'),
             'url' => env('AWS_URL'),

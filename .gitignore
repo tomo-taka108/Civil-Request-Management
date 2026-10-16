@@ -34,6 +34,8 @@ yarn-error.log
 *.tfstate.*
 crash.log
 crash.*.log
+# plan -out で保存した計画ファイル（変数の実値などを含みうる）
+*.tfplan
 # 変数の実値（機密を含みうる）はコミットせず、*.tfvars.example のみ共有する
 *.tfvars
 *.tfvars.json
