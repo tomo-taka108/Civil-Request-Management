@@ -18,6 +18,11 @@ output "target_group_name" {
   value       = aws_lb_target_group.civil.name
 }
 
+output "photos_bucket_name" {
+  description = "現場写真の S3 バケット名（本番 .env.production の AWS_BUCKET に設定する）"
+  value       = aws_s3_bucket.photos.bucket
+}
+
 output "alb_dns_name" {
   description = "相乗り先 ALB の DNS 名（動作確認・レコード設定の参考用）"
   value       = data.aws_lb.famigo.dns_name

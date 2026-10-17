@@ -81,3 +81,9 @@ variable "name_prefix" {
   type        = string
   default     = "civil-request"
 }
+
+variable "photo_key_prefix" {
+  description = "写真を置く S3 キーの接頭辞。アプリの RequestPhoto::directoryFor() と一致させる（IAM 権限の範囲になる）"
+  type        = string
+  default     = "request-photos"
+}
