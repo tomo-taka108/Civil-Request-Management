@@ -58,9 +58,9 @@ class RequestPhoto extends Model
     /**
      * 保存先ディレクトリ。案件ごとに分けて、ディスク上でも追いやすくする。
      */
-    public static function directoryFor(Request $request): string
+    public static function directoryFor(Request|int $request): string
     {
-        return 'request-photos/'.$request->id;
+        return 'request-photos/'.($request instanceof Request ? $request->id : $request);
     }
 
     /**

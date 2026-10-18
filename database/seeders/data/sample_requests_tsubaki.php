@@ -15,7 +15,7 @@ return [
         'policy' => '区画線の再塗装を発注済み。',
         'days_ago' => 28, 'time' => '10:20',
         'logs' => [
-            [5, '現地確認。横断歩道の白線が半分ほど消えている。'],
+            [5, '現地確認。横断歩道の白線が半分ほど消えている。', ['p28']],
             [13, '区画線の再塗装を発注した。'],
         ],
     ],
@@ -28,7 +28,7 @@ return [
         'policy' => '切れている街灯を調査し順次交換中。',
         'days_ago' => 18, 'time' => '14:00',
         'logs' => [
-            [2, '切れている街灯5本を確認した。'],
+            [2, '切れている街灯5本を確認した。', ['p46']],
             [9, '3本を交換。残り2本は部品を手配中。'],
         ],
     ],
@@ -46,6 +46,7 @@ return [
         'department' => 'river', 'requester_category' => 'municipality', 'requester_name' => 'つばき市役所 環境課',
         'reception_method' => 'email', 'request_type' => 'request',
         'content' => 'こもれび川の増水時の水位観測について、看板の設置場所を相談したい。',
+        'reception_photos' => ['p47'],
         'address' => 'さくら県つばき市こもれび川 河口付近',
         'necessity' => 'unknown', 'urgency' => 'low', 'status' => 'not_started',
         'policy' => null,
@@ -56,6 +57,7 @@ return [
         'department' => 'sabo', 'requester_category' => 'staff_patrol', 'requester_name' => null,
         'reception_method' => 'patrol', 'request_type' => 'anomaly',
         'content' => 'パトロール中、いろは山の登山道脇で土砂の流出跡を確認。降雨後の再点検が必要。',
+        'reception_photos' => ['p48'],
         'address' => 'さくら県つばき市いろは山 登山道',
         'necessity' => 'yes', 'urgency' => 'high', 'status' => 'not_started',
         'policy' => null,
@@ -71,8 +73,8 @@ return [
         'policy' => '点字ブロックを補修済み。',
         'days_ago' => 100, 'time' => '09:40',
         'logs' => [
-            [1, '現地確認。点字ブロック約10枚の剥がれを確認した。'],
-            [7, '点字ブロックの補修が完了。'],
+            [1, '現地確認。点字ブロック約10枚の剥がれを確認した。', ['p29']],
+            [7, '点字ブロックの補修が完了。', ['p30']],
         ],
     ],
     [
@@ -106,9 +108,9 @@ return [
         'policy' => '路肩を応急復旧し、通行を確保済み。',
         'days_ago' => 128, 'time' => '08:45',
         'logs' => [
-            [0, '現地確認。路肩が約4m崩落しており、片側交互通行の規制を行った。'],
+            [0, '現地確認。路肩が約4m崩落しており、片側交互通行の規制を行った。', ['p31']],
             [3, '応急復旧が完了し、規制を解除した。'],
-            [30, '本復旧の工事が完了。'],
+            [30, '本復旧の工事が完了。', ['p32']],
         ],
     ],
     [
@@ -132,7 +134,7 @@ return [
         'policy' => '融雪剤を散布し、凍結注意の看板を設置済み。',
         'days_ago' => 280, 'time' => '06:50',
         'logs' => [
-            [0, '橋面に融雪剤を散布した。'],
+            [0, '橋面に融雪剤を散布した。', ['p33']],
             [9, '凍結注意の看板を橋の両側に設置した。'],
         ],
     ],
@@ -145,8 +147,8 @@ return [
         'policy' => '目地の補修を実施済み。',
         'days_ago' => 240, 'time' => '13:15',
         'logs' => [
-            [12, '現地確認。護岸ブロックの目地に開きがあることを確認した。'],
-            [40, '目地の補修が完了。'],
+            [12, '現地確認。護岸ブロックの目地に開きがあることを確認した。', ['p34']],
+            [40, '目地の補修が完了。', ['p35']],
         ],
     ],
     [
@@ -170,8 +172,8 @@ return [
         'policy' => '舗装の打ち替えを実施済み。',
         'days_ago' => 170, 'time' => '10:30',
         'logs' => [
-            [14, '現地調査。わだちの深さは約4cm。'],
-            [45, '舗装の切削と打ち替えを実施した。'],
+            [14, '現地調査。わだちの深さは約4cm。', ['p36']],
+            [45, '舗装の切削と打ち替えを実施した。', ['p37']],
             [52, '完了検査を行い、対応完了。'],
         ],
     ],
@@ -197,7 +199,7 @@ return [
         'policy' => '除草を実施済み。',
         'days_ago' => 88, 'time' => '15:55',
         'logs' => [
-            [10, '除草作業を実施し、標識が見えるようにした。'],
+            [10, '除草作業を実施し、標識が見えるようにした。', ['p38', 'p39']],
         ],
     ],
     [
@@ -209,7 +211,7 @@ return [
         'policy' => '除石工事を発注済み。',
         'days_ago' => 60, 'time' => '09:05',
         'logs' => [
-            [3, '現地確認。沢の中に土砂が堆積していることを確認した。'],
+            [3, '現地確認。沢の中に土砂が堆積していることを確認した。', ['p40']],
             [20, '除石工事の設計に着手した。'],
             [50, '除石工事を発注した。'],
         ],
@@ -218,6 +220,7 @@ return [
         'department' => 'river', 'requester_category' => 'individual', 'requester_name' => '岩崎 博',
         'reception_method' => 'window', 'request_type' => 'complaint',
         'content' => 'こもれび川の河川敷に、誰かが資材を勝手に置いている。片付けてもらえないか。',
+        'reception_photos' => ['p41'],
         'address' => 'さくら県つばき市こもれび川 下流 河川敷',
         'necessity' => 'yes', 'urgency' => 'medium', 'status' => 'in_progress',
         'policy' => '設置者を調査中。',
@@ -235,7 +238,7 @@ return [
         'policy' => '路面下の空洞調査を実施予定。',
         'days_ago' => 5, 'time' => '08:20',
         'logs' => [
-            [0, '現地確認し、カラーコーンで規制した。'],
+            [0, '現地確認し、カラーコーンで規制した。', ['p42']],
             [2, '路面下の空洞調査を専門業者へ依頼した。'],
         ],
     ],
@@ -243,6 +246,7 @@ return [
         'department' => 'road', 'requester_category' => 'council_member', 'requester_name' => 'つばき市議会 山口議員',
         'reception_method' => 'letter', 'request_type' => 'request',
         'content' => '駅前の歩道と車道の境目に段差があり、自転車が通りにくいとの声。段差の解消を検討してほしい。',
+        'reception_photos' => ['p49'],
         'address' => 'さくら県つばき市つばき駅前 南口',
         'necessity' => 'unknown', 'urgency' => 'medium', 'status' => 'not_started',
         'policy' => null,
@@ -253,6 +257,7 @@ return [
         'department' => 'river', 'requester_category' => 'anonymous', 'requester_name' => null,
         'reception_method' => 'phone', 'request_type' => 'complaint',
         'content' => 'こもれび川の水路から、どぶのようなにおいがする。',
+        'reception_photos' => ['p50'],
         'address' => 'さくら県つばき市こもれび川 支流',
         'necessity' => 'unknown', 'urgency' => 'low', 'status' => 'not_started',
         'policy' => null,
@@ -263,6 +268,7 @@ return [
         'department' => 'sabo', 'requester_category' => 'individual', 'requester_name' => '桜井 修',
         'reception_method' => 'phone', 'request_type' => 'anomaly',
         'content' => '自宅裏の擁壁のすき間から、雨が降っていないのに水がしみ出している。',
+        'reception_photos' => ['p51'],
         'address' => 'さくら県つばき市いろは山 ふもと地区2丁目',
         'necessity' => 'unknown', 'urgency' => 'medium', 'status' => 'not_started',
         'policy' => null,

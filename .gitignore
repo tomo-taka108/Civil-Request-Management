@@ -26,6 +26,9 @@ yarn-error.log
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
 
+# AI で生成したサンプル写真の元画像（1枚数MBと大きいため。縮小版の置き場は #103 で決める）
+/database/seeders/photos/originals/
+
 # Terraform（インフラ設計書 §4）
 # tfstate は機密（パスワード等が平文で入りうる）かつローカル保存方式のため
 # コミットしない。ローカルの記録帳としてのみ扱う。

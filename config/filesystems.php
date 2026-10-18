@@ -39,6 +39,12 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
+            // 既定ではディレクトリが 0700 で作られ、artisan をコンテナの root で実行して
+            // 作ったフォルダ（サンプル写真の投入など）を Web サーバー（www-data）が読めなくなる。
+            // 外部への非公開は署名付きURLで担保しているため、ディレクトリは 0755 にする。
+            'permissions' => [
+                'dir' => ['public' => 0755, 'private' => 0755],
+            ],
             'serve' => true,
             'throw' => false,
             'report' => false,
