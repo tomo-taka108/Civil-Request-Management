@@ -5,12 +5,16 @@ namespace Database\Seeders;
 use App\Models\Office;
 use App\Models\Request;
 use App\Models\RequestLog;
+use App\Models\RequestPhoto;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
+use Illuminate\Http\File;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
+use Throwable;
 
 /**
  * 体験用サンプル案件と対応履歴（ローカル・本番共用。デモ環境の初期データ）。
@@ -31,6 +35,10 @@ use RuntimeException;
  * - 地図表示向けに全件へ緯度経度を付与する。大阪府内の各事務所エリア
  *   （みどり=北部 / つばき=東部 / こはく=南部）内に配置する（#47）。
  * - 冪等化：この Seeder が投入したサンプル職員が登録者の案件が既にあればスキップ。
+ *   投入済みのサンプルを入れ替えるときは `php artisan sample:refresh` を使う。
+ * - 一部の案件には現場写真（受付時・対応履歴ごと）を付ける（#103）。写真は
+ *   database/seeders/photos/ の縮小済み JPEG を、写真の保存先ディスク（ローカルは
+ *   storage、本番は S3）へ保存する。どの案件にどの写真を付けるかは docs/sample-photos.md。
  *
  * 依存：SampleStaffSeeder（登録者・記録者となるサンプル職員）が先に実行されていること。
  */
@@ -70,6 +78,19 @@ class SampleRequestSeeder extends Seeder
 
     /** 対応履歴の記録時刻（その日の業務の終わりに記録した想定）。 */
     private const LOG_RECORDED_TIME = '17:00';
+
+    /** サンプル写真（縮小済み JPEG）の置き場所。 */
+    private const PHOTO_DIR = __DIR__.'/photos';
+
+    /**
+     * 保存先ディスクに書き込んだ写真のパス。途中で失敗したとき、DB はロールバック
+     * されてもファイルは残るため、これを使って後始末する。
+     *
+     * @var list<string>
+     */
+    private array $storedPhotoPaths = [];
+
+    private int $photoCount = 0;
 
     public function run(): void
     {
@@ -132,20 +153,25 @@ class SampleRequestSeeder extends Seeder
         $seqCounters = [];
         $logCount = 0;
 
-        DB::transaction(function () use ($items, $staffByOfficeDept, &$seqCounters, &$logCount) {
-            Model::withoutTouching(function () use ($items, $staffByOfficeDept, &$seqCounters, &$logCount) {
-                foreach ($items as $item) {
-                    $staff = $staffByOfficeDept->get($item['officeId'].'|'.$item['sample']['department'])?->first();
-                    if ($staff === null) {
-                        continue; // 該当部署の職員がいなければスキップ
+        try {
+            DB::transaction(function () use ($items, $staffByOfficeDept, &$seqCounters, &$logCount) {
+                Model::withoutTouching(function () use ($items, $staffByOfficeDept, &$seqCounters, &$logCount) {
+                    foreach ($items as $item) {
+                        $staff = $staffByOfficeDept->get($item['officeId'].'|'.$item['sample']['department'])?->first();
+                        if ($staff === null) {
+                            continue; // 該当部署の職員がいなければスキップ
+                        }
+
+                        $logCount += $this->createRequestWithLogs($item, $staff, $seqCounters);
                     }
-
-                    $logCount += $this->createRequestWithLogs($item, $staff, $seqCounters);
-                }
+                });
             });
-        });
+        } catch (Throwable $e) {
+            Storage::disk(RequestPhoto::disk())->delete($this->storedPhotoPaths);
+            throw $e;
+        }
 
-        $this->command->info('サンプル案件を投入しました（'.count($items).'件・対応履歴'.$logCount.'件）。');
+        $this->command->info('サンプル案件を投入しました（'.count($items).'件・対応履歴'.$logCount.'件・写真'.$this->photoCount.'枚）。');
     }
 
     /**
@@ -163,7 +189,8 @@ class SampleRequestSeeder extends Seeder
         // 対応履歴の日時。履歴は業務の終わり（17:00）に記録した想定とするが、
         // 受付当日の夕方以降に受け付けた案件は受付の30分後、未来にはならないよう今で頭打ちにする。
         $logs = [];
-        foreach ($sample['logs'] as [$daysAfter, $content]) {
+        foreach ($sample['logs'] as $logDef) {
+            [$daysAfter, $content] = $logDef;
             $loggedOn = $receptionAt->copy()->addDays($daysAfter)->startOfDay();
             if ($loggedOn->greaterThan(Carbon::today())) {
                 throw new RuntimeException("サンプル案件の対応日が未来になっています：{$sample['content']}");
@@ -172,7 +199,12 @@ class SampleRequestSeeder extends Seeder
             if ($recordedAt->lessThanOrEqualTo($receptionAt)) {
                 $recordedAt = $receptionAt->copy()->addMinutes(30);
             }
-            $logs[] = ['loggedOn' => $loggedOn, 'recordedAt' => $recordedAt->min(Carbon::now()), 'content' => $content];
+            $logs[] = [
+                'loggedOn' => $loggedOn,
+                'recordedAt' => $recordedAt->min(Carbon::now()),
+                'content' => $content,
+                'photos' => $logDef[2] ?? [],
+            ];
         }
 
         if ($sample['status'] === 'completed' && $logs === []) {
@@ -224,18 +256,59 @@ class SampleRequestSeeder extends Seeder
             'updated_at' => $lastLog['recordedAt'] ?? $receptionAt,
         ])->save();
 
+        $this->storePhotos($request, null, $sample['reception_photos'] ?? [], $staff, $receptionAt);
+
         foreach ($logs as $log) {
             // created_at と updated_at を揃え、「編集済み」と表示されないようにする。
-            (new RequestLog(['logged_on' => $log['loggedOn']->format('Y-m-d'), 'content' => $log['content']]))
+            $requestLog = (new RequestLog(['logged_on' => $log['loggedOn']->format('Y-m-d'), 'content' => $log['content']]))
                 ->forceFill([
                     'request_id' => $request->id,
                     'recorded_by' => $staff->id,
                     'created_at' => $log['recordedAt'],
                     'updated_at' => $log['recordedAt'],
-                ])->save();
+                ]);
+            $requestLog->save();
+
+            $this->storePhotos($request, $requestLog, $log['photos'], $staff, $log['recordedAt']);
         }
 
         return count($logs);
+    }
+
+    /**
+     * サンプル写真を保存先ディスクに置き、写真レコードを作る。$log が null なら受付時の写真。
+     *
+     * @param  list<string>  $photoIds  database/seeders/photos/ のファイル名（拡張子なし）
+     */
+    private function storePhotos(Request $request, ?RequestLog $log, array $photoIds, User $staff, Carbon $uploadedAt): void
+    {
+        foreach ($photoIds as $photoId) {
+            $source = self::PHOTO_DIR.'/'.$photoId.'.jpg';
+            if (! is_file($source)) {
+                throw new RuntimeException("サンプル写真がありません：{$source}");
+            }
+
+            // ファイル名はアプリからの登録と同じく乱数（hashName）にする。
+            $path = Storage::disk(RequestPhoto::disk())->putFile(RequestPhoto::directoryFor($request), new File($source));
+            if ($path === false) {
+                throw new RuntimeException("サンプル写真の保存に失敗しました：{$source}");
+            }
+            $this->storedPhotoPaths[] = $path;
+
+            (new RequestPhoto)->forceFill([
+                'request_id' => $request->id,
+                'request_log_id' => $log?->id,
+                'path' => $path,
+                // 画面に出る元ファイル名。スマートフォンで撮った写真らしい名前にする（投入のたびに同じ名前）。
+                'original_name' => sprintf('IMG_%04d.jpg', crc32($request->reception_number.$photoId) % 9000 + 1000),
+                'size' => (int) filesize($source),
+                'uploaded_by' => $staff->id,
+                'created_at' => $uploadedAt,
+                'updated_at' => $uploadedAt,
+            ])->save();
+
+            $this->photoCount++;
+        }
     }
 
     /**

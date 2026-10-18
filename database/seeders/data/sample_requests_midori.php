@@ -4,7 +4,10 @@
  * みどり土木事務所の体験用サンプル案件（SampleRequestSeeder が読み込む）。
  *
  * days_ago … 受付日が投入日の何日前か / time … 受付時刻
- * logs     … 対応履歴 [受付日から何日後か, 対応内容]。対応完了の案件は、最後の履歴の日が対応完了日になる。
+ * logs     … 対応履歴 [受付日から何日後か, 対応内容, 写真(省略可)]。対応完了の案件は、最後の履歴の日が対応完了日になる。
+ * reception_photos … 受付時の写真（省略可）
+ *
+ * 写真は database/seeders/photos/ のファイル名（拡張子なし）で指定する。対応表は docs/sample-photos.md。
  *
  * 氏名・団体名・地名はすべて架空（CLAUDE.md 6章）。
  */
@@ -19,7 +22,7 @@ return [
         'policy' => '現地確認済み。常温合材による応急補修を実施予定。',
         'days_ago' => 12, 'time' => '09:15',
         'logs' => [
-            [1, '現地確認。陥没は約50cm×30cm、深さ約8cm。カラーコーンを置いて注意喚起した。'],
+            [1, '現地確認。陥没は約50cm×30cm、深さ約8cm。カラーコーンを置いて注意喚起した。', ['p01']],
             [5, '常温合材の手配が完了。週明けに応急補修を行う予定。'],
         ],
     ],
@@ -27,6 +30,7 @@ return [
         'department' => 'road', 'requester_category' => 'neighborhood_association', 'requester_name' => 'ひばりヶ丘自治会',
         'reception_method' => 'window', 'request_type' => 'request',
         'content' => 'ひばりヶ丘の通学路にカーブミラーを設置してほしい。見通しが悪く、児童の飛び出しが心配との声が多い。',
+        'reception_photos' => ['p02'],
         'address' => 'さくら県みどり市ひばりヶ丘2丁目',
         'necessity' => 'yes', 'urgency' => 'medium', 'status' => 'not_started',
         'policy' => null,
@@ -49,6 +53,7 @@ return [
         'department' => 'river', 'requester_category' => 'anonymous', 'requester_name' => null,
         'reception_method' => 'phone', 'request_type' => 'anomaly',
         'content' => 'あおば川の護岸の一部が崩れかけているように見える。確認してほしい。',
+        'reception_photos' => ['p43'],
         'address' => 'さくら県みどり市あおば町4丁目',
         'necessity' => 'unknown', 'urgency' => 'high', 'status' => 'not_started',
         'policy' => null,
@@ -64,9 +69,9 @@ return [
         'policy' => '落石防止網を点検し、破損箇所を補修済み。',
         'days_ago' => 125, 'time' => '11:30',
         'logs' => [
-            [0, 'パトロールで落石を確認。落石防止網の一部にたるみがある。'],
+            [0, 'パトロールで落石を確認。落石防止網の一部にたるみがある。', ['p03']],
             [9, '落石防止網を点検。支柱1本の傾きと、網の破れ2箇所を確認した。'],
-            [23, '破損箇所の補修が完了。'],
+            [23, '破損箇所の補修が完了。', ['p04']],
         ],
     ],
     [
@@ -78,8 +83,8 @@ return [
         'policy' => '街路樹の剪定を実施済み。',
         'days_ago' => 95, 'time' => '13:10',
         'logs' => [
-            [6, '現地確認。枝が伸びて信号機が見えにくくなっていることを確認した。'],
-            [18, '剪定作業を実施し、信号の見通しを確保した。'],
+            [6, '現地確認。枝が伸びて信号機が見えにくくなっていることを確認した。', ['p05']],
+            [18, '剪定作業を実施し、信号の見通しを確保した。', ['p06']],
         ],
     ],
     [
@@ -91,13 +96,14 @@ return [
         'policy' => '排水ますの詰まりを調査中。',
         'days_ago' => 58, 'time' => '15:45',
         'logs' => [
-            [7, '現地調査。排水ますに土砂と落ち葉がたまっていることを確認した。'],
+            [7, '現地調査。排水ますに土砂と落ち葉がたまっていることを確認した。', ['p07']],
         ],
     ],
     [
         'department' => 'river', 'requester_category' => 'individual', 'requester_name' => '木村 誠',
         'reception_method' => 'window', 'request_type' => 'complaint',
         'content' => 'あおば川沿いの遊歩道の柵が一部壊れている。子どもが川に近づけてしまい危険。',
+        'reception_photos' => ['p08'],
         'address' => 'さくら県みどり市あおば町 遊歩道',
         'necessity' => 'yes', 'urgency' => 'medium', 'status' => 'not_started',
         'policy' => null,
@@ -136,7 +142,7 @@ return [
         'policy' => '側溝の清掃を実施済み。',
         'days_ago' => 340, 'time' => '11:20',
         'logs' => [
-            [5, '側溝の清掃を実施し、排水が回復したことを確認した。'],
+            [5, '側溝の清掃を実施し、排水が回復したことを確認した。', ['p09', 'p10']],
         ],
     ],
     [
@@ -161,9 +167,9 @@ return [
         'policy' => 'ガードレールを復旧済み。',
         'days_ago' => 270, 'time' => '13:55',
         'logs' => [
-            [0, 'ガードレール約6mの変形を確認。注意喚起の看板を仮設置した。'],
+            [0, 'ガードレール約6mの変形を確認。注意喚起の看板を仮設置した。', ['p11']],
             [12, 'ガードレールの復旧工事を発注した。'],
-            [34, '復旧工事が完了。'],
+            [34, '復旧工事が完了。', ['p12']],
         ],
     ],
     [
@@ -175,8 +181,8 @@ return [
         'policy' => 'ひび割れ部を補修済み。',
         'days_ago' => 230, 'time' => '10:25',
         'logs' => [
-            [1, '現地確認。堤防の天端に長さ約2mのひび割れを確認した。'],
-            [16, 'ひび割れ部の補修を実施した。'],
+            [1, '現地確認。堤防の天端に長さ約2mのひび割れを確認した。', ['p13']],
+            [16, 'ひび割れ部の補修を実施した。', ['p14']],
         ],
     ],
     [
@@ -188,8 +194,8 @@ return [
         'policy' => '倒木を撤去済み。',
         'days_ago' => 205, 'time' => '15:10',
         'logs' => [
-            [10, '現地確認。倒木3本が流路をふさぎかけている。'],
-            [28, '倒木の撤去が完了。'],
+            [10, '現地確認。倒木3本が流路をふさぎかけている。', ['p15']],
+            [28, '倒木の撤去が完了。', ['p16']],
         ],
     ],
     [
@@ -201,8 +207,8 @@ return [
         'policy' => '外側線の再塗装を実施済み。',
         'days_ago' => 185, 'time' => '09:00',
         'logs' => [
-            [12, '現地確認し、区画線の再塗装を発注した。'],
-            [33, '区画線の再塗装が完了。'],
+            [12, '現地確認し、区画線の再塗装を発注した。', ['p17']],
+            [33, '区画線の再塗装が完了。', ['p18']],
         ],
     ],
     [
@@ -239,21 +245,22 @@ return [
         'policy' => '土砂を撤去し、土のうで流出を防止。',
         'days_ago' => 120, 'time' => '08:30',
         'logs' => [
-            [0, '市道に土砂が流出。通行止めの措置をとった。'],
-            [2, '市道の土砂を撤去し、通行止めを解除した。'],
-            [21, '流出元の斜面に土のうを設置し、対応完了。'],
+            [0, '市道に土砂が流出。通行止めの措置をとった。', ['p19']],
+            [2, '市道の土砂を撤去し、通行止めを解除した。', ['p20']],
+            [21, '流出元の斜面に土のうを設置し、対応完了。', ['p21']],
         ],
     ],
     [
         'department' => 'river', 'requester_category' => 'individual', 'requester_name' => '原田 誠一',
         'reception_method' => 'window', 'request_type' => 'request',
         'content' => 'あおば川の河川敷の草が背丈ほどに伸び、散歩やジョギングがしにくい。草刈りをお願いしたい。',
+        'reception_photos' => ['p22'],
         'address' => 'さくら県みどり市あおば町 河川敷',
         'necessity' => 'yes', 'urgency' => 'low', 'status' => 'completed',
         'policy' => '河川敷の除草を実施済み。',
         'days_ago' => 80, 'time' => '16:00',
         'logs' => [
-            [25, '河川敷の除草を実施した。'],
+            [25, '河川敷の除草を実施した。', ['p23']],
         ],
     ],
     [
@@ -278,7 +285,7 @@ return [
         'policy' => '流木の撤去を業者へ依頼中。',
         'days_ago' => 32, 'time' => '10:15',
         'logs' => [
-            [3, '現地確認。橋脚に流木が数本引っかかっていることを確認した。'],
+            [3, '現地確認。橋脚に流木が数本引っかかっていることを確認した。', ['p24']],
             [12, '撤去業者と作業日を調整中。'],
         ],
     ],
@@ -303,7 +310,7 @@ return [
         'policy' => '段差のすりつけ補修を発注済み。',
         'days_ago' => 22, 'time' => '15:30',
         'logs' => [
-            [4, '現地確認。舗装の継ぎ目に約3cmの段差がある。'],
+            [4, '現地確認。舗装の継ぎ目に約3cmの段差がある。', ['p25']],
             [14, '段差のすりつけ補修を発注した。'],
             [20, '工事業者と施工日を調整中。'],
         ],
@@ -312,6 +319,7 @@ return [
         'department' => 'road', 'requester_category' => 'neighborhood_association', 'requester_name' => 'かえで町内会',
         'reception_method' => 'phone', 'request_type' => 'complaint',
         'content' => 'かえで町の道路照明が夜になると点滅している。故障ではないか確認してほしい。',
+        'reception_photos' => ['p44'],
         'address' => 'さくら県みどり市かえで町3丁目',
         'necessity' => 'yes', 'urgency' => 'low', 'status' => 'not_started',
         'policy' => null,
@@ -322,6 +330,7 @@ return [
         'department' => 'river', 'requester_category' => 'council_member', 'requester_name' => 'みどり市議会 佐々木議員',
         'reception_method' => 'letter', 'request_type' => 'request',
         'content' => 'あおば川の護岸に木が生い茂り、川の様子が見えなくなっているとの地域の声。伐採を検討してほしい。',
+        'reception_photos' => ['p45'],
         'address' => 'さくら県みどり市あおば町2丁目',
         'necessity' => 'unknown', 'urgency' => 'low', 'status' => 'not_started',
         'policy' => null,
@@ -344,12 +353,13 @@ return [
         'department' => 'sabo', 'requester_category' => 'individual', 'requester_name' => '吉田 茂',
         'reception_method' => 'window', 'request_type' => 'anomaly',
         'content' => '自宅の裏山の斜面にひびが入っているのを見つけた。崩れてこないか不安。',
+        'reception_photos' => ['p26'],
         'address' => 'さくら県みどり市やまぶき地区2丁目',
         'necessity' => 'yes', 'urgency' => 'high', 'status' => 'in_progress',
         'policy' => '伸縮計で斜面の動きを観測中。',
         'days_ago' => 8, 'time' => '09:25',
         'logs' => [
-            [1, '現地確認。斜面上部に幅約1cmのひび割れ。伸縮計を設置して経過を観察する。'],
+            [1, '現地確認。斜面上部に幅約1cmのひび割れ。伸縮計を設置して経過を観察する。', ['p27']],
             [7, '伸縮計の値に変化はない。引き続き観測する。'],
         ],
     ],

@@ -5,10 +5,12 @@ namespace Tests\Feature;
 use App\Models\Office;
 use App\Models\Request;
 use App\Models\RequestLog;
+use App\Models\RequestPhoto;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\SampleRequestSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -24,6 +26,8 @@ class SampleDataSeederTest extends TestCase
     {
         parent::setUp();
 
+        // サンプル写真の保存先を差し替え、開発用の storage に書き込まないようにする。
+        Storage::fake(RequestPhoto::disk());
         $this->seed(DatabaseSeeder::class);
     }
 
@@ -84,9 +88,51 @@ class SampleDataSeederTest extends TestCase
     public function test_二重に実行しても件数が増えない(): void
     {
         $before = Request::withoutGlobalScopes()->count();
+        $photosBefore = RequestPhoto::count();
 
         $this->seed(SampleRequestSeeder::class);
 
         $this->assertSame($before, Request::withoutGlobalScopes()->count());
+        $this->assertSame($photosBefore, RequestPhoto::count());
+    }
+
+    public function test_サンプル写真が保存され案件と矛盾しない(): void
+    {
+        $photos = RequestPhoto::with('request', 'log')->get();
+
+        $this->assertGreaterThan(0, $photos->count());
+        foreach ($photos as $photo) {
+            Storage::disk(RequestPhoto::disk())->assertExists($photo->path);
+            $this->assertStringStartsWith(RequestPhoto::directoryFor($photo->request_id).'/', $photo->path);
+
+            // 対応履歴の写真は同じ案件の履歴に付く。未対応の案件には受付時の写真しかない。
+            if ($photo->log !== null) {
+                $this->assertSame($photo->request_id, $photo->log->request_id);
+            }
+            if ($photo->request->response_status === 'not_started') {
+                $this->assertNull($photo->request_log_id, $photo->request->content);
+            }
+        }
+
+        // 1か所（受付時・各対応履歴）あたりの上限枚数を超えない。
+        $maxPerGroup = $photos->countBy(fn (RequestPhoto $p) => $p->request_id.'|'.$p->request_log_id)->max();
+        $this->assertLessThanOrEqual(RequestPhoto::MAX_PER_GROUP, $maxPerGroup);
+    }
+
+    public function test_みどりとつばきは一覧の先頭7件すべてに写真がある(): void
+    {
+        foreach (['みどり土木事務所', 'つばき土木事務所'] as $name) {
+            $latest = Request::withoutGlobalScopes()
+                ->where('office_id', Office::where('name', $name)->value('id'))
+                ->withCount('photos')
+                ->orderByDesc('reception_date')
+                ->orderByDesc('reception_time')
+                ->limit(7)
+                ->get();
+
+            foreach ($latest as $request) {
+                $this->assertGreaterThan(0, $request->photos_count, "{$name}：{$request->content}");
+            }
+        }
     }
 }
