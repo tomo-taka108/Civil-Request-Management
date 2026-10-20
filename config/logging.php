@@ -94,11 +94,17 @@ return [
             'processors' => [PsrLogMessageProcessor::class],
         ],
 
+        // 本番で使う（ログ・監視設計書 3章）。標準エラー出力に書けば、Docker のログドライバが
+        // CloudWatch Logs へ運ぶ。本番は LOG_STDERR_FORMATTER に JsonFormatter を指定して
+        // 1行1件の JSON にする。例外のスタックトレースも JSON に含める（引数の値は含まれない）。
         'stderr' => [
             'driver' => 'monolog',
             'level' => env('LOG_LEVEL', 'debug'),
             'handler' => StreamHandler::class,
             'formatter' => env('LOG_STDERR_FORMATTER'),
+            'formatter_with' => [
+                'includeStacktraces' => true,
+            ],
             'with' => [
                 'stream' => 'php://stderr',
             ],

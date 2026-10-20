@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -46,6 +47,9 @@ class AuthController extends Controller
         ]);
 
         if (! $attempt) {
+            // 入力されたIDやパスワードは出さない（ログ・監視設計書 6章）。
+            Log::warning('ログインに失敗しました');
+
             throw ValidationException::withMessages([
                 'user_id' => 'ユーザーIDまたはパスワードが正しくありません。',
             ]);
@@ -53,6 +57,8 @@ class AuthController extends Controller
 
         // セッション固定攻撃対策
         $request->session()->regenerate();
+
+        Log::info('ログインしました');
 
         // 初回（初期パスワードのまま）ログイン時はパスワード変更を強制する。
         // 実際のリダイレクトは ForcePasswordChange ミドルウェアが担うため、
@@ -62,6 +68,7 @@ class AuthController extends Controller
 
     public function logout(Request $request): RedirectResponse
     {
+        Log::info('ログアウトしました');
         Auth::logout();
 
         $request->session()->invalidate();

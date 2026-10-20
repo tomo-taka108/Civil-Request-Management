@@ -24,6 +24,9 @@
         <env name="CACHE_STORE" value="array"/>
         <!-- テスト専用DB。開発用DB（civil_request_management）とは別の -->
         <!-- civil_request_management_testing を使い、テストによるデータ破壊を防ぐ。 -->
+        <!-- テスト中のログは開発用の storage/logs/laravel.log に書かない。 -->
+        <!-- ログの中身を確かめるテストは、専用のチャンネルに差し替えて読み取る（LoggingTest）。 -->
+        <env name="LOG_CHANNEL" value="null"/>
         <env name="DB_CONNECTION" value="mysql"/>
         <env name="DB_DATABASE" value="civil_request_management_testing"/>
         <env name="MAIL_MAILER" value="array"/>
