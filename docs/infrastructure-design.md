@@ -411,7 +411,9 @@ ALB自体は既にfamigo用として稼働しており、本システムの相�
 | `DB_*` | RDS（`famigo-mysql`）の本システム用スキーマ・専用ユーザー（インフラ設計3.1） | — |
 | `SESSION_SECURE_COOKIE` | `true` | HTTPSでのみcookieを送る |
 | `SESSION_DRIVER` | `database` または `file` | EC2 1台構成のため`file`で可。将来スケール時は`database`等を検討 |
-| `LOG_LEVEL` | `warning` 等 | 本番の過剰ログを抑制 |
+| `LOG_CHANNEL` | `stderr` | ログを標準エラー出力に出し、Docker のログドライバで外部（CloudWatch Logs）へ運ぶ。コンテナ内のファイルには書かない（再ビルドで消え、ディスクも圧迫するため）。[ログ・監視設計書](logging-and-monitoring.md) 3章 |
+| `LOG_STDERR_FORMATTER` | `Monolog\Formatter\JsonFormatter` | 1行1件の JSON にし、項目を指定して検索・集計できるようにする |
+| `LOG_LEVEL` | `info` | 業務の記録（ログイン・削除等）とアクセスログを残す。`debug` は本番では使わない |
 
 ### 6.3 デプロイ時に実行する artisan コマンド
 
