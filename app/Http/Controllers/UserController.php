@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -69,7 +70,7 @@ class UserController extends Controller
     {
         $validated = $request->validated();
 
-        User::create([
+        $user = User::create([
             'user_id' => $validated['user_id'],
             'name' => $validated['name'],
             'password_hash' => Hash::make($validated['password']),
@@ -79,6 +80,10 @@ class UserController extends Controller
             'department' => $validated['department'] ?? null,
             'status' => 'active',
         ]);
+
+        // ユーザー管理の操作は、操作した管理者（Context の user_id）と対象（target_user_id）を残す。
+        // 氏名・初期パスワードは出さない（ログ・監視設計書 6章）。
+        Log::info('ユーザーを登録しました', ['target_user_id' => $user->id]);
 
         return redirect()->route('users.index')
             ->with('status', "ユーザー「{$validated['user_id']}」を登録しました。");
@@ -122,6 +127,8 @@ class UserController extends Controller
             'department' => $validated['department'] ?? null,
         ]);
 
+        Log::info('ユーザーを更新しました', ['target_user_id' => $user->id]);
+
         return redirect()->route('users.index')
             ->with('status', "ユーザー「{$user->user_id}」を更新しました。");
     }
@@ -142,6 +149,8 @@ class UserController extends Controller
 
         $user->update(['status' => 'inactive']);
 
+        Log::info('ユーザーを無効化しました', ['target_user_id' => $user->id]);
+
         return redirect()->route('users.index')
             ->with('status', "ユーザー「{$user->user_id}」を無効化しました。");
     }
@@ -155,6 +164,8 @@ class UserController extends Controller
     public function activate(User $user): RedirectResponse
     {
         $user->update(['status' => 'active']);
+
+        Log::info('ユーザーを再有効化しました', ['target_user_id' => $user->id]);
 
         return redirect()->route('users.index')
             ->with('status', "ユーザー「{$user->user_id}」を再有効化しました。");
@@ -188,7 +199,10 @@ class UserController extends Controller
         }
 
         $userId = $user->user_id;
+        $targetId = $user->id;
         $user->delete();
+
+        Log::info('ユーザーを削除しました', ['target_user_id' => $targetId]);
 
         return redirect()->route('users.index')
             ->with('status', "ユーザー「{$userId}」を削除しました。");
@@ -209,6 +223,9 @@ class UserController extends Controller
             'password_hash' => Hash::make($newPassword),
             'must_change_password' => true,
         ]);
+
+        // 新しいパスワードは出さない。
+        Log::info('初期パスワードを再発行しました', ['target_user_id' => $user->id]);
 
         return redirect()->route('users.edit', $user)
             ->with('status', "初期パスワードを再発行しました。次のパスワードを本人に伝えてください（この画面を離れると再表示できません）：{$newPassword}");

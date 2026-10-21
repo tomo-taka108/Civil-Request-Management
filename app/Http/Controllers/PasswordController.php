@@ -6,6 +6,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -48,6 +49,8 @@ class PasswordController extends Controller
         $user->password_hash = Hash::make($validated['password']);
         $user->must_change_password = false;
         $user->save();
+
+        Log::info('パスワードを変更しました');
 
         return redirect(self::HOME_ROUTE)->with('status', 'パスワードを変更しました。');
     }

@@ -113,7 +113,7 @@
         @else
             @include('requests.partials.photo-grid', ['request' => $request, 'photos' => $receptionPhotos])
             <div class="note" style="margin-top:12px;">
-                サムネイルをクリックすると別タブで拡大表示します。写真は非公開の保存領域に置き、一定時間のみ有効な署名付きURLで表示するため、URLを共有しても第三者は閲覧できません。
+                サムネイルをクリックすると別タブで拡大表示します。
             </div>
         @endif
 

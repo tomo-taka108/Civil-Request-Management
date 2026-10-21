@@ -14,6 +14,7 @@ use App\Support\RequestSearch;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -248,6 +249,9 @@ class RequestController extends Controller
     {
         $number = $request->reception_number;
         $request->delete();
+
+        // 要望者名・内容は出さず、案件のIDだけを残す（ログ・監視設計書 6章）。
+        Log::info('案件を削除しました', ['case_id' => $request->id]);
 
         return redirect()->route('requests.index')
             ->with('status', "受付番号 {$number} を削除しました。");

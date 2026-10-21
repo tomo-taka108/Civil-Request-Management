@@ -1,10 +1,13 @@
 <?php
 
 use App\Http\Middleware\ForcePasswordChange;
+use App\Http\Middleware\TraceRequest;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -29,7 +32,27 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'force.password.change' => ForcePasswordChange::class,
         ]);
+
+        // リクエストIDの付与とアクセスログ（ログ・監視設計書 4章）。
+        // 全ルート共通。セッションや認証より前で例外が起きても ID が付くよう、グローバルに置く。
+        $middleware->append(TraceRequest::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // DB エラーの例外メッセージには、SQL に埋め込まれた値（要望者名・要望内容など）が
+        // そのまま入る。ログに個人に関わる情報を残さないため、値を「?」のままにした SQL と
+        // エラーコード・発生箇所だけを記録し、標準のログ出力は止める（ログ・監視設計書 6章）。
+        $exceptions->report(function (QueryException $e) {
+            Log::error('データベースの処理に失敗しました', [
+                'sql' => $e->getSql(),
+                'error_code' => $e->errorInfo[1] ?? $e->getCode(),
+                'trace' => collect($e->getTrace())
+                    ->filter(fn (array $frame) => isset($frame['file']))
+                    ->take(15)
+                    ->map(fn (array $frame) => $frame['file'].':'.($frame['line'] ?? '?'))
+                    ->values()
+                    ->all(),
+            ]);
+
+            return false;
+        });
     })->create();

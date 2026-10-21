@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ログと監視の基礎</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #fafbfc;
+    --ink: #1b2130;
+    --ink-soft: #4b5464;
+    --ink-faint: #858da0;
+    --line: #e3e6ec;
+    --accent: #2f5bd6;
+    --accent-soft: #e7edfc;
+    --accent-ink: #1a2e63;
+    --exist: #6d7688;
+    --exist-soft: #eceef2;
+    --net: #0f9b8e;
+    --net-soft: #e2f4f1;
+    --warn: #c56636;
+    --warn-soft: #fbeee5;
+    --err: #c8384e;
+    --err-soft: #fbe8eb;
+    --radius: 14px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10131a; --surface: #191d26; --surface-2: #151922; --ink: #e9ebf1;
+      --ink-soft: #b3bbcb; --ink-faint: #7c8598; --line: #2a3040;
+      --accent: #7099f5; --accent-soft: #22304f; --accent-ink: #d9e4ff;
+      --exist: #8a93a5; --exist-soft: #242a36;
+      --net: #52c9bc; --net-soft: #153230;
+      --warn: #e0895e; --warn-soft: #2f2016;
+      --err: #ef7d8f; --err-soft: #34181e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10131a; --surface: #191d26; --surface-2: #151922; --ink: #e9ebf1;
+    --ink-soft: #b3bbcb; --ink-faint: #7c8598; --line: #2a3040;
+    --accent: #7099f5; --accent-soft: #22304f; --accent-ink: #d9e4ff;
+    --exist: #8a93a5; --exist-soft: #242a36; --net: #52c9bc; --net-soft: #153230;
+    --warn: #e0895e; --warn-soft: #2f2016;
+    --err: #ef7d8f; --err-soft: #34181e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 44px 16px 80px; }
+  @media (min-width: 600px) { .wrap { padding-left: 22px; padding-right: 22px; } }
+
+  .themebtn { position: fixed; top: 14px; right: 14px; z-index: 10; border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); border-radius: 20px; padding: 6px 14px; font: 600 13px var(--font); cursor: pointer; }
+  .themebtn:hover { color: var(--ink); }
+  .themebtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  header .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 8px; }
+  h1 { font-size: clamp(25px, 4.5vw, 36px); line-height: 1.2; margin: 0 0 10px; letter-spacing: -.02em; text-wrap: balance; }
+  header .lede { color: var(--ink-soft); font-size: 16px; margin: 0; }
+
+  nav.toc { margin-top: 26px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; }
+  nav.toc b { font-size: 13px; color: var(--ink-faint); }
+  nav.toc ol { margin: 6px 0 0; padding-left: 22px; columns: 2; column-gap: 28px; font-size: 14px; }
+  @media (max-width: 600px) { nav.toc ol { columns: 1; } }
+  nav.toc a { color: var(--accent); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  h2 { font-size: 21px; margin: 56px 0 4px; letter-spacing: -.01em; scroll-margin-top: 20px; }
+  h2 .num { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 10px; }
+  .h2sub { color: var(--ink-faint); font-size: 14px; margin: 0 0 18px; }
+  h3 { font-size: 17px; margin: 26px 0 6px; }
+  p { margin: 0 0 12px; color: var(--ink-soft); font-size: 15px; }
+  p b, li b, td b { color: var(--ink); }
+  ul { margin: 0 0 12px; padding-left: 22px; color: var(--ink-soft); font-size: 15px; }
+
+  code { font-family: var(--mono); font-size: .88em; background: var(--exist-soft); padding: 1px 6px; border-radius: 5px; overflow-wrap: anywhere; }
+  pre { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: 10px 0 14px; color: var(--ink); }
+  pre .k { color: var(--accent); }
+  pre .s { color: var(--net); }
+  pre .e { color: var(--err); font-weight: 700; }
+  pre .c { color: var(--ink-faint); }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px; margin-top: 14px; }
+  .card h3 { margin: 0 0 4px; font-size: 17px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .card .role { font-size: 12.5px; color: var(--ink-faint); font-weight: 600; }
+  .card p { margin: 8px 0 0; font-size: 14.5px; }
+  .analogy { margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border-left: 3px solid var(--accent); border-radius: 6px; font-size: 13.5px; color: var(--ink-soft); }
+  .analogy b { color: var(--ink); }
+
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+  @media (max-width: 720px) { .grid3 { grid-template-columns: 1fr; } }
+  .grid3 .card { margin-top: 0; }
+
+  .tag { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px; white-space: nowrap; }
+  .tag-plan { background: var(--warn-soft); color: var(--warn); }
+  .tag-done { background: var(--net-soft); color: var(--net); }
+  .lv { font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
+  .lv-err { background: var(--err-soft); color: var(--err); }
+  .lv-warn { background: var(--warn-soft); color: var(--warn); }
+  .lv-info { background: var(--accent-soft); color: var(--accent-ink); }
+  .lv-debug { background: var(--exist-soft); color: var(--exist); }
+
+  .tablewrap { overflow-x: auto; margin: 12px 0 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-soft); }
+  th { background: var(--surface-2); color: var(--ink); font-size: 13px; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+
+  /* 横並びの流れ図 */
+  .pipe { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 14px 0; }
+  .pipe .box { flex: 1 1 130px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; color: var(--ink-soft); }
+  .pipe .box b { display: block; color: var(--ink); font-size: 14px; }
+  .pipe .box.hl { border-color: var(--accent); background: var(--accent-soft); }
+  .pipe .box.bad { border-color: var(--err); background: var(--err-soft); }
+  .pipe .arrow { align-self: center; color: var(--ink-faint); font-weight: 700; }
+  @media (max-width: 600px) { .pipe { flex-direction: column; } .pipe .arrow { transform: rotate(90deg); align-self: center; } }
+
+  .note { display: flex; gap: 11px; align-items: flex-start; background: var(--warn-soft); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 8px; padding: 13px 15px; margin-top: 16px; font-size: 14px; color: var(--ink-soft); }
+  .note b { color: var(--ink); }
+  .note.ok { background: var(--net-soft); border-left-color: var(--net); }
+
+  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 13px; }
+</style>
+</head>
+<body>
+<button class="themebtn" id="themebtn" type="button" aria-label="ライト・ダーク切替">🌓 テーマ切替</button>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Logging &amp; Monitoring · 基礎と実装</p>
+    <h1>ログと監視の基礎 ── 「あとで調べる」と「すぐ気づく」</h1>
+    <p class="lede">ログ・監視とは何か、なぜ必要か、何を出して何を出さないか。基礎を押さえたうえで、このアプリ（Laravel ＋ Docker ＋ AWS）で実際にどう組み立てるかを順番に整理します。以前 SnsTimeLineApp で学んだ内容との対応も併記します。</p>
+  </header>
+
+  <nav class="toc" aria-label="目次">
+    <b>目次</b>
+    <ol>
+      <li><a href="#s1">何のためのログ・監視か</a></li>
+      <li><a href="#s2">ログ・メトリクス・アラーム</a></li>
+      <li><a href="#s3">ログレベルの使い分け</a></li>
+      <li><a href="#s4">構造化ログ（JSON）</a></li>
+      <li><a href="#s5">リクエストID</a></li>
+      <li><a href="#s6">ログに出してはいけないもの</a></li>
+      <li><a href="#s7">Docker のログはどこへ行くか</a></li>
+      <li><a href="#s8">CloudWatch の部品</a></li>
+      <li><a href="#s9">このアプリでどうするか</a></li>
+      <li><a href="#s10">障害時の調べ方</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1 -->
+  <h2 id="s1"><span class="num">1</span>何のためのログ・監視か</h2>
+  <p class="h2sub">ひとことで：ログは「あとで調べるための記録」、監視は「異常にすぐ気づくための仕組み」。</p>
+
+  <p>本番のアプリは、開発中と違って<b>画面の裏で何が起きているかが見えません</b>。利用者から「さっきエラーが出た」と言われても、記録が無ければ推測するしかありません。障害や問い合わせのときに知りたいことは、突き詰めると次の3つです。</p>
+
+  <div class="tablewrap"><table>
+    <tr><th>知りたいこと</th><th>答えるための情報</th></tr>
+    <tr><td><b>何が起きたか</b></td><td>エラーの内容・どの処理か（メッセージ、スタックトレース）</td></tr>
+    <tr><td><b>誰に起きたか</b></td><td>ユーザーID</td></tr>
+    <tr><td><b>いつ・どの操作の中で</b></td><td>時刻、リクエストID（1回の操作に関わるログ行を束ねる番号）</td></tr>
+  </table></div>
+
+  <p>ただしログは、<b>誰かが見に行かない限り何も教えてくれません</b>。夜中にサイトが落ちていても、ログに書かれているだけでは翌朝まで気づけません。そこで「おかしくなったら知らせる」役割を持つのが<b>監視</b>です。</p>
+
+  <div class="analogy">たとえ：ログは<b>飛行機のフライトレコーダー</b>（事故のあとで原因を調べる）。監視は<b>コックピットの警告ランプ</b>（異常をその場で知らせる）。どちらか片方では足りません。</div>
+
+  <!-- 2 -->
+  <h2 id="s2"><span class="num">2</span>ログ・メトリクス・アラーム</h2>
+  <p class="h2sub">似ているけれど役割が違う3つ。監視は「メトリクス」と「アラーム」の組み合わせで動く。</p>
+
+  <div class="grid3">
+    <div class="card">
+      <h3>ログ</h3>
+      <div class="role">1つ1つの出来事の記録</div>
+      <p>「10:03 に staff101 がログインした」「10:05 に写真の保存で失敗した」のように、<b>1行＝1つの出来事</b>。詳しいが量が多い。</p>
+      <div class="analogy">たとえ：<b>日記</b></div>
+    </div>
+    <div class="card">
+      <h3>メトリクス</h3>
+      <div class="role">数値の移り変わり</div>
+      <p>「ディスク使用率 78%」「5分間のエラー件数 0件」のように、<b>数値を時間ごとに記録</b>したもの。グラフにでき、しきい値と比べやすい。</p>
+      <div class="analogy">たとえ：<b>体温計の記録</b></div>
+    </div>
+    <div class="card">
+      <h3>アラーム</h3>
+      <div class="role">しきい値を超えたら知らせる</div>
+      <p>「メトリクスが○○を超えたら、メールで知らせる」というルール。<b>人が見ていなくても気づける</b>ようになる。</p>
+      <div class="analogy">たとえ：<b>「38度を超えたら連絡」という約束</b></div>
+    </div>
+  </div>
+
+  <p style="margin-top:16px">ログからメトリクスを作ることもできます。たとえば「ERROR と書かれたログ行の数を5分ごとに数える」と、それは<b>エラー件数というメトリクス</b>になり、アラームを付けられます。この「ログ → 数える → アラーム」がこのアプリの監視の中心です（<a href="#s8">8章</a>）。</p>
+
+  <div class="note"><span>📌</span><span><b>もう1つ「トレース」という柱もあります</b>（1つの処理が複数のサービスをまたいでどう流れたかの記録）。このアプリは1つのサーバーで完結する作りなので、今回は扱いません（SnsTimeLineApp と同じ判断）。</span></div>
+
+  <!-- 3 -->
+  <h2 id="s3"><span class="num">3</span>ログレベルの使い分け</h2>
+  <p class="h2sub">「どれくらい重要な出来事か」を表すラベル。設定したレベル以上だけが出力される。</p>
+
+  <div class="tablewrap"><table>
+    <tr><th>レベル</th><th>判断基準</th><th>このアプリでの例</th></tr>
+    <tr><td><span class="lv lv-err">ERROR</span></td><td><b>人が対応すべき異常。</b>アプリの外側（インフラ）やバグが原因</td><td>写真を S3 に保存できなかった／想定外の例外（500 エラー）</td></tr>
+    <tr><td><span class="lv lv-warn">WARNING</span></td><td><b>想定内だが、記録しておきたい失敗</b></td><td>ログイン失敗（パスワード違い）</td></tr>
+    <tr><td><span class="lv lv-info">INFO</span></td><td><b>正常な業務上の出来事</b></td><td>ログイン成功、案件の削除、写真の保存、1リクエスト1行のアクセスログ</td></tr>
+    <tr><td><span class="lv lv-debug">DEBUG</span></td><td>開発中の調査用。本番では出さない</td><td>SQL の中身など</td></tr>
+  </table></div>
+
+  <h3>迷いやすい境界</h3>
+  <ul>
+    <li><b>「ログイン失敗」は WARNING、「S3 への保存失敗」は ERROR。</b>前者は利用者の入力ミスという想定内の出来事。後者はサーバー側の異常で、人が気づいて対応する必要がある。<b>「利用者が原因か、サーバー側が原因か」</b>が境目。</li>
+    <li><b>入力チェックのエラー（必須項目の未入力など）はログに出さない。</b>画面で利用者に伝えれば済み、記録しても調査の役に立たないため。</li>
+    <li><b>本番は INFO 以上を出す。</b>今の本番は WARNING 以上しか出ない設定のため、正常な操作の記録が一切残っていない。</li>
+  </ul>
+
+  <!-- 4 -->
+  <h2 id="s4"><span class="num">4</span>構造化ログ（JSON）</h2>
+  <p class="h2sub">ひとことで：人が読む文章ではなく、機械が項目ごとに検索できる形で書く。</p>
+
+  <p>Laravel の既定のログは、人が読むための1行の文章です。</p>
+<pre>[2026-10-20 10:05:12] production.<span class="e">ERROR</span>: 写真の保存に失敗しました {"request_id":"8cce…"}</pre>
+  <p>人が読む分には困りませんが、「<b>ERROR だけ</b>」「<b>ユーザー 12 のものだけ</b>」と絞り込もうとすると、文字列の中を探すしかありません。そこで、1行を <b>JSON</b>（項目名と値の組）で出します。</p>
+<pre><span class="c">// 実際は1行。読みやすいよう改行している（ローカルで本番と同じ設定にして採取）</span>
+{
+  <span class="k">"message"</span>: <span class="s">"写真の保存に失敗しました"</span>,
+  <span class="k">"context"</span>: { <span class="k">"case_id"</span>: 12, <span class="k">"disk"</span>: <span class="s">"s3"</span> },      <span class="c">← この出来事に固有の値</span>
+  <span class="k">"level_name"</span>: <span class="e">"ERROR"</span>,
+  <span class="k">"datetime"</span>: <span class="s">"2026-10-20T10:05:12+09:00"</span>,
+  <span class="k">"extra"</span>: { <span class="k">"request_id"</span>: <span class="s">"8cce8924-…"</span>, <span class="k">"user_id"</span>: 5 }  <span class="c">← 全行に自動で付く</span>
+}</pre>
+  <p>こうしておくと、CloudWatch で <code>{ $.level_name = "ERROR" }</code> のように<b>項目を指定して検索・集計</b>できます。エラー件数を数えてアラームにする（<a href="#s8">8章</a>）のも、この形だからできることです。</p>
+
+  <div class="note ok"><span>💡</span><span><b>ローカル開発では従来の文章形式のまま</b>にします。開発中に JSON が流れると人には読みにくいためです。本番だけ JSON にするのは SnsTimeLineApp と同じ考え方です。</span></div>
+
+  <!-- 5 -->
+  <h2 id="s5"><span class="num">5</span>リクエストID</h2>
+  <p class="h2sub">ひとことで：1回の画面操作に番号を振り、その操作中に出たログ行すべてに同じ番号を付ける。</p>
+
+  <p>本番では、複数の利用者の操作が同時に進み、ログ行が混ざって流れてきます。「さっきのエラーの直前に何をしていたか」を追うには、<b>同じ操作のログ行を束ねる印</b>が必要です。それがリクエストIDです。</p>
+
+  <div class="pipe">
+    <div class="box hl"><b>① 受け付け</b>リクエストが届いたら番号を決める（例 <code>8cce…</code>）</div>
+    <div class="arrow">→</div>
+    <div class="box hl"><b>② 処理中</b>この間に出るログ行に、番号とユーザーIDを自動で付ける</div>
+    <div class="arrow">→</div>
+    <div class="box hl"><b>③ 返す</b>レスポンスにも同じ番号を付ける（エラー画面に表示）</div>
+  </div>
+
+  <p>エラー画面に番号を表示しておけば、利用者から「この番号のエラーが出ました」と聞くだけで、<b>その操作のログが一発で揃います</b>。</p>
+
+  <h3>外から来た番号は、そのまま信用しない</h3>
+  <p>リクエストIDは、外部（ロードバランサや別のシステム）から <code>X-Request-Id</code> ヘッダで渡されることもあります。ただし、悪意のある人が<b>改行を含む値</b>を送ると、ログに偽の行を書き込まれるおそれがあります（ログインジェクション）。そのため、<b>英数字とハイフンだけ・64文字以内</b>の値だけを受け入れ、それ以外は自分で番号を振り直します。</p>
+
+  <!-- 6 -->
+  <h2 id="s6"><span class="num">6</span>ログに出してはいけないもの</h2>
+  <p class="h2sub">ログは、アプリの画面より多くの人・場所に渡る。だから「念のため全部出す」は危ない。</p>
+
+  <div class="tablewrap"><table>
+    <tr><th>出さないもの</th><th>理由</th></tr>
+    <tr><td><b>パスワード</b></td><td>ログを見られる人すべてに漏れる。ログイン失敗時に入力値を出すのも厳禁</td></tr>
+    <tr><td><b>要望者の名前・要望内容</b></td><td>このアプリが扱う個人に関わる情報（CLAUDE.md 6章）。案件はIDだけで記録する</td></tr>
+    <tr><td><b>検索の語句（URL のクエリ文字列）</b></td><td>一覧の検索欄に要望者名を入れると、URL の <code>?keyword=…</code> に載る。アクセスログは<b>パスだけ</b>を記録する</td></tr>
+    <tr><td><b>写真のファイル名</b></td><td>利用者が名前や住所を含むファイル名を付けることがある</td></tr>
+    <tr><td><b>署名付きURL・セッション・Cookie</b></td><td>それ自体が「鍵」。漏れると他人がその写真やログイン状態を使える</td></tr>
+    <tr><td><b>DB エラーに含まれる値</b></td><td>Laravel の既定では、DB エラーのメッセージに SQL と埋め込まれた値（要望者名など）がそのまま入る。DB エラーだけは独自に記録し、値を <code>?</code> のままにする（実装で気づいた落とし穴）</td></tr>
+  </table></div>
+
+  <p>これらは「気をつける」だけでは守りきれません。そこで、<b>テスト用のパスワードや要望者名で操作してから、出たログを全行調べ、1行も含まれていないこと</b>を自動テストで確かめます（SnsTimeLineApp の #474 と同じ方式）。</p>
+  <p>テストが本当に見張れているかも確かめました。わざと守りを外す（DB エラーの独自記録をやめる、アクセスログにクエリ文字列を付ける）と、テストが3件失敗します。</p>
+
+  <!-- 7 -->
+  <h2 id="s7"><span class="num">7</span>Docker のログはどこへ行くか</h2>
+  <p class="h2sub">ひとことで：コンテナが画面（標準出力）に書いたものを、Docker が「ログドライバ」で決まった場所へ運ぶ。</p>
+
+  <h3>その前に：ログは nginx と Laravel の2種類ある</h3>
+  <p>このアプリは、リクエストを<b>2つのプログラムで順番に処理</b>しています。それぞれが自分の見たことを記録するので、ログも自然と2種類になります。</p>
+
+  <div class="pipe">
+    <div class="box"><b>ブラウザ</b>→ ALB</div>
+    <div class="arrow">→</div>
+    <div class="box hl"><b>nginx（受付係）</b>全部のリクエストを受け取る。CSS・画像は自分で返し、それ以外を PHP へ回す</div>
+    <div class="arrow">→</div>
+    <div class="box hl"><b>Laravel（担当者）</b>ログイン判定・案件の検索や登録など、業務の処理をする</div>
+  </div>
+
+  <div class="tablewrap"><table>
+    <tr><th></th><th>nginx のログ（来客記録）</th><th>Laravel のログ（業務日誌）</th></tr>
+    <tr><td><b>記録する範囲</b></td><td>全部のリクエスト（CSS・画像も）</td><td>PHP に回ってきたものだけ</td></tr>
+    <tr><td><b>誰の操作か</b></td><td>分からない</td><td>分かる（user_id）</td></tr>
+    <tr><td><b>何をしたか</b></td><td>URL と結果の番号（200・404・500 など）だけ</td><td>業務の意味まで分かる（「写真を2枚保存した」）</td></tr>
+    <tr><td><b>エラーの中身</b></td><td>「500 だった」まで</td><td>どこで何の例外が起きたかまで</td></tr>
+    <tr><td><b>PHP が止まったとき</b></td><td>記録できる（502 を返した記録が残る）</td><td>記録できない（自分が動いていない）</td></tr>
+  </table></div>
+
+  <p><b>両方あると切り分けができます。</b>「エラーが出た」なら Laravel のログで原因まで追えます。「画面が真っ白」で Laravel のログに何も無ければ、nginx のログの 502 から「PHP が止まっている」と分かります。「デザインが崩れた」なら、CSS は nginx が直接返すので nginx のログを見ます。</p>
+  <p>今回は2つを<b>同じ考え方で揃えました</b>。どちらも JSON 1行で、検索語（クエリ文字列）は残しません。さらに nginx 側にも Laravel が付けた<b>リクエストID</b>を記録するので、同じ番号で検索すれば来客記録と業務日誌の該当箇所が一緒に出てきます。</p>
+
+  <h3>Docker がログを運ぶ仕組み</h3>
+
+  <p>コンテナの中のプログラムは、ログを<b>標準出力（stdout）・標準エラー出力（stderr）</b>に書くのが基本です。それを受け取った Docker が、<b>ログドライバ</b>の設定に従って保存先へ運びます。</p>
+
+  <div class="pipe">
+    <div class="box"><b>コンテナ</b>nginx・PHP がログを stdout / stderr に書く</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>Docker</b>ログドライバが受け取る</div>
+    <div class="arrow">→</div>
+    <div style="flex:1 1 180px;display:flex;flex-direction:column;gap:8px">
+      <div class="box bad"><b>json-file（既定・今の本番）</b>EC2 のディスクにファイルとして溜まる</div>
+      <div class="box hl"><b>awslogs（今回の変更後）</b>CloudWatch Logs へ送る。ディスクに溜まらない</div>
+    </div>
+  </div>
+
+  <h3>今の本番の問題</h3>
+  <ul>
+    <li><b>Laravel のログ</b>はコンテナ内のファイル（<code>storage/logs/laravel.log</code>）に書かれている。保存場所がコンテナの中なので、<b>デプロイで作り直すと消える</b>。見るにはコンテナに入る必要もある。</li>
+    <li><b>nginx のログ</b>は既定のログドライバ（json-file）で EC2 のディスクに書かれ、<b>上限なしで増え続ける</b>。famigo と共用の 8GB のディスクを少しずつ圧迫する（Issue #102）。</li>
+  </ul>
+  <p>そこで、Laravel も stderr に出すように変え、ログドライバを <b>awslogs</b> にして CloudWatch へ送ります。こうすると、<b>EC2 のディスクにログが溜まらず、作り直しても消えず、ブラウザから検索できる</b>ようになります。</p>
+
+  <div class="note"><span>⚠️</span><span><b>順番に注意。</b>awslogs ドライバは、送り先（ロググループ）と送る権限（IAM）が無いと<b>コンテナが起動しません</b>。AWS 側の準備 → デプロイ、の順で進めます。</span></div>
+
+  <!-- 8 -->
+  <h2 id="s8"><span class="num">8</span>CloudWatch の部品</h2>
+  <p class="h2sub">AWS の監視サービス。ログの保管・数値化・アラーム・通知を組み合わせて使う。</p>
+
+  <div class="pipe">
+    <div class="box"><b>CloudWatch Logs</b>ログを保管・検索</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>メトリクスフィルタ</b>条件に合う行を数えて数値にする</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>アラーム</b>しきい値を超えたら発動</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>SNS</b>メールで通知</div>
+  </div>
+
+  <div class="card">
+    <h3>CloudWatch Logs（ロググループ・ログストリーム）</h3>
+    <div class="role">役割：ログの保管庫。ブラウザから検索できる</div>
+    <p><b>ロググループ</b>はアプリ単位の大きな箱（このアプリは <code>/civil/app</code>）。その中に、送り元ごとの<b>ログストリーム</b>（nginx 用・PHP 用）ができる。ロググループには<b>保持期間</b>を設定でき、古いログは自動で消える（今回は30日の予定）。</p>
+    <div class="analogy">たとえ：<b>書庫（ロググループ）と、その中の棚（ログストリーム）</b>。保存期限を過ぎた書類は自動で廃棄される。</div>
+  </div>
+
+  <div class="card">
+    <h3>メトリクスフィルタ</h3>
+    <div class="role">役割：ログの中から条件に合う行を数え、メトリクスにする</div>
+    <p>たとえば「<code>level_name</code> が <code>ERROR</code> の行」を数えて「エラー件数」というメトリクスを作る。<a href="#s4">4章</a>の JSON 形式だから、項目を指定して正確に数えられる。</p>
+  </div>
+
+  <div class="card">
+    <h3>アラーム</h3>
+    <div class="role">役割：メトリクスを見張り、しきい値を超えたら動く</div>
+    <p>「5分間のエラー件数が1件以上」のような条件を決める。状態は <b>OK</b>（正常）／<b>ALARM</b>（異常）／<b>データ不足</b>の3つで、<b>OK → ALARM に変わった瞬間</b>に通知が飛ぶ。</p>
+  </div>
+
+  <div class="card">
+    <h3>SNS（Simple Notification Service）</h3>
+    <div class="role">役割：通知の配達係</div>
+    <p>アラームから「異常です」と受け取り、登録したメールアドレスへ送る。登録時に確認メールが届き、リンクを押すと受信が始まる。</p>
+  </div>
+
+  <h3>料金の目安</h3>
+  <p>AWS の無料枠には2種類あります。<b>「12か月無料」</b>（EC2・RDS など。アカウント作成から1年で終わる）と、<b>「常に無料（Always Free）」</b>（期限なし）です。CloudWatch と SNS の下の枠は<b>常に無料</b>のほうなので、12か月の無料期間が終わったアカウントでも毎月使えます。</p>
+  <div class="tablewrap"><table>
+    <tr><th>項目</th><th>常に無料の枠（月）</th><th>今回使う量</th><th>超えた場合の単価（目安）</th></tr>
+    <tr><td>ログの取り込み・保管</td><td>合計 5GB</td><td>数十MB 程度</td><td>取り込み 1GB あたり約 0.76ドル</td></tr>
+    <tr><td>自作のメトリクス</td><td>10個</td><td>2個（エラー件数・ディスク使用率）</td><td>1個あたり約 0.30ドル</td></tr>
+    <tr><td>アラーム</td><td>10個</td><td>3個</td><td>1個あたり約 0.10ドル</td></tr>
+    <tr><td>API 呼び出し（数値の送信など）</td><td>100万回</td><td>約 9,000回（5分ごと×1か月）</td><td>1,000回あたり 0.01ドル</td></tr>
+    <tr><td>SNS のメール通知</td><td>1,000通</td><td>数通</td><td>ごく少額</td></tr>
+  </table></div>
+  <p>2026-10-20 時点で、このアカウントでは自作のメトリクス・アラーム・ロググループを1つも使っていない（famigo も未使用）。そのため<b>枠をすべて本システムで使え、追加料金は0円</b>の見込み。仮に無料枠が無かったとしても、合計で<b>月1ドル弱（約140円）</b>に収まる。</p>
+
+  <!-- 9 -->
+  <h2 id="s9"><span class="num">9</span>このアプリでどうしたか <span class="tag tag-done">アプリ側：実装済み</span> <span class="tag tag-plan">AWS 側：予定</span></h2>
+  <p class="h2sub">アプリ側（PR 1）は実装済み。AWS 側（PR 2）は計画で、稼働後に実際の設定・画面に合わせて書き直す。正式な内容は <code>docs/logging-and-monitoring.md</code>。</p>
+
+  <h3>全体図</h3>
+  <div class="pipe">
+    <div class="box"><b>Laravel（PHP）</b>JSON 1行で stderr へ。リクエストID・ユーザーID付き</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>nginx</b>アクセスログ（クエリ文字列なし）を stdout へ</div>
+    <div class="arrow">→</div>
+    <div class="box hl"><b>awslogs</b>CloudWatch Logs <code>/civil/app</code>（30日保持）</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>アラーム → SNS</b>メール通知</div>
+  </div>
+
+  <h3>アプリ側でやったこと（PR 1） <span class="tag tag-done">実装済み</span></h3>
+  <div class="tablewrap"><table>
+    <tr><th>やったこと</th><th>中身</th><th>主なファイル</th></tr>
+    <tr><td><b>出力先と形式</b></td><td>本番は stderr ＋ JSON、レベルは INFO 以上。ローカルは今までどおりファイル＋文章形式。テスト中は開発用のログファイルに書かない</td><td><code>.env.production.example</code><br><code>config/logging.php</code><br><code>phpunit.xml</code></td></tr>
+    <tr><td><b>リクエストID</b></td><td>すべてのリクエストの入口で動く処理（ミドルウェア）で番号を決め、Laravel の <code>Context</code> 機能に入れる。以降のログ行に自動で付く。レスポンスヘッダ <code>X-Request-Id</code> にも付ける</td><td><code>app/Http/Middleware/TraceRequest.php</code></td></tr>
+    <tr><td><b>ユーザーID</b></td><td>ログイン中のユーザーが分かった時点（<code>Authenticated</code> イベント）で Context に入れる。ログインID（staff101 など）ではなく内部の番号</td><td><code>app/Providers/AppServiceProvider.php</code></td></tr>
+    <tr><td><b>アクセスログ</b></td><td>1リクエスト1行（パス・ルート名・ステータス・処理時間）。クエリ文字列は出さない。<code>/health</code> は出さない</td><td><code>TraceRequest.php</code></td></tr>
+    <tr><td><b>nginx のアクセスログ</b></td><td>JSON 1行に変更。クエリ文字列を除いたパスだけを出し、アプリの <code>X-Request-Id</code> も記録して突き合わせられるようにした</td><td><code>docker/nginx/default.conf</code></td></tr>
+    <tr><td><b>業務イベント</b></td><td>ログイン成功・失敗、ログアウト、パスワード変更、ユーザー管理、案件の削除、写真の保存・削除・保存失敗</td><td>各コントローラ<br><code>RequestPhotoStore.php</code></td></tr>
+    <tr><td><b>DB エラー</b></td><td>値を <code>?</code> のままにした SQL とエラーコード・発生箇所だけを記録</td><td><code>bootstrap/app.php</code></td></tr>
+    <tr><td><b>PHP-FPM の設定</b></td><td>Laravel のログは PHP-FPM（PHP を動かす仕組み）を通って Docker に渡る。既定では1行が8192文字で切れて JSON が壊れるため、上限を広げた。PHP-FPM 自身の中身の薄いアクセスログも止めた</td><td><code>docker/php/fpm-logging.conf</code></td></tr>
+    <tr><td><b>エラー画面</b></td><td>500 エラーの画面に「問い合わせ番号」としてリクエストIDを表示</td><td><code>resources/views/errors/500.blade.php</code></td></tr>
+    <tr><td><b>テスト</b></td><td>15件。リクエストIDの検証、ログの内容、<b>機密が1行も出ないこと</b></td><td><code>tests/Feature/LoggingTest.php</code></td></tr>
+  </table></div>
+
+  <h3>実際の出力（ローカルで採取）</h3>
+  <p>nginx とアプリが同じリクエストIDを持つので、1つの操作のログを横断して追える。</p>
+<pre><span class="c">// nginx のアクセスログ</span>
+{"source":"nginx","method":"GET","path":"/login","status":200,"duration_s":0.088,"request_id":"<span class="k">a03e290c-…</span>"}
+<span class="c">// アプリのアクセスログ（ローカルなので文章形式）</span>
+local.INFO: access {"method":"GET","path":"/login","route":"login","status":200,"duration_ms":29} {"request_id":"<span class="k">a03e290c-…</span>"}</pre>
+  <div class="note"><span>🔍</span><span><b>変更前の nginx のログ</b>は <code>"GET /login?keyword=%E3%83%86…"</code> のように、検索語がそのまま（URL の形で）残っていました。設定を変えたあとはパス（<code>/login</code>）だけになります。</span></div>
+
+  <h3>AWS 側でやること（PR 2）</h3>
+  <div class="tablewrap"><table>
+    <tr><th>アラーム</th><th>見張るもの</th><th>発動する条件</th></tr>
+    <tr><td><b>① エラー発生</b></td><td>ログ中の ERROR 行の数（メトリクスフィルタ）</td><td>5分間に1件以上</td></tr>
+    <tr><td><b>② サイト停止</b></td><td>ALB が「正常」と判定しているサーバーの数</td><td>1台未満が続いたとき</td></tr>
+    <tr><td><b>③ ディスク逼迫</b></td><td>EC2 のディスク使用率（5分ごとに送る）</td><td>85% 以上</td></tr>
+  </table></div>
+  <ul>
+    <li>ディスク使用率は AWS が自動では集めてくれない数値のため、EC2 上で5分ごとに <code>df</code> の結果を CloudWatch に送る小さな仕組みを置く（常駐プロセスを増やさないよう、専用のエージェントは入れない）。</li>
+    <li>EC2 を止めている間は②が「異常」になる。止めたときにメールが1通届くのは仕様として扱う。</li>
+    <li>famigo の既存の設定は変えず、本システム用の権限（インラインポリシー）を追加するだけにする。</li>
+  </ul>
+
+  <h3>SnsTimeLineApp との対応</h3>
+  <div class="tablewrap"><table>
+    <tr><th>考え方</th><th>SnsTimeLineApp（Spring Boot）</th><th>このアプリ（Laravel）</th></tr>
+    <tr><td>構造化ログ</td><td>ECS 形式の JSON（環境変数で切替）</td><td>Monolog の JsonFormatter（本番のみ）</td></tr>
+    <tr><td>リクエストID</td><td>RequestIdFilter ＋ MDC</td><td>ミドルウェア ＋ Context</td></tr>
+    <tr><td>ユーザーID</td><td>UserIdFilter</td><td>同じミドルウェアで付与</td></tr>
+    <tr><td>アクセスログ</td><td>AccessLogFilter（パスのみ）</td><td>ミドルウェアの終了処理（パスのみ）</td></tr>
+    <tr><td>機密の非出力</td><td>全ログ行を集めて検査するテスト</td><td>同じ方式（Monolog の TestHandler）</td></tr>
+    <tr><td>監視</td><td>Datadog を前提に<b>設計のみ</b></td><td>CloudWatch で<b>実際に稼働</b></td></tr>
+  </table></div>
+
+  <h3>なぜ Datadog ではなく CloudWatch か</h3>
+  <div class="tablewrap"><table>
+    <tr><th>観点</th><th>Datadog</th><th>CloudWatch</th></tr>
+    <tr><td><b>費用</b></td><td>サーバー監視・ログ管理は有料（サーバー1台あたり月数千円〜）。無料プランはログ管理やアラートの機能が限られる</td><td>常に無料の枠内で0円の見込み</td></tr>
+    <tr><td><b>EC2 への負担</b></td><td>専用のエージェント（常駐プログラム）を入れる必要があり、メモリを数百MB使う</td><td>Docker の機能（awslogs）で直接送れる。常駐プログラム不要</td></tr>
+    <tr><td><b>famigo への影響</b></td><td>共用の t3.micro（空きメモリ約280MB）では、famigo を巻き込んでメモリ不足になるおそれ</td><td>影響なし</td></tr>
+    <tr><td><b>鍵の管理</b></td><td>Datadog の API キーをサーバーに置いて管理する</td><td>EC2 の IAM ロールで認証（S3 と同じ仕組み）。鍵を置かない</td></tr>
+    <tr><td><b>得意なこと</b></td><td>画面が見やすい、複数のクラウドをまとめて見られる、性能分析（APM）が強い</td><td>AWS の中で完結する構成に向く。機能は素朴</td></tr>
+  </table></div>
+  <p>このアプリは AWS だけで動く小さな構成で、しかも famigo と共用の小さなサーバーに載っています。<b>費用・サーバーへの負担・鍵の管理の3点で CloudWatch が合う</b>と判断しました。なお SnsTimeLineApp でも「アプリは標準出力に出すだけにしておけば、Datadog でも CloudWatch でもアプリ側は変えずに済む」という設計にしていました。今回の作りも同じなので、将来 Datadog に乗り換える場合もアプリのコードは変わりません。</p>
+
+  <!-- 10 -->
+  <h2 id="s10"><span class="num">10</span>障害時の調べ方 <span class="tag tag-plan">予定</span></h2>
+  <p class="h2sub">アラームのメールが届いた、または利用者から問い合わせがあったときの流れ。</p>
+
+  <h3>利用者から「エラーが出た」と言われたら</h3>
+  <ol style="color:var(--ink-soft);font-size:15px;padding-left:22px">
+    <li>エラー画面に表示された<b>リクエストID</b>を聞く（無ければ、おおよその時刻と操作）</li>
+    <li>CloudWatch Logs で、そのリクエストIDを検索する → <b>その操作のログ行がすべて揃う</b></li>
+    <li>同じユーザーIDで前後の操作を見て、何をしようとしていたかを確かめる</li>
+    <li>ERROR 行のメッセージとスタックトレースから原因を探す</li>
+  </ol>
+
+  <h3>アラームのメールが届いたら</h3>
+  <div class="tablewrap"><table>
+    <tr><th>アラーム</th><th>まず見るところ</th><th>よくある原因と一次対応</th></tr>
+    <tr><td>① エラー発生</td><td>CloudWatch Logs で ERROR 行を検索</td><td>S3 の権限・一時的な通信エラー、バグ。再現手順が分かれば Issue 化</td></tr>
+    <tr><td>② サイト停止</td><td>ブラウザで <code>/health</code>、EC2 の状態、<code>docker ps</code></td><td>EC2 を停止している（想定内）／コンテナが落ちている → 再起動</td></tr>
+    <tr><td>③ ディスク逼迫</td><td>EC2 で <code>df -h /</code>、<code>docker system df</code></td><td>古いイメージの蓄積 → <code>docker image prune -a</code>。続くなら EBS 拡張（#102）</td></tr>
+  </table></div>
+
+  <footer>
+    要望管理システム（CivilRequestManagement）／ログと監視の学習用まとめ（2026-10-20 時点。アプリ側は実装済み、AWS 側は計画）。正式な設計は <code>docs/logging-and-monitoring.md</code> を参照。考え方は SnsTimeLineApp の <code>docs/12_logging_and_operations.md</code> を下敷きにしている。
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themebtn');
+    var root = document.documentElement;
+    btn.addEventListener('click', function () {
+      var mqDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var current = root.getAttribute('data-theme') || (mqDark ? 'dark' : 'light');
+      root.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    });
+  })();
+</script>
+</body>
+</html>

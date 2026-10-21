@@ -51,6 +51,7 @@
 | [画面設計書](docs/screen-design.md) | 画面一覧・ルーティング設計・権限制御方針・コントローラ対応表 |
 | [インフラ設計書](docs/infrastructure-design.md) | AWS 構成・既存環境の共有方針・デプロイ・停止再開 |
 | [運用手順](docs/operations-start-stop.md) | EC2/RDS の停止・再開、コード更新デプロイ手順 |
+| [ログ・監視設計書](docs/logging-and-monitoring.md) | ログの形式・リクエストID・ログに出さない情報・CloudWatch による監視と障害対応 |
 | [画面モックアップ](mockup/) | 全11画面の静的HTMLプロトタイプ |
 
 ---

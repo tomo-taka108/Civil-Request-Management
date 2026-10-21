@@ -33,6 +33,7 @@ services:
       - civil-storage-framework:/var/www/html/storage/framework
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/zz-custom.ini:ro
       - ./docker/php/uploads.ini:/usr/local/etc/php/conf.d/zz-uploads.ini:ro
+      - ./docker/php/fpm-logging.conf:/usr/local/etc/php-fpm.d/zz-logging.conf:ro
     depends_on:
       mysql:
         condition: service_healthy

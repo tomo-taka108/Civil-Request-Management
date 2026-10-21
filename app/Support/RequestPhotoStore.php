@@ -8,6 +8,7 @@ use App\Models\RequestPhoto;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Throwable;
@@ -58,9 +59,29 @@ class RequestPhotoStore
                 }
             });
         } catch (Throwable $e) {
-            Storage::disk($disk)->delete($storedPaths);
+            // S3 の障害とアプリの不具合を見分けられるよう、写真の保存で失敗したことを残す。
+            // 後始末より先に書く（後始末も失敗した場合に記録が残らなくなるため）。
+            // 例外そのもの（スタックトレース付き）は、投げ直した先の例外ハンドラが記録する。
+            Log::error('写真の保存に失敗しました', [
+                'case_id' => $request->id,
+                'log_id' => $log?->id,
+                'disk' => $disk,
+                'exception_class' => $e::class,
+            ]);
+
+            if ($storedPaths !== []) {
+                Storage::disk($disk)->delete($storedPaths);
+            }
+
             throw $e;
         }
+
+        // ファイル名は出さない（利用者が名前や住所を含む名前を付けることがあるため。ログ・監視設計書 6章）。
+        Log::info('写真を保存しました', [
+            'case_id' => $request->id,
+            'log_id' => $log?->id,
+            'count' => count($files),
+        ]);
     }
 
     /**
@@ -71,5 +92,10 @@ class RequestPhotoStore
     {
         $photo->delete();
         Storage::disk(RequestPhoto::disk())->delete($photo->path);
+
+        Log::info('写真を削除しました', [
+            'case_id' => $photo->request_id,
+            'photo_id' => $photo->id,
+        ]);
     }
 }
