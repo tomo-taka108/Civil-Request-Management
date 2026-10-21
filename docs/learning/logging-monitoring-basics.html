@@ -321,6 +321,34 @@
 
   <div class="note"><span>⚠️</span><span><b>順番に注意。</b>awslogs ドライバは、送り先（ロググループ）と送る権限（IAM）が無いと<b>コンテナが起動しません</b>。AWS 側の準備 → デプロイ、の順で進めます。</span></div>
 
+  <h3>メモ：ログが CloudWatch に届くまで（「Docker が送る」のに「EC2 で認証」？）</h3>
+  <p>混乱しやすい点は、EC2・Docker・コンテナが<b>入れ子</b>になっていることです。<b>EC2 の中で Docker 本体が動き、Docker の中でコンテナが動いています。</b></p>
+<pre>┌─ EC2（1台のパソコン・famigo と共用）── 社員証：IAM ロール famigo-EC2-SSM-Role ─┐
+│  ┌─ Docker 本体（EC2 の上で動く管理プログラム）────────────────┐  │
+│  │   [nginx コンテナ]   [php コンテナ]   [famigo コンテナ]          │  │
+│  └─────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────┘</pre>
+  <p>だから「Docker が送る」と「EC2 の権限で認証する」は矛盾しません。<b>EC2 の中にいる Docker が、EC2 の社員証を借りて送っている</b>、という1つの出来事です。</p>
+
+  <div class="tablewrap"><table>
+    <tr><th>順</th><th>どこで</th><th>何が起きるか</th></tr>
+    <tr><td>①</td><td>コンテナの中</td><td>Laravel は stderr に、nginx は stdout に JSON を1行書く。ファイルには保存しない（「声に出して言っただけ」）</td></tr>
+    <tr><td>②</td><td>Docker 本体</td><td>コンテナの画面出力をすべて受け取る。<b>ログドライバ</b>（受け取ったログをどうするかの設定）が <code>awslogs</code> なので、CloudWatch へ送る。設定場所は <code>docker-compose.prod.yml</code> の <code>logging:</code></td></tr>
+    <tr><td>③</td><td>Docker 本体 → AWS</td><td>CloudWatch に「誰が書くのか」を示すため、<b>EC2 の社員証（IAM ロール）</b>を見せる。社員証は EC2 から自動で受け取れるので、キーやパスワードは置かない。社員証に書き足した許可が <code>CivilTrackLogsAndMetrics</code></td></tr>
+    <tr><td>④</td><td>CloudWatch Logs</td><td><b>ロググループ</b> <code>/civil/app</code>（本システム専用の書庫）の中の、<b>ログストリーム</b> <code>php</code>・<code>nginx</code>（送り元ごとの棚）に保管される</td></tr>
+    <tr><td>⑤</td><td>CloudWatch → あなた</td><td>ERROR の行を数える → アラーム → SNS → メール</td></tr>
+  </table></div>
+
+  <div class="tablewrap"><table>
+    <tr><th>キーワード</th><th>ひとことで</th><th>どこにあるか</th></tr>
+    <tr><td>stderr / stdout</td><td>コンテナの「画面出力」</td><td>各コンテナの中</td></tr>
+    <tr><td>ログドライバ（awslogs）</td><td>Docker が「ログをどこへ運ぶか」の設定</td><td><code>docker-compose.prod.yml</code> の <code>logging:</code></td></tr>
+    <tr><td>IAM ロール</td><td>EC2 の社員証</td><td>EC2 に付いている（AWS 側）</td></tr>
+    <tr><td>インラインポリシー</td><td>社員証に書き足した「<code>/civil/app</code> にログを書いてよい」の許可</td><td><code>infra/monitoring.tf</code></td></tr>
+    <tr><td>ロググループ／ログストリーム</td><td>CloudWatch 上の専用の書庫／その中の棚</td><td><code>infra/monitoring.tf</code>（ストリームは Docker が自動で作る）</td></tr>
+  </table></div>
+  <p><b>まとめ：書くのはコンテナ、運ぶのは Docker、運ぶときに見せる許可証は EC2 のもの、保管するのは CloudWatch。</b></p>
+
   <!-- 8 -->
   <h2 id="s8"><span class="num">8</span>CloudWatch の部品</h2>
   <p class="h2sub">AWS の監視サービス。ログの保管・数値化・アラーム・通知を組み合わせて使う。</p>
