@@ -87,3 +87,31 @@ variable "photo_key_prefix" {
   type        = string
   default     = "request-photos"
 }
+
+# ------------------------------------------------------------
+# ログ・監視（monitoring.tf。ログ・監視設計書 7章・8章）
+# ------------------------------------------------------------
+
+variable "log_group_name" {
+  description = "コンテナのログを送る CloudWatch Logs のロググループ名。docker-compose.prod.yml の awslogs-group と一致させる"
+  type        = string
+  default     = "/civil/app"
+}
+
+variable "log_retention_days" {
+  description = "ログの保持日数。過ぎたログは自動で消える"
+  type        = number
+  default     = 30
+}
+
+variable "alert_email" {
+  description = "アラームの通知先メールアドレス。terraform.tfvars で設定する（空なら通知先を作らない）"
+  type        = string
+  default     = ""
+}
+
+variable "disk_usage_threshold" {
+  description = "ディスク逼迫アラームのしきい値（使用率 %）"
+  type        = number
+  default     = 85
+}

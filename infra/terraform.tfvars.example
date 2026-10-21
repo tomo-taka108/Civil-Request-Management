@@ -16,3 +16,6 @@
 # famigo_ec2_instance_id = "i-xxxxxxxx"
 # famigo_ec2_sg_id       = "sg-xxxxxxxx"
 # famigo_alb_sg_id       = "sg-xxxxxxxx"
+
+# アラーム（monitoring.tf）の通知先メールアドレス。apply 後に届く確認メールのリンクを押すと有効になる。
+# alert_email = "you@example.com"

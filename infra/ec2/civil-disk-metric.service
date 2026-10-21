@@ -1,0 +1,9 @@
+# ディスク使用率を CloudWatch に送る（1回実行して終わる）。civil-disk-metric.timer から起動される。
+[Unit]
+Description=Send root disk usage to CloudWatch (Civil Track)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/civil-disk-metric.sh

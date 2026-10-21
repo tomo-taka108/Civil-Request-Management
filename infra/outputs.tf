@@ -32,3 +32,13 @@ output "app_url" {
   description = "本システムの公開 URL（ドメイン設定時のみ）"
   value       = local.domain_enabled ? "https://${var.app_domain_name}" : "(app_domain_name 未設定)"
 }
+
+output "log_group_name" {
+  description = "コンテナのログの送り先（CloudWatch Logs）"
+  value       = aws_cloudwatch_log_group.app.name
+}
+
+output "alerts_topic_arn" {
+  description = "アラームの通知先（SNS トピック）"
+  value       = aws_sns_topic.alerts.arn
+}

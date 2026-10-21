@@ -222,12 +222,107 @@ df -h /                 # 減っていることを確認
 
 ---
 
+## CloudWatch によるログ・監視
+
+コンテナのログ（nginx・Laravel）は CloudWatch Logs のロググループ `/civil/app` に送られ、30日で自動で消える。
+異常はメールで届く。設計は [ログ・監視設計書](logging-and-monitoring.md) 7章・8章、AWS 側の設定は [infra/monitoring.tf](../infra/monitoring.tf)。
+
+### ログの見方
+
+**ブラウザ（通常はこちら）**：AWS コンソール → CloudWatch → ロググループ → `/civil/app`
+
+| ログストリーム | 中身 |
+|---|---|
+| `php` | Laravel のログ（JSON 1行）。業務の記録・アクセスログ・エラー |
+| `nginx` | nginx のアクセスログ（JSON 1行）と nginx 自身のエラー |
+
+条件で絞り込むときは「Logs Insights」で `/civil/app` を選び、次のように書く。
+
+```
+# 問い合わせ番号（リクエストID）で、1回の操作のログをすべて出す
+fields @timestamp, @logStream, message, status, path
+| filter extra.request_id = "ここに番号" or request_id = "ここに番号"
+| sort @timestamp asc
+
+# 直近のエラーだけを出す
+fields @timestamp, message, context.exception.class, context.exception.message
+| filter level >= 400
+| sort @timestamp desc
+| limit 20
+```
+
+**EC2 上**：`docker compose -f docker-compose.prod.yml logs --tail 50 php` でも直近のログを見られる（Docker が手元にも一時的に残している）。
+
+> `docker compose exec php php artisan ...` で実行したコマンド（`sample:refresh` など）のログは、コンテナ本体の出力ではないため CloudWatch には届かない。実行した画面に表示される内容で確認する。
+
+### アラームのメールが届いたら
+
+| アラーム名 | 意味 | まずやること |
+|---|---|---|
+| `civil-request-app-errors` | アプリが ERROR のログを出した | 上の「直近のエラーだけを出す」で内容を確認。再現手順が分かれば Issue にする |
+| `civil-request-site-down` | ALB から見て正常なサーバーが0台 | **EC2 を自分で停止した直後なら対応不要**（停止のたびに届く）。そうでなければ `/health`・`docker ps` を確認し、落ちていれば「再開手順 4」で起動 |
+| `civil-request-disk-usage` | EC2 のディスク使用率が85%以上 | `df -h /`・`docker system df` を確認し、`docker image prune -a` で古いイメージを消す。続くなら EBS 拡張（Issue #102） |
+
+復旧すると「OK」のメールが届く。
+
+### 初回セットアップ（済んでいれば不要）
+
+**順番が大事。** awslogs ドライバは、ロググループと書き込み権限が無いと**コンテナが起動しない**。
+AWS 側（手順 2）→ デプロイ（手順 3）の順で行う。
+
+1. **RDS → EC2 の順に起動**し、サイトが表示されることを確認する（停止中にアラームを作ると、サイト停止のアラームがすぐ鳴るため）
+2. **AWS 側を Terraform で作る**（ローカル PC の `infra/`）
+   ```bash
+   aws sso login --profile takashima
+   cd infra
+   # terraform.tfvars に通知先を書く（コミットされない）： alert_email = "自分のアドレス"
+   AWS_PROFILE=takashima terraform plan    # 「8 to add, 0 to change, 0 to destroy」を確認
+   AWS_PROFILE=takashima terraform apply   # yes で実行
+   ```
+   - 作られるもの：ロググループ、EC2 ロールへのインラインポリシー1枚（`CivilTrackLogsAndMetrics`）、SNS トピックとメール購読、メトリクスフィルタ、アラーム3つ
+   - **届いた確認メール（AWS Notification - Subscription Confirmation）のリンクを押す**。押すまで通知は届かない
+3. **EC2 で最新コードを反映する**（SSM。「コード更新デプロイ手順」のステップ 1）。続けて `.env.production` のログ設定を `.env.production.example` に合わせる
+   ```bash
+   cd /opt/civil
+   grep -n '^LOG_' .env.production          # 変更前を確認
+   vi .env.production
+   #   LOG_CHANNEL=stderr
+   #   LOG_STDERR_FORMATTER=Monolog\Formatter\JsonFormatter
+   #   LOG_LEVEL=info
+   #   （LOG_STACK の行は削除。LOG_DEPRECATIONS_CHANNEL=null はそのまま）
+   grep -n '^LOG_' .env.production          # 変更後を確認
+   ```
+   そのままステップ 2（`up -d --build`）・ステップ 3（反映確認）を行う
+4. **ログが CloudWatch に届いたか確認する**：ブラウザで https://civil-track.com を開いてから、`/civil/app` に `php`・`nginx` の2つのログストリームができていること
+5. **ディスク使用率の送信を設定する**（EC2。1回だけ）
+   ```bash
+   sudo install -m 755 /opt/civil/infra/ec2/civil-disk-metric.sh /usr/local/bin/
+   sudo install -m 644 /opt/civil/infra/ec2/civil-disk-metric.service /opt/civil/infra/ec2/civil-disk-metric.timer /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now civil-disk-metric.timer
+   sudo systemctl start civil-disk-metric.service     # 1回すぐ送る
+   systemctl status civil-disk-metric.service --no-pager   # 「status=0/SUCCESS」なら成功
+   systemctl list-timers civil-disk-metric.timer --no-pager # 次回の実行予定
+   ```
+6. **エラー通知のテスト**：コンテナの出力にテスト用の ERROR 行を1行書き、5分以内にメールが届くことを確認する
+   ```bash
+   docker compose -f docker-compose.prod.yml exec php sh -c \
+     'echo "{\"message\":\"監視テスト：アラーム通知の確認\",\"level\":400,\"level_name\":\"ERROR\"}" > /proc/1/fd/2'
+   ```
+   （`/proc/1/fd/2` はコンテナ本体の標準エラー出力。`artisan tinker` からログを書いても CloudWatch には届かないため、この方法で試す）。10分ほどで「OK」のメールも届く
+7. 「コード更新デプロイ手順」のステップ 4（旧イメージの掃除）を行う
+
+**うまくいかないとき（元に戻す）**：コンテナが起動しない場合は、`docker-compose.prod.yml` の `logging:` ブロック（nginx・php の2か所）を消して `up -d` すると、従来どおり EC2 上にログを出して起動する。AWS 側を消すときは `terraform destroy` ではなく、monitoring.tf の中身を消してから `terraform apply` する（`destroy` は写真の S3 バケット等も消してしまう）。
+
+---
+
 ## トラブル時の確認ポイント
 
 | 症状 | 確認 |
 |---|---|
 | `/health` が 200 を返さない | `docker ps` で civil コンテナが Up か。落ちていれば手動 `up -d`（手順4） |
-| コンテナが `Restarting` を繰り返す | `docker compose -f docker-compose.prod.yml logs php` でエラー確認（DB 接続不可＝RDS 未起動が典型） |
+| コンテナが `Restarting` を繰り返す | `docker compose -f docker-compose.prod.yml logs php` でエラー確認（DB 接続不可＝RDS 未起動が典型）。CloudWatch の `/civil/app` でも見られる |
+| コンテナが起動しない（`awslogs` を含むエラー） | ロググループ `/civil/app` と EC2 ロールの `CivilTrackLogsAndMetrics` があるか（「CloudWatch によるログ・監視」の初回セットアップ） |
 | DB 接続エラー | RDS が `available` か。停止したままでないか |
 | メモリ逼迫 | `free -h`・`docker stats` で確認。Swap 2GB 設定済み。常時逼迫なら t3.small 検討（[インフラ設計書 3.4](infrastructure-design.md)） |
 
@@ -240,6 +335,7 @@ df -h /                 # 減っていることを確認
 | 本システムのコード | `/opt/civil`（GitHub の tarball を展開して配置） |
 | 本番 compose | `/opt/civil/docker-compose.prod.yml` |
 | 本番環境変数（機密） | `/opt/civil/.env.production`（コミットしない） |
+| ディスク使用率の送信 | `/usr/local/bin/civil-disk-metric.sh`・`/etc/systemd/system/civil-disk-metric.{service,timer}`（元は `/opt/civil/infra/ec2/`） |
 | famigo のコード | `/opt/famigo`・`/opt/famigo-docker`（**触らない**） |
 | Swap | `/swapfile`（2GB。`/etc/fstab` 登録済み） |
 
