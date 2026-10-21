@@ -31,6 +31,9 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # 現場写真のアップロード上限（ローカルと共用。既定の 2MB/8MB では写真を送れない）。
 COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
 
+# PHP-FPM のログ設定（長いログ行を分割しない・FPM 自身のアクセスログを出さない）。
+COPY docker/php/fpm-logging.conf /usr/local/etc/php-fpm.d/zz-logging.conf
+
 WORKDIR /var/www/html
 
 # 依存を先に入れてレイヤキャッシュを効かせる（本番向けに dev 依存は除外）。

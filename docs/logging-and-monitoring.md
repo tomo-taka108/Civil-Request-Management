@@ -57,6 +57,14 @@
 `stderr` チャンネルで `includeStacktraces`）。Monolog はトレースを「ファイル:行」の形だけで
 出し、関数の引数の値は含めないため、引数に入っていた入力値がログに漏れることはない。
 
+**PHP-FPM の設定もあわせて変える**（[docker/php/fpm-logging.conf](../docker/php/fpm-logging.conf)）。
+Laravel が stderr に書いたログは PHP-FPM を経由して Docker に渡る。
+
+| 設定 | 値 | 理由 |
+|---|---|---|
+| `log_limit` | `65536` | 公式イメージの既定（8192文字）では、長い行が途中で2行に分かれ、JSON として読めなくなる（1万文字の行で実測し、8192文字で分割されることを確認） |
+| `access.log` | `/dev/null` | PHP-FPM 自身のアクセスログ（`"GET /index.php" 200` だけの行）は、nginx と Laravel のアクセスログと重複するため出さない |
+
 出力例（ローカルで本番と同じ設定にして採取）:
 
 ```json

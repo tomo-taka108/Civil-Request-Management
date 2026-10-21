@@ -397,6 +397,7 @@
     <tr><td><b>nginx のアクセスログ</b></td><td>JSON 1行に変更。クエリ文字列を除いたパスだけを出し、アプリの <code>X-Request-Id</code> も記録して突き合わせられるようにした</td><td><code>docker/nginx/default.conf</code></td></tr>
     <tr><td><b>業務イベント</b></td><td>ログイン成功・失敗、ログアウト、パスワード変更、ユーザー管理、案件の削除、写真の保存・削除・保存失敗</td><td>各コントローラ<br><code>RequestPhotoStore.php</code></td></tr>
     <tr><td><b>DB エラー</b></td><td>値を <code>?</code> のままにした SQL とエラーコード・発生箇所だけを記録</td><td><code>bootstrap/app.php</code></td></tr>
+    <tr><td><b>PHP-FPM の設定</b></td><td>Laravel のログは PHP-FPM（PHP を動かす仕組み）を通って Docker に渡る。既定では1行が8192文字で切れて JSON が壊れるため、上限を広げた。PHP-FPM 自身の中身の薄いアクセスログも止めた</td><td><code>docker/php/fpm-logging.conf</code></td></tr>
     <tr><td><b>エラー画面</b></td><td>500 エラーの画面に「問い合わせ番号」としてリクエストIDを表示</td><td><code>resources/views/errors/500.blade.php</code></td></tr>
     <tr><td><b>テスト</b></td><td>15件。リクエストIDの検証、ログの内容、<b>機密が1行も出ないこと</b></td><td><code>tests/Feature/LoggingTest.php</code></td></tr>
   </table></div>
