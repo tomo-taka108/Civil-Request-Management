@@ -321,6 +321,34 @@
 
   <div class="note"><span>⚠️</span><span><b>順番に注意。</b>awslogs ドライバは、送り先（ロググループ）と送る権限（IAM）が無いと<b>コンテナが起動しません</b>。AWS 側の準備 → デプロイ、の順で進めます。</span></div>
 
+  <h3>メモ：ログが CloudWatch に届くまで（「Docker が送る」のに「EC2 で認証」？）</h3>
+  <p>混乱しやすい点は、EC2・Docker・コンテナが<b>入れ子</b>になっていることです。<b>EC2 の中で Docker 本体が動き、Docker の中でコンテナが動いています。</b></p>
+<pre>┌─ EC2（1台のパソコン・famigo と共用）── 社員証：IAM ロール famigo-EC2-SSM-Role ─┐
+│  ┌─ Docker 本体（EC2 の上で動く管理プログラム）────────────────┐  │
+│  │   [nginx コンテナ]   [php コンテナ]   [famigo コンテナ]          │  │
+│  └─────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────┘</pre>
+  <p>だから「Docker が送る」と「EC2 の権限で認証する」は矛盾しません。<b>EC2 の中にいる Docker が、EC2 の社員証を借りて送っている</b>、という1つの出来事です。</p>
+
+  <div class="tablewrap"><table>
+    <tr><th>順</th><th>どこで</th><th>何が起きるか</th></tr>
+    <tr><td>①</td><td>コンテナの中</td><td>Laravel は stderr に、nginx は stdout に JSON を1行書く。ファイルには保存しない（「声に出して言っただけ」）</td></tr>
+    <tr><td>②</td><td>Docker 本体</td><td>コンテナの画面出力をすべて受け取る。<b>ログドライバ</b>（受け取ったログをどうするかの設定）が <code>awslogs</code> なので、CloudWatch へ送る。設定場所は <code>docker-compose.prod.yml</code> の <code>logging:</code></td></tr>
+    <tr><td>③</td><td>Docker 本体 → AWS</td><td>CloudWatch に「誰が書くのか」を示すため、<b>EC2 の社員証（IAM ロール）</b>を見せる。社員証は EC2 から自動で受け取れるので、キーやパスワードは置かない。社員証に書き足した許可が <code>CivilTrackLogsAndMetrics</code></td></tr>
+    <tr><td>④</td><td>CloudWatch Logs</td><td><b>ロググループ</b> <code>/civil/app</code>（本システム専用の書庫）の中の、<b>ログストリーム</b> <code>php</code>・<code>nginx</code>（送り元ごとの棚）に保管される</td></tr>
+    <tr><td>⑤</td><td>CloudWatch → あなた</td><td>ERROR の行を数える → アラーム → SNS → メール</td></tr>
+  </table></div>
+
+  <div class="tablewrap"><table>
+    <tr><th>キーワード</th><th>ひとことで</th><th>どこにあるか</th></tr>
+    <tr><td>stderr / stdout</td><td>コンテナの「画面出力」</td><td>各コンテナの中</td></tr>
+    <tr><td>ログドライバ（awslogs）</td><td>Docker が「ログをどこへ運ぶか」の設定</td><td><code>docker-compose.prod.yml</code> の <code>logging:</code></td></tr>
+    <tr><td>IAM ロール</td><td>EC2 の社員証</td><td>EC2 に付いている（AWS 側）</td></tr>
+    <tr><td>インラインポリシー</td><td>社員証に書き足した「<code>/civil/app</code> にログを書いてよい」の許可</td><td><code>infra/monitoring.tf</code></td></tr>
+    <tr><td>ロググループ／ログストリーム</td><td>CloudWatch 上の専用の書庫／その中の棚</td><td><code>infra/monitoring.tf</code>（ストリームは Docker が自動で作る）</td></tr>
+  </table></div>
+  <p><b>まとめ：書くのはコンテナ、運ぶのは Docker、運ぶときに見せる許可証は EC2 のもの、保管するのは CloudWatch。</b></p>
+
   <!-- 8 -->
   <h2 id="s8"><span class="num">8</span>CloudWatch の部品</h2>
   <p class="h2sub">AWS の監視サービス。ログの保管・数値化・アラーム・通知を組み合わせて使う。</p>
@@ -422,6 +450,23 @@ local.INFO: access {"method":"GET","path":"/login","route":"login","status":200,
     <li>EC2 を止めている間は②が「異常」になる。止めたときにメールが1通届くのは仕様として扱う。</li>
     <li>famigo の既存の設定は変えず、本システム用の権限（インラインポリシー）を追加するだけにする。</li>
   </ul>
+
+  <h3>PR 2 のファイル構成（AWS の設定も Terraform で作る）</h3>
+  <p>AWS 側の設定は、画面で手作業するのではなく <b>Terraform</b>（AWS に作るものをコードで書く仕組み。S3 のときと同じ）で作ります。<code>terraform plan</code> で「何が増える・変わる・消えるか」を事前に確認でき（今回は 7個追加・変更0・削除0）、設定がコードとして残るので作り直しもできます。</p>
+
+  <div class="tablewrap"><table>
+    <tr><th>置き場所</th><th>ファイル</th><th>役割</th></tr>
+    <tr><td rowspan="1"><b>アプリ</b></td><td><code>docker-compose.prod.yml</code></td><td>Docker に「nginx と PHP のログは CloudWatch の <code>/civil/app</code> へ送って」と指示する（郵便屋さんへの指示書）</td></tr>
+    <tr><td rowspan="5"><b>AWS</b><br>（Terraform・<code>infra/</code>）</td><td><code>monitoring.tf</code></td><td><b>本体。</b>AWS に作るものの設計図。ロググループ（書庫）・EC2 への許可（ログを書いてよい）・メール通知の窓口（SNS）・アラーム3つ</td></tr>
+    <tr><td><code>variables.tf</code></td><td>設計図の中で変えられる値。ロググループ名・保持日数（30日）・通知先メール・ディスクのしきい値（85%）</td></tr>
+    <tr><td><code>outputs.tf</code></td><td>作ったあとに表示する情報（ロググループ名・通知窓口の ID）</td></tr>
+    <tr><td><code>terraform.tfvars.example</code></td><td>自分用設定ファイルの見本。実際のメールアドレスは <code>terraform.tfvars</code> に書く（GitHub には上がらない）</td></tr>
+    <tr><td><code>README.md</code></td><td><code>infra/</code> の説明書。「作るもの一覧」に監視の分を追加</td></tr>
+    <tr><td rowspan="3"><b>EC2</b><br>（<code>infra/ec2/</code>。EC2 にコピーして使う）</td><td><code>civil-disk-metric.sh</code></td><td>ディスク使用率を調べて CloudWatch に送るプログラム（<b>報告する人</b>）</td></tr>
+    <tr><td><code>civil-disk-metric.service</code></td><td>「上のプログラムを1回動かす」作業の登録（<b>作業の指示書</b>）</td></tr>
+    <tr><td><code>civil-disk-metric.timer</code></td><td>「その作業を5分ごとに繰り返す」予定表（<b>目覚まし時計</b>）</td></tr>
+  </table></div>
+  <p>ディスク使用率は AWS が自動では集めてくれないため、EC2 自身に5分ごとに報告させます。EC2 の OS（Amazon Linux 2023）には定期実行の定番 cron が入っていないので、OS 標準の systemd のタイマーを使います。EC2 の中に置くものは Terraform の担当外なので、ファイルだけをリポジトリに置き、手順書どおりに EC2 へコピーします。</p>
 
   <h3>SnsTimeLineApp との対応</h3>
   <div class="tablewrap"><table>

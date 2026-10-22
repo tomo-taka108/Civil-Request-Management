@@ -12,6 +12,20 @@
 # nginx は public/（静的配信用）、php は全ソースを持ち、SCRIPT_FILENAME の
 # パス（/var/www/html/public/index.php）が両者で一致する。
 
+# ログの送り先（ログ・監視設計書 7章）。コンテナの標準出力・標準エラー出力を Docker が
+# CloudWatch Logs へ送る。EC2 のディスクには溜めない（Docker 既定の json-file は上限なく溜まる）。
+# ★ロググループ /civil/app と、EC2 の IAM ロールへの書き込み権限を先に作っておくこと。
+#   無いとコンテナが起動しない（運用手順書「CloudWatch によるログ・監視」）。
+# 認証は EC2 の IAM ロール（Docker 本体がインスタンスメタデータから取得する）。キーは置かない。
+# 各サービスの logging.options でこの共通部分を読み込み、ログストリーム名（nginx / php）だけを足す。
+x-cloudwatch-options: &cloudwatch-options
+  awslogs-region: ap-northeast-1
+  awslogs-group: /civil/app
+  # 送信が詰まってもアプリの処理を止めない（既定の blocking だと、送れない間ログの書き込みで待たされる）。
+  # バッファ（4MB）があふれた分のログは捨てる。
+  mode: non-blocking
+  max-buffer-size: 4m
+
 services:
   nginx:
     build:
@@ -25,6 +39,11 @@ services:
       - php
     networks:
       - civil-network
+    logging:
+      driver: awslogs
+      options:
+        <<: *cloudwatch-options
+        awslogs-stream: nginx
 
   php:
     build:
@@ -37,6 +56,11 @@ services:
     networks:
       - civil-network
     # ポートは公開しない（nginx からのみ到達可能）。
+    logging:
+      driver: awslogs
+      options:
+        <<: *cloudwatch-options
+        awslogs-stream: php
 
 networks:
   # famigo と分離した専用ネットワーク（設計書 3.3）。

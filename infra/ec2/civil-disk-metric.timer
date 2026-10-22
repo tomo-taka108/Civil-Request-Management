@@ -1,0 +1,11 @@
+# civil-disk-metric.service を起動後2分から5分ごとに実行する。
+# Amazon Linux 2023 には cron が標準で入っていないため、systemd のタイマーを使う。
+[Unit]
+Description=Send root disk usage to CloudWatch every 5 minutes (Civil Track)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target

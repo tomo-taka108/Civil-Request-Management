@@ -17,6 +17,11 @@
 | ALB 443 リスナーへのホストベースルール追加・証明書追加 | `listener_rule.tf` | 必要 |
 | 現場写真の S3 バケット（非公開・暗号化・HTTPS 強制） | `s3_photos.tf` | 不要 |
 | EC2 の IAM ロールへの写真用ポリシー追加（1 枚） | `s3_photos.tf` | 不要 |
+| ログの保管先（CloudWatch Logs `/civil/app`、30日保持） | `monitoring.tf` | 不要 |
+| EC2 の IAM ロールへのログ・メトリクス用ポリシー追加（1 枚） | `monitoring.tf` | 不要 |
+| 通知先（SNS トピック・メール購読）とアラーム3つ（エラー・サイト停止・ディスク） | `monitoring.tf` | 不要 |
+
+EC2 上で動かす定期実行（ディスク使用率の送信）は Terraform の管轄外のため、ファイルだけを `ec2/` に置き、運用手順書の手順で EC2 に設置する。
 
 **作らない（既存 famigo を `data` 参照するだけ・`data.tf`）**：VPC / ALB 本体 / ALB リスナー / EC2 本体 / 既存 SG。
 
