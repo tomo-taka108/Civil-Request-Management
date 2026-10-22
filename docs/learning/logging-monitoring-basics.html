@@ -401,8 +401,8 @@
   <p>2026-10-20 時点で、このアカウントでは自作のメトリクス・アラーム・ロググループを1つも使っていない（famigo も未使用）。そのため<b>枠をすべて本システムで使え、追加料金は0円</b>の見込み。仮に無料枠が無かったとしても、合計で<b>月1ドル弱（約140円）</b>に収まる。</p>
 
   <!-- 9 -->
-  <h2 id="s9"><span class="num">9</span>このアプリでどうしたか <span class="tag tag-done">アプリ側：実装済み</span> <span class="tag tag-plan">AWS 側：予定</span></h2>
-  <p class="h2sub">アプリ側（PR 1）は実装済み。AWS 側（PR 2）は計画で、稼働後に実際の設定・画面に合わせて書き直す。正式な内容は <code>docs/logging-and-monitoring.md</code>。</p>
+  <h2 id="s9"><span class="num">9</span>このアプリでどうしたか <span class="tag tag-done">アプリ側・AWS 側とも稼働中</span></h2>
+  <p class="h2sub">アプリ側（PR 1：#108）と AWS 側（PR 2：#109）を、2026-10-22 に本番で稼働させた。正式な内容は <code>docs/logging-and-monitoring.md</code>。</p>
 
   <h3>全体図</h3>
   <div class="pipe">
@@ -438,7 +438,7 @@
 local.INFO: access {"method":"GET","path":"/login","route":"login","status":200,"duration_ms":29} {"request_id":"<span class="k">a03e290c-…</span>"}</pre>
   <div class="note"><span>🔍</span><span><b>変更前の nginx のログ</b>は <code>"GET /login?keyword=%E3%83%86…"</code> のように、検索語がそのまま（URL の形で）残っていました。設定を変えたあとはパス（<code>/login</code>）だけになります。</span></div>
 
-  <h3>AWS 側でやること（PR 2）</h3>
+  <h3>AWS 側でやったこと（PR 2） <span class="tag tag-done">稼働中</span></h3>
   <div class="tablewrap"><table>
     <tr><th>アラーム</th><th>見張るもの</th><th>発動する条件</th></tr>
     <tr><td><b>① エラー発生</b></td><td>ログ中の ERROR 行の数（メトリクスフィルタ）</td><td>5分間に1件以上</td></tr>
@@ -448,6 +448,7 @@ local.INFO: access {"method":"GET","path":"/login","route":"login","status":200,
   <ul>
     <li>ディスク使用率は AWS が自動では集めてくれない数値のため、EC2 上で5分ごとに <code>df</code> の結果を CloudWatch に送る小さな仕組みを置く（常駐プロセスを増やさないよう、専用のエージェントは入れない）。</li>
     <li>EC2 を止めている間は②が「異常」になる。止めたときにメールが1通届くのは仕様として扱う。</li>
+    <li>デプロイ直後は新旧のイメージが並んでディスクが一時的に90%前後になり、③が鳴ることがある。旧イメージの掃除で戻る。</li>
     <li>famigo の既存の設定は変えず、本システム用の権限（インラインポリシー）を追加するだけにする。</li>
   </ul>
 
@@ -491,7 +492,7 @@ local.INFO: access {"method":"GET","path":"/login","route":"login","status":200,
   <p>このアプリは AWS だけで動く小さな構成で、しかも famigo と共用の小さなサーバーに載っています。<b>費用・サーバーへの負担・鍵の管理の3点で CloudWatch が合う</b>と判断しました。なお SnsTimeLineApp でも「アプリは標準出力に出すだけにしておけば、Datadog でも CloudWatch でもアプリ側は変えずに済む」という設計にしていました。今回の作りも同じなので、将来 Datadog に乗り換える場合もアプリのコードは変わりません。</p>
 
   <!-- 10 -->
-  <h2 id="s10"><span class="num">10</span>障害時の調べ方 <span class="tag tag-plan">予定</span></h2>
+  <h2 id="s10"><span class="num">10</span>障害時の調べ方</h2>
   <p class="h2sub">アラームのメールが届いた、または利用者から問い合わせがあったときの流れ。</p>
 
   <h3>利用者から「エラーが出た」と言われたら</h3>
@@ -509,9 +510,23 @@ local.INFO: access {"method":"GET","path":"/login","route":"login","status":200,
     <tr><td>② サイト停止</td><td>ブラウザで <code>/health</code>、EC2 の状態、<code>docker ps</code></td><td>EC2 を停止している（想定内）／コンテナが落ちている → 再起動</td></tr>
     <tr><td>③ ディスク逼迫</td><td>EC2 で <code>df -h /</code>、<code>docker system df</code></td><td>古いイメージの蓄積 → <code>docker image prune -a</code>。続くなら EBS 拡張（#102）</td></tr>
   </table></div>
+  <p>ログの具体的な見方（CloudWatch の画面の辿り方、Logs Insights での検索例）は、運用手順書 <code>docs/operations-start-stop.md</code> の「CloudWatch によるログ・監視」にまとめている。</p>
+
+  <h3>本番で動かして確かめたこと（2026-10-22）</h3>
+  <div class="tablewrap"><table>
+    <tr><th>確かめたこと</th><th>結果</th></tr>
+    <tr><td>ログが CloudWatch に届く</td><td><code>/civil/app</code> に <code>php</code>・<code>nginx</code> の2つのログストリームができ、ログが届いた</td></tr>
+    <tr><td>ログの中身</td><td>JSON 1行で、リクエストIDとユーザーIDが付いていた。一覧で検索しても、ログには <code>"path":"/requests"</code> だけで検索語は残らなかった</td></tr>
+    <tr><td>③ ディスク逼迫</td><td>デプロイ直後にディスクが <b>78% → 90%</b> になり、<b>本当にアラームのメールが届いた</b>。旧イメージを掃除して78%に戻すと「OK」のメールが届いた</td></tr>
+    <tr><td>① エラー発生</td><td>テスト用の ERROR を1行流すと、5分以内にメールが届き、その後「OK」に戻った</td></tr>
+    <tr><td>② サイト停止</td><td>作業後に EC2 を停止すると、<b>約10分後</b>にメールが届いた（ALB の数値が届かなくなり、「届かない＝異常」の設定で鳴った）</td></tr>
+    <tr><td>メールの届き方</td><td>状態が変わった瞬間（正常→異常、異常→正常）に1通ずつ。異常が続いても繰り返し届かない。EC2 を止めて起動するたびに、サイト停止の ALARM と OK の計2通が届く</td></tr>
+    <tr><td>famigo</td><td>作業中も止まらず動いていた</td></tr>
+  </table></div>
+  <div class="note ok"><span>💡</span><span><b>実際に動かして分かったこと。</b>ディスクのアラームは、テストのつもりがなくても<b>デプロイ直後に本当に鳴った</b>。「デプロイしたら古いイメージを掃除する」という手順の大切さを、アラームが教えてくれた形になった。</span></div>
 
   <footer>
-    要望管理システム（CivilRequestManagement）／ログと監視の学習用まとめ（2026-10-20 時点。アプリ側は実装済み、AWS 側は計画）。正式な設計は <code>docs/logging-and-monitoring.md</code> を参照。考え方は SnsTimeLineApp の <code>docs/12_logging_and_operations.md</code> を下敷きにしている。
+    要望管理システム（CivilRequestManagement）／ログと監視の学習用まとめ（2026-10-22 時点。アプリ側・AWS 側とも本番で稼働中）。正式な設計は <code>docs/logging-and-monitoring.md</code> を参照。考え方は SnsTimeLineApp の <code>docs/12_logging_and_operations.md</code> を下敷きにしている。
   </footer>
 </div>
 

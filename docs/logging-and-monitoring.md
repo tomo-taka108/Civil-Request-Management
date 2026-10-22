@@ -3,9 +3,8 @@
 本書は「ログをどう出すか」と「出したログをどう使うか（監視・障害対応）」をまとめる。
 仕組みの基礎は学習用メモ [logging-monitoring-basics.html](learning/logging-monitoring-basics.html) を参照。
 
-> **本書の範囲。** 1〜6章（アプリ側のログ）は実装済み。7〜8章の CloudWatch への転送と
-> アラームは、AWS 側の準備とあわせて別の PR で稼働させる（Issue #107）。それまでの間、
-> 7〜8章は設計として記載する。
+> **本書の範囲。** 1〜6章（アプリ側のログ）と7〜8章（CloudWatch への転送・アラーム）は、
+> 2026-10-22 に本番で稼働させた（Issue #107。PR #108・#109）。稼働時の確認結果は 8.4 を参照。
 
 ---
 
@@ -199,7 +198,7 @@ sequenceDiagram
 
 ---
 
-## 7. CloudWatch への転送（設計。別 PR で稼働）
+## 7. CloudWatch への転送
 
 ```mermaid
 flowchart LR
@@ -218,6 +217,14 @@ flowchart LR
 - **EC2 のディスクにログを溜めない**（#102）。既定のログドライバ（json-file）は上限なく溜まる
 - 認証は EC2 の IAM ロール（S3 と同じ）。アクセスキーは置かない
 - ロググループを本システム専用（`/civil/app`）にし、famigo のログと混ざらないようにする
+  （ログストリームは `php`・`nginx`。保持30日）
+- `mode: non-blocking`：CloudWatch への送信が詰まっても、アプリのログ書き込みで処理を待たせない
+- AWS 側（ロググループ・IAM・アラーム）は Terraform（[infra/monitoring.tf](../infra/monitoring.tf)）で作る。
+  構成と理由は [インフラ設計書](infrastructure-design.md) 3.11
+
+**CloudWatch に届かないログ。** `docker compose exec php php artisan ...` で手動実行したコマンド
+（`sample:refresh` など）のログは、コンテナ本体（PID 1）の出力ではないため Docker のログドライバを
+通らない。実行した画面の表示で確認する。
 
 **Datadog ではなく CloudWatch にした理由。** 無料枠で収まる（月0円の見込み）、専用の常駐
 エージェントが要らない（famigo と共用の t3.micro はメモリに余裕が少ない）、API キーを置かずに
@@ -226,17 +233,20 @@ IAM ロールで認証できる、の3点。アプリは標準出力に書くだ
 
 ---
 
-## 8. 監視と障害対応（設計。別 PR で稼働）
+## 8. 監視と障害対応
 
 ### 8.1 アラーム
 
-通知は SNS でメール。
+通知は SNS（トピック `civil-request-alerts`）でメール。異常になったとき（ALARM）と、戻ったとき（OK）の両方で届く。
 
-| アラーム | 見張るもの | 条件 | 気づきたいこと |
+| アラーム名 | 見張るもの | 条件 | 気づきたいこと |
 |---|---|---|---|
-| エラー発生 | ログの `level_name` が ERROR 以上の行数（メトリクスフィルタ） | 5分間に1件以上 | アプリの異常・S3 や DB の障害 |
-| サイト停止 | ALB のターゲットグループの正常なサーバー数（`HealthyHostCount`） | 1未満が続く | コンテナや EC2 の停止 |
-| ディスク逼迫 | EC2 のディスク使用率（5分ごとに cron から送信） | 85% 以上 | 古いイメージやログの蓄積（#102） |
+| `civil-request-app-errors` | ログの `level` が 400（ERROR）以上の行数（メトリクスフィルタ `{ $.level >= 400 }` → `CivilTrack/AppErrorCount`） | 5分間に1件以上 | アプリの異常・S3 や DB の障害 |
+| `civil-request-site-down` | ALB のターゲットグループ（`civil-request-tg-8081`）の正常なサーバー数（`HealthyHostCount`） | 1未満が2分続く | コンテナや EC2 の停止 |
+| `civil-request-disk-usage` | EC2 のディスク使用率（`CivilTrack/DiskUsedPercent`。EC2 の systemd タイマーが5分ごとに送信） | 85% 以上 | 古いイメージやログの蓄積（#102） |
+
+- **EC2 を停止したときも「サイト停止」は鳴る**（停止から約10分後に1通。起動すると OK が1通）。自分で止めたときのメールは対応不要。停止中にほかの2つは鳴らない（値が届かない＝正常扱い）
+- **デプロイ直後は「ディスク逼迫」が鳴ることがある。** ビルド直後は新旧のイメージが並んで一時的に90%前後まで上がるため（8.4）。旧イメージの掃除（`docker image prune -a`）で戻る
 
 **何を監視しないか。** 利用状況（ログイン数・登録件数など）はログの目的ではないため対象外。
 ログと監視は「壊れていないか」を見るためのもの。
@@ -256,6 +266,23 @@ IAM ロールで認証できる、の3点。アプリは標準出力に書くだ
 | 写真を保存できない | `写真の保存に失敗しました`（ERROR）と直後の例外 | 例外の種類で S3 側（権限・障害）かアプリ側かを切り分ける |
 | DB エラー | `データベースの処理に失敗しました`（ERROR） | `error_code` と `sql` から原因を探す（値は出ないため、必要なら画面の操作内容を利用者に聞く） |
 | 想定外の 500 | 例外クラス・メッセージ・トレース付きの ERROR | トレースから原因箇所を特定する |
+
+ログの具体的な見方（CloudWatch の画面、Logs Insights の検索例）は [運用手順](operations-start-stop.md)「CloudWatch によるログ・監視」を参照。
+
+### 8.4 稼働時の確認結果（2026-10-22）
+
+| 確認したこと | 結果 |
+|---|---|
+| `terraform apply` | 8 added, 0 changed, 0 destroyed。EC2 ロールのインラインポリシーは famigo の既存2枚に `CivilTrackLogsAndMetrics` が加わったのみ |
+| ログの送り先 | `docker inspect` でコンテナのログドライバが `awslogs` になったこと。`/civil/app` に `php`・`nginx` のストリームができ、ログが届いたこと |
+| ログの中身 | 本番で JSON 1行・`channel: production`・`extra` にリクエストIDとユーザーIDが付くこと。一覧を検索しても `path` は `/requests` のみで、検索語が残らないこと |
+| `docker compose logs` | awslogs ドライバでも EC2 上で直近のログを見られること（Docker のローカルキャッシュ） |
+| ディスク使用率の送信 | systemd タイマーの初回実行が `status=0/SUCCESS`。CloudWatch に値が届いたこと |
+| ディスク逼迫アラーム | デプロイ直後に使用率が **90%**（作業前78%）になり、実際に ALARM → メール受信。旧イメージの掃除で78%に戻り OK に復帰 |
+| エラー発生アラーム | テスト用の ERROR 行を1行書き、ALARM → メール受信。約5分後に OK に復帰 |
+| サイト停止アラーム | 作業後に EC2 を停止（22:15）→ 約10分後（22:25）に ALARM → メール受信。停止中は ALB の数値が届かなくなり、「届かない＝異常」の設定（`treat_missing_data = breaching`）で鳴った |
+| メールの届き方 | 状態が変わった瞬間（OK→ALARM、ALARM→OK）に1通ずつ。ALARM が続いている間に繰り返し届くことはない |
+| famigo | 作業中も `famigo-api` は停止せず稼働 |
 
 ---
 
