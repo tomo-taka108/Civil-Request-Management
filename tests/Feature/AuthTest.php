@@ -110,10 +110,25 @@ class AuthTest extends TestCase
             'current_password' => 'old-password',
             'password' => 'new-password-123',
             'password_confirmation' => 'new-password-123',
-        ])->assertRedirect('/');
+        ])->assertRedirect(route('dashboard.index'));
 
         // フラグが解除され、以降はトップにアクセスできる
         $this->assertFalse($user->fresh()->must_change_password);
+    }
+
+    public function test_パスワード変更後のダッシュボードに完了メッセージが出る(): void
+    {
+        $user = User::factory()->mustChangePassword()->create([
+            'password_hash' => Hash::make('old-password'),
+        ]);
+
+        // 転送をたどった先の画面に、完了メッセージが実際に表示されること
+        // （以前はトップ経由の転送でメッセージが消えていた）。
+        $this->actingAs($user)->followingRedirects()->put('/password/change', [
+            'current_password' => 'old-password',
+            'password' => 'new-password-123',
+            'password_confirmation' => 'new-password-123',
+        ])->assertOk()->assertSee('パスワードを変更しました。');
     }
 
     public function test_現在のパスワードが誤っていると変更できない(): void
