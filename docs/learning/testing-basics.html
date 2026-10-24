@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>テストの基礎と方針</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #fafbfc;
+    --ink: #1b2130;
+    --ink-soft: #4b5464;
+    --ink-faint: #858da0;
+    --line: #e3e6ec;
+    --accent: #2f5bd6;
+    --accent-soft: #e7edfc;
+    --accent-ink: #1a2e63;
+    --exist: #6d7688;
+    --exist-soft: #eceef2;
+    --net: #0f9b8e;
+    --net-soft: #e2f4f1;
+    --warn: #c56636;
+    --warn-soft: #fbeee5;
+    --err: #c8384e;
+    --err-soft: #fbe8eb;
+    --radius: 14px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10131a; --surface: #191d26; --surface-2: #151922; --ink: #e9ebf1;
+      --ink-soft: #b3bbcb; --ink-faint: #7c8598; --line: #2a3040;
+      --accent: #7099f5; --accent-soft: #22304f; --accent-ink: #d9e4ff;
+      --exist: #8a93a5; --exist-soft: #242a36;
+      --net: #52c9bc; --net-soft: #153230;
+      --warn: #e0895e; --warn-soft: #2f2016;
+      --err: #ef7d8f; --err-soft: #34181e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10131a; --surface: #191d26; --surface-2: #151922; --ink: #e9ebf1;
+    --ink-soft: #b3bbcb; --ink-faint: #7c8598; --line: #2a3040;
+    --accent: #7099f5; --accent-soft: #22304f; --accent-ink: #d9e4ff;
+    --exist: #8a93a5; --exist-soft: #242a36; --net: #52c9bc; --net-soft: #153230;
+    --warn: #e0895e; --warn-soft: #2f2016;
+    --err: #ef7d8f; --err-soft: #34181e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 44px 16px 80px; }
+  @media (min-width: 600px) { .wrap { padding-left: 22px; padding-right: 22px; } }
+
+  .themebtn { position: fixed; top: 14px; right: 14px; z-index: 10; border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); border-radius: 20px; padding: 6px 14px; font: 600 13px var(--font); cursor: pointer; }
+  .themebtn:hover { color: var(--ink); }
+  .themebtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  header .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 8px; }
+  h1 { font-size: clamp(25px, 4.5vw, 36px); line-height: 1.2; margin: 0 0 10px; letter-spacing: -.02em; text-wrap: balance; }
+  header .lede { color: var(--ink-soft); font-size: 16px; margin: 0; }
+
+  nav.toc { margin-top: 26px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; }
+  nav.toc b { font-size: 13px; color: var(--ink-faint); }
+  nav.toc ol { margin: 6px 0 0; padding-left: 22px; columns: 2; column-gap: 28px; font-size: 14px; }
+  @media (max-width: 600px) { nav.toc ol { columns: 1; } }
+  nav.toc a { color: var(--accent); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  h2 { font-size: 21px; margin: 56px 0 4px; letter-spacing: -.01em; scroll-margin-top: 20px; }
+  h2 .num { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 10px; }
+  .h2sub { color: var(--ink-faint); font-size: 14px; margin: 0 0 18px; }
+  h3 { font-size: 17px; margin: 26px 0 6px; }
+  p { margin: 0 0 12px; color: var(--ink-soft); font-size: 15px; }
+  p b, li b, td b { color: var(--ink); }
+  ul, ol.body { margin: 0 0 12px; padding-left: 22px; color: var(--ink-soft); font-size: 15px; }
+  li { margin-bottom: 4px; }
+
+  code { font-family: var(--mono); font-size: .88em; background: var(--exist-soft); padding: 1px 6px; border-radius: 5px; overflow-wrap: anywhere; }
+  pre { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: 10px 0 14px; color: var(--ink); }
+  pre .k { color: var(--accent); }
+  pre .s { color: var(--net); }
+  pre .e { color: var(--err); font-weight: 700; }
+  pre .c { color: var(--ink-faint); }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px; margin-top: 14px; }
+  .card h3 { margin: 0 0 4px; font-size: 17px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .card .role { font-size: 12.5px; color: var(--ink-faint); font-weight: 600; margin: 0; }
+  .card p { margin: 8px 0 0; font-size: 14.5px; }
+  .card ul { margin: 8px 0 0; font-size: 14.5px; }
+  .analogy { margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border-left: 3px solid var(--accent); border-radius: 6px; font-size: 13.5px; color: var(--ink-soft); }
+  .analogy b { color: var(--ink); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+  .grid2 .card { margin-top: 0; }
+
+  .tag { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px; white-space: nowrap; }
+  .tag-plan { background: var(--warn-soft); color: var(--warn); }
+  .tag-done { background: var(--net-soft); color: var(--net); }
+  .tag-thin { background: var(--exist-soft); color: var(--exist); }
+  .tag-none { background: var(--err-soft); color: var(--err); }
+
+  .tablewrap { overflow-x: auto; margin: 12px 0 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-soft); }
+  th { background: var(--surface-2); color: var(--ink); font-size: 13px; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ピラミッド */
+  .pyramid { margin: 18px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .tier { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 11px 16px; background: var(--surface); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .tier .name { font-weight: 700; font-size: 15px; color: var(--ink); }
+  .tier .meta { font-size: 12.5px; color: var(--ink-faint); margin-top: 1px; }
+  .tier.base { background: var(--surface-2); border-style: dashed; }
+  .w1 { width: 52%; } .w2 { width: 64%; } .w3 { width: 76%; } .w4 { width: 88%; } .w5 { width: 100%; }
+  @media (max-width: 640px) { .w1, .w2, .w3, .w4, .w5 { width: 100%; } }
+  .axis { display: flex; justify-content: space-between; gap: 12px; width: 100%; font-size: 12px; color: var(--ink-faint); margin-top: 6px; }
+
+  /* 横並びの流れ図 */
+  .pipe { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 14px 0; }
+  .pipe .box { flex: 1 1 150px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; color: var(--ink-soft); }
+  .pipe .box b { display: block; color: var(--ink); font-size: 14px; }
+  .pipe .box.hl { border-color: var(--accent); background: var(--accent-soft); }
+  .pipe .arrow { align-self: center; color: var(--ink-faint); font-weight: 700; }
+  @media (max-width: 600px) { .pipe { flex-direction: column; } .pipe .arrow { transform: rotate(90deg); align-self: center; } }
+
+  .note { display: flex; gap: 11px; align-items: flex-start; background: var(--warn-soft); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 8px; padding: 13px 15px; margin-top: 16px; font-size: 14px; color: var(--ink-soft); }
+  .note b { color: var(--ink); }
+  .note.ok { background: var(--net-soft); border-left-color: var(--net); }
+  .note.key { background: var(--accent-soft); border-left-color: var(--accent); }
+
+  /* カード内の「このプロジェクトでは」 */
+  .files { margin-top: 12px; padding: 10px 12px; background: var(--surface-2); border: 1px dashed var(--line); border-radius: 8px; font-size: 13.5px; color: var(--ink-soft); }
+  .files > b { display: block; color: var(--ink); font-size: 12.5px; margin-bottom: 4px; }
+  .files ul { margin: 0; padding-left: 18px; font-size: 13.5px; }
+  .files li { margin-bottom: 2px; }
+
+  dl.glossary { margin: 12px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; font-size: 14.5px; }
+  dl.glossary dt { font-weight: 700; color: var(--ink); }
+  dl.glossary dd { margin: 0; color: var(--ink-soft); }
+  @media (max-width: 600px) { dl.glossary { grid-template-columns: 1fr; } dl.glossary dd { margin-bottom: 8px; } }
+
+  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 13px; }
+</style>
+</head>
+<body>
+<button class="themebtn" id="themebtn" type="button" aria-label="ライト・ダーク切替">🌓 テーマ切替</button>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Testing · 基礎と方針</p>
+    <h1>テストの基礎 ── 種類・ピラミッド・このアプリでの進め方</h1>
+    <p class="lede">単体テスト・結合テスト・総合テスト・E2E テスト・パフォーマンステスト。名前はよく聞くけれど、それぞれ何を確かめるもので、どう組み合わせるのか。基礎を整理したうえで、このアプリで今どこまでできていて、これから何をどの順で足すかをまとめます。</p>
+  </header>
+
+  <nav class="toc" aria-label="目次">
+    <b>目次</b>
+    <ol>
+      <li><a href="#s1">テストは何のためにあるか</a></li>
+      <li><a href="#s2">テストの種類の地図（2つの軸）</a></li>
+      <li><a href="#s3">テストピラミッド</a></li>
+      <li><a href="#s4">それぞれのテストの中身</a></li>
+      <li><a href="#s5">パフォーマンステストを詳しく</a></li>
+      <li><a href="#s6">ブラックボックスとホワイトボックス</a></li>
+      <li><a href="#s7">テストを支える考え方</a></li>
+      <li><a href="#s8">このアプリの現状</a></li>
+      <li><a href="#s9">今後の方針</a></li>
+      <li><a href="#s10">用語ミニ辞典</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1 -->
+  <h2 id="s1"><span class="num">1</span>テストは何のためにあるか</h2>
+  <p class="h2sub">ひとことで：手でやっている確認をプログラムに任せ、「壊れたらすぐ気づける」状態を保つこと。</p>
+
+  <p>機能を作ったら、ブラウザで画面を開いて、ボタンを押して、表示を目で見て確かめます。テストコードは、この<b>「目で見て確かめる」部分をプログラムに書き起こしたもの</b>です。</p>
+
+  <pre><span class="c">// 手でやっていること</span>
+ログインする → 一覧で「対応状況：対応中」を選ぶ → 対応中の案件だけ出るのを目で見る
+
+<span class="c">// テストにすると（PHPUnit）</span>
+<span class="k">$this</span>->actingAs($user)->get(<span class="s">'/requests?response_status[]=in_progress'</span>)
+     ->assertSee(<span class="s">'対応中の案件'</span>)->assertDontSee(<span class="s">'完了した案件'</span>);</pre>
+
+  <div class="card">
+    <h3>テストの本当の価値</h3>
+    <p>一度書けば、コマンド1つで何百回でも同じ確認を繰り返せます。価値は「今動く」ことの確認よりも、<b>あとで別の場所を直したときに、うっかり壊したことにすぐ気づける</b>点にあります。</p>
+    <div class="analogy">たとえ：<b>健康診断</b>。受けた瞬間に健康になるわけではないけれど、去年と比べて悪くなった所が分かる。テストも「前と変わってしまった」ことを教えてくれる仕組みです。</div>
+  </div>
+
+  <p style="margin-top:14px">テストが確かめたいことは、大きく3つに分けられます。</p>
+  <div class="tablewrap"><table>
+    <tr><th>問い</th><th>例</th><th>主なテスト</th></tr>
+    <tr><td><b>正しく動くか</b></td><td>検索条件どおりに絞り込まれるか、権限のない人は編集できないか</td><td>単体・結合・E2E</td></tr>
+    <tr><td><b>速く・たくさん動くか</b></td><td>30人が同時に使っても待たされないか</td><td>パフォーマンス</td></tr>
+    <tr><td><b>使う人の目的を果たせるか</b></td><td>受付から完了報告まで、業務の流れどおりに使えるか</td><td>総合・受入（手動が中心）</td></tr>
+  </table></div>
+
+  <!-- 2 -->
+  <h2 id="s2"><span class="num">2</span>テストの種類の地図（2つの軸）</h2>
+  <p class="h2sub">ひとことで：「単体・結合・総合」は<b>範囲の大きさ</b>、「パフォーマンス」は<b>確かめる性質</b>の名前。軸が違うので、同じ列に並べると混乱する。</p>
+
+  <p>「単体テスト、結合テスト、総合テスト、パフォーマンステスト、E2E テスト」と並べると、5種類の別々のテストがあるように見えます。実は<b>違う物差しの名前が混ざっています</b>。2つの軸で整理するとすっきりします。</p>
+
+  <h3>軸1：どこまでの範囲をつないで確かめるか</h3>
+  <div class="pipe">
+    <div class="box"><b>単体テスト</b>部品1つだけ。関数やクラス単位</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>結合テスト</b>部品をつないで。画面の裏側（コントローラ＋DB）まで</div>
+    <div class="arrow">→</div>
+    <div class="box hl"><b>E2E テスト</b>本物のブラウザで、画面操作の最初から最後まで</div>
+  </div>
+  <p>右に行くほど<b>本番に近い</b>けれど、<b>遅く・壊れやすく・失敗したときに原因を探しにくく</b>なります。</p>
+
+  <h3>軸2：何を確かめるか</h3>
+  <div class="grid2">
+    <div class="card">
+      <h3>機能テスト</h3>
+      <p class="role">仕様どおりの「結果」になるか</p>
+      <p>検索・登録・権限・バリデーションなど。上の単体〜E2E は、基本的にこちらを確かめます。</p>
+    </div>
+    <div class="card">
+      <h3>非機能テスト</h3>
+      <p class="role">結果は正しい前提で、「どう動くか」</p>
+      <p><b>パフォーマンス</b>（速さ・同時に耐えられる人数）、セキュリティ、使いやすさなど。結果が合っていても、10秒かかったら使えません。</p>
+    </div>
+  </div>
+
+  <h3>「総合テスト」はどこに入るのか（工程の名前）</h3>
+  <p>日本の開発現場では、テストを<b>作業の工程（フェーズ）</b>で呼ぶことが多く、「単体 → 結合 → 総合 → 受入」と進みます。これは設計書と対になっていて、<b>V字モデル</b>と呼ばれます。</p>
+  <div class="tablewrap"><table>
+    <tr><th>設計（左側）</th><th></th><th>テスト（右側）</th><th>確かめること</th></tr>
+    <tr><td>要件定義</td><td>↔</td><td><b>受入テスト</b></td><td>利用者が「これで業務ができる」と認めるか</td></tr>
+    <tr><td>基本設計（画面・DB）</td><td>↔</td><td><b>総合テスト</b>（システムテスト）</td><td>システム全体として要件を満たすか。性能・セキュリティもここで見ることが多い</td></tr>
+    <tr><td>詳細設計</td><td>↔</td><td><b>結合テスト</b></td><td>部品同士が正しくつながるか</td></tr>
+    <tr><td>実装</td><td>↔</td><td><b>単体テスト</b></td><td>部品1つが正しく動くか</td></tr>
+  </table></div>
+  <div class="note key"><span>🔑</span><span><b>呼び方の違いに注意。</b>工程の「総合テスト」は、テスト仕様書を作って<b>人が手で</b>確認することも多い工程の名前です。一方「E2E テスト」は、ブラウザ操作を<b>プログラムで自動化</b>する技術の名前。総合テストの一部を E2E で自動化する、という関係になります。また、パフォーマンステストは総合テストの工程で行うことが多い「非機能テスト」の代表です。</span></div>
+
+  <!-- 3 -->
+  <h2 id="s3"><span class="num">3</span>テストピラミッド</h2>
+  <p class="h2sub">ひとことで：速くて安いテストを下にたくさん、遅くて高いテストを上に少しだけ。</p>
+
+  <div class="pyramid" role="img" aria-label="テストピラミッド。下から静的解析、単体、結合、E2E、手動">
+    <div class="tier w1"><div><div class="name">手動確認・探索的テスト</div><div class="meta">人が触って違和感を探す。数は最小限</div></div></div>
+    <div class="tier w2"><div><div class="name">E2E テスト</div><div class="meta">本物のブラウザで主要な流れだけ</div></div></div>
+    <div class="tier w3"><div><div class="name">結合テスト</div><div class="meta">HTTP → コントローラ → DB まで通す</div></div></div>
+    <div class="tier w4"><div><div class="name">単体テスト</div><div class="meta">関数・クラス単位。一瞬で終わる</div></div></div>
+    <div class="tier w5 base"><div><div class="name">静的解析・コード整形</div><div class="meta">動かさずにコードを読んで型の間違い等を見つける（厳密にはテストの手前の土台）</div></div></div>
+    <div class="axis"><span>↓ 下ほど：速い・安い・原因が分かりやすい</span><span>上ほど：本番に近い・遅い・壊れやすい ↑</span></div>
+  </div>
+
+  <p>この形になる理由は、<b>失敗したときのコスト</b>です。単体テストが落ちれば「この関数のこの行」とすぐ分かりますが、E2E テストが落ちると「画面のどこか・サーバーのどこか・DB のどこか」から探すことになります。さらに E2E は1本に数十秒かかり、ボタンの文言を変えただけで落ちることもあります。</p>
+
+  <div class="note"><span>⚠️</span><span><b>逆三角形（アイスクリームコーン）は避ける。</b>手動確認と E2E ばかりで、下の層が薄い状態のこと。テストに時間がかかるので回す回数が減り、結局「壊れても気づかない」に戻ってしまいます。</span></div>
+
+  <h3>Laravel では「結合テスト」が厚くなりやすい</h3>
+  <p>ピラミッドは目安で、形はアプリの性質で変わります。Laravel の画面アプリは、処理の多くが「リクエストを受けて、DB を検索して、画面を返す」ことでできています。この場合、DB を偽物にした単体テストでは<b>自分で書いた検索条件（SQL）が1行も実行されず</b>、肝心なところを確かめられません。</p>
+  <p>そのため Laravel では、本物の DB につないで HTTP リクエストから通す <b>Feature テスト（＝結合テスト）が中心</b>になるのが普通です。Laravel の Feature テストは DB を毎回まっさらに戻すので、結合テストでも1本あたり平均0.5秒ほどで回ります（このアプリは204本で約97秒）。</p>
+
+  <!-- 4 -->
+  <h2 id="s4"><span class="num">4</span>それぞれのテストの中身</h2>
+  <p class="h2sub">このアプリに当てはめた例と、該当するフォルダ・ファイルつき。</p>
+
+  <div class="tablewrap"><table>
+    <tr><th>種類</th><th>このプロジェクトの場所</th><th>動かし方</th></tr>
+    <tr><td><b>静的解析・整形</b></td><td><code>pint.json</code>・<code>phpstan.neon</code>（ルールの設定。対象は書いたコード全体）</td><td>quality-check の Step 1・2</td></tr>
+    <tr><td><b>単体</b></td><td><code>tests/Unit/</code></td><td rowspan="2">quality-check の Step 3<br><code>php artisan test</code></td></tr>
+    <tr><td><b>結合（Feature）</b></td><td><code>tests/Feature/</code></td></tr>
+    <tr><td><b>E2E</b></td><td>まだ無い（<code>e2e/</code> に作る予定）</td><td>—</td></tr>
+    <tr><td><b>手動確認</b></td><td><code>docs/validation-checklist.html</code> ほか</td><td>人が画面で確かめる</td></tr>
+    <tr><td><b>パフォーマンス</b></td><td>まだ無い（<code>perf/</code> に作る予定）</td><td>—</td></tr>
+  </table></div>
+  <p>quality-check の手順は <code>.claude/skills/quality-check/SKILL.md</code> にあります。</p>
+
+  <div class="card">
+    <h3>静的解析・コード整形 <span class="tag tag-done">実施中</span></h3>
+    <p class="role">道具：Pint（整形）、PHPStan / Larastan（静的解析）</p>
+    <p>プログラムを<b>動かさずに</b>読んで、存在しないメソッドの呼び出しや型の食い違いを見つけます。テストを書かなくても効くので、ピラミッドの土台に置かれます。</p>
+    <div class="analogy">たとえ：提出前の<b>誤字脱字チェック</b>。内容が正しいかまでは分からないが、明らかなミスは一瞬で見つかる。</div>
+    <div class="files"><b>このプロジェクトでは</b><ul>
+      <li><code>pint.json</code>：整形のルール（Laravel の標準ルール。テスト名に日本語を使えるよう1つだけ外している）</li>
+      <li><code>phpstan.neon</code>：解析の設定。対象は <code>app/</code>・<code>database/</code>・<code>routes/</code>、厳しさはレベル5（0〜10）</li>
+      <li>テスト用のファイルを別に書く必要はない。設定ファイルだけで、書いたコード全体を自動で調べる</li>
+    </ul></div>
+  </div>
+
+  <div class="card">
+    <h3>単体テスト（Unit） <span class="tag tag-thin">ほぼ無し</span></h3>
+    <p class="role">道具：PHPUnit（tests/Unit）</p>
+    <p>1つの関数・クラスを、周りから切り離して確かめます。DB もファイルも使わないので一瞬で終わります。向いているのは<b>計算・変換・判定などの「ロジックだけ」の部品</b>です。</p>
+    <p>例：「対応状況の値 <code>in_progress</code> を画面用の文字『対応中』に変える」関数。</p>
+    <div class="files"><b>このプロジェクトでは</b><ul>
+      <li><code>tests/Unit/ExampleTest.php</code> の1本だけ。Laravel がプロジェクト作成時に入れる見本（「true は true」を確かめるだけ）</li>
+      <li>上の例の関数は <code>app/Support/RequestLabels.php</code> にあるが、単体テストは無い（画面の Feature テストで「対応中」と表示されることを間接的に確かめている）</li>
+    </ul></div>
+  </div>
+
+  <div class="card">
+    <h3>結合テスト（Laravel では Feature テスト） <span class="tag tag-done">203本</span></h3>
+    <p class="role">道具：PHPUnit（tests/Feature）＋テスト専用 DB</p>
+    <p>ブラウザの代わりに HTTP リクエストを送り、ルーティング → ミドルウェア（ログイン確認）→ バリデーション → コントローラ → DB → 画面（HTML）まで<b>通しで</b>確かめます。ただし<b>JavaScript は動きません</b>（返ってきた HTML の文字を調べるだけ）。</p>
+    <p>例：一般職員でログインして一覧を開くと、自分の事務所の案件だけが表示される。</p>
+    <div class="files"><b>このプロジェクトでは</b><ul>
+      <li><code>tests/Feature/*.php</code>：テスト本体（14ファイル。内訳は8章）</li>
+      <li><code>tests/TestCase.php</code>：全テスト共通の土台</li>
+      <li><code>database/factories/*.php</code>：テスト用データの作り方（事務所・ユーザー・案件・対応履歴・写真の5つ）</li>
+      <li><code>phpunit.xml</code>：テスト時の設定。テスト専用 DB を使う、ログを書かない、など</li>
+      <li><code>docker/mysql/init.sql</code>：テスト専用 DB（<code>civil_request_management_testing</code>）を最初に作る</li>
+    </ul></div>
+  </div>
+
+  <div class="card">
+    <h3>E2E テスト（End to End） <span class="tag tag-none">未着手</span></h3>
+    <p class="role">道具の候補：Playwright</p>
+    <p>本物のブラウザ（Chrome 等）をプログラムで操作して、利用者と同じように画面を触ります。<b>JavaScript も CSS も実際に動く</b>ので、Feature テストでは確かめられない「地図にピンが立つ」「ボタンを押したら入力欄が切り替わる」なども見られます。</p>
+    <p>例：ログイン → 新規登録 → 写真を添付 → 保存 → 詳細画面に写真のサムネイルが出る。</p>
+    <div class="files"><b>このプロジェクトでは</b><ul>
+      <li>まだ無い。作るときは <code>e2e/</code> フォルダに分ける予定（SnsTimeLineApp と同じ置き方）</li>
+      <li>確かめたい JavaScript の例：<code>resources/views/map/index.blade.php</code>（地図のピン表示）、<code>resources/views/requests/partials/location-map.blade.php</code>（地図をクリックして位置を選ぶ）、<code>resources/views/users/partials/role-fields.blade.php</code>（役割で入力欄を切り替える）</li>
+    </ul></div>
+  </div>
+
+  <div class="card">
+    <h3>総合テスト・受入テスト（手動中心） <span class="tag tag-thin">部分的</span></h3>
+    <p class="role">道具：確認シート、人の目</p>
+    <p>システム全体を、業務の流れに沿って人が確かめます。自動化しにくい「見た目が分かりやすいか」「業務の順番で使って困らないか」も対象です。</p>
+    <p>例：バリデーション手動確認シート、本番での監視アラームの動作確認（2026-10-22）。</p>
+    <div class="files"><b>このプロジェクトでは</b><ul>
+      <li><code>docs/validation-checklist.html</code>：入力項目ごとの必須・上限・期待するエラーメッセージと、手で確かめる手順</li>
+      <li><code>docs/logging-and-monitoring.md</code>：本番で監視を動かして確かめた結果（8.4）</li>
+      <li><code>docs/operations-start-stop.md</code>：デプロイ後に本番で確かめる手順</li>
+    </ul></div>
+  </div>
+
+  <div class="card">
+    <h3>パフォーマンステスト <span class="tag tag-none">未着手（次の作業）</span></h3>
+    <p class="role">道具の候補：k6</p>
+    <p>たくさんの利用者が同時に使う状態をプログラムで作り、<b>応答の速さ</b>と<b>エラーが出ないか</b>を測ります。結果が正しいかは見ません（それは上の機能テストの仕事）。次の章で詳しく。</p>
+    <div class="files"><b>このプロジェクトでは</b><ul>
+      <li>まだ無い。作るときは <code>perf/</code> フォルダに、シナリオ（k6 のスクリプト）と、試験用データの投入処理を置く予定（SnsTimeLineApp と同じ置き方）</li>
+      <li>近いものとして、EC2 のメモリ・CPU を実測した記録が <code>docs/infrastructure-design.md</code> の 3.4 にある（負荷はかけていない）</li>
+    </ul></div>
+  </div>
+
+  <!-- 5 -->
+  <h2 id="s5"><span class="num">5</span>パフォーマンステストを詳しく</h2>
+  <p class="h2sub">ひとことで：「何人で・どれくらいの時間・どの操作を」したときに「どれくらいの速さで返るか」を測る。</p>
+
+  <h3>種類（かける負荷の形で呼び名が変わる）</h3>
+  <div class="tablewrap"><table>
+    <tr><th>名前</th><th>かける負荷</th><th>分かること</th></tr>
+    <tr><td><b>負荷テスト</b>（ロードテスト）</td><td>想定どおりの人数（このアプリなら30人）を一定時間</td><td>普段の使われ方で十分速いか。<b>まずはこれ</b></td></tr>
+    <tr><td><b>ストレステスト</b></td><td>想定を超えて人数を増やし続ける</td><td>何人で限界が来るか、限界のときどう壊れるか</td></tr>
+    <tr><td><b>スパイクテスト</b></td><td>急に人数を跳ね上げる</td><td>朝礼直後に全員が開くような瞬間に耐えるか</td></tr>
+    <tr><td><b>耐久テスト</b>（ソーク）</td><td>普段の負荷を数時間続ける</td><td>メモリがじわじわ増える等、時間がたって出る問題</td></tr>
+  </table></div>
+
+  <h3>見る数字</h3>
+  <div class="tablewrap"><table>
+    <tr><th>指標</th><th>意味</th><th>読み方のコツ</th></tr>
+    <tr><td><b>応答時間 p95</b></td><td>全リクエストを速い順に並べて、95%目の時間</td><td><b>平均ではなく p95 を見る</b>。平均は速いリクエストに引っぱられ、遅い一部の人の体験が隠れる</td></tr>
+    <tr><td><b>エラー率</b></td><td>失敗したリクエストの割合</td><td>速くてもエラーで返していたら意味がない。0% が基本</td></tr>
+    <tr><td><b>スループット</b></td><td>1秒あたりに処理できたリクエスト数</td><td>人数を増やしても伸びなくなった所が限界の目安</td></tr>
+    <tr><td><b>サーバーの様子</b></td><td>CPU・メモリ（<code>docker stats</code>）</td><td>遅くなったとき「どこが詰まっているか」を探す手がかり</td></tr>
+  </table></div>
+
+  <div class="note"><span>⚠️</span><span><b>ローカルで測った数字を「本番の実力」と言わない。</b>パソコン1台の中で、負荷をかける側（k6）とアプリと DB が CPU を取り合うためです。ローカルの数字は「<b>前回と比べて遅くなっていないか</b>」「<b>どこが詰まるか</b>」を見るのに使います（SnsTimeLineApp と同じ考え方）。</span></div>
+  <div class="note"><span>🚫</span><span><b>本番には負荷をかけない。</b>本番の EC2 は famigo と共用の小さなサーバー（t3.micro）です。負荷をかけると famigo まで止まりかねず、アラームも鳴ります。</span></div>
+
+  <!-- 6 -->
+  <h2 id="s6"><span class="num">6</span>ブラックボックスとホワイトボックス</h2>
+  <p class="h2sub">ひとことで：テストの「ケース（何を試すか）」を、仕様書を見て決めるか、コードの中身を見て決めるか、という視点の違い。</p>
+
+  <p>2章の「単体・結合・E2E」は<b>どこまでつなぐか</b>の話でした。ここでの話はそれとは別で、<b>どの値を試して、どうなれば正解とするかを、何を見て決めるか</b>です。どの種類のテストにも両方の視点が使えます。</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>⬛ ブラックボックス <span class="tag tag-done">正解はこちらで決める</span></h3>
+      <p class="role">仕様書だけを見る。中身のコードは見ない</p>
+      <ul>
+        <li>「要望内容は2,000文字まで」と書いてあれば、2,000文字と2,001文字を試す</li>
+        <li>コードがどう書かれているかは関係ない</li>
+        <li><b>コードの勘違いに引きずられない</b>のが最大の利点</li>
+      </ul>
+      <div class="analogy">たとえ：<b>自動販売機</b>をお金と出てくる商品だけで確かめる。中の仕組みは知らなくていい。</div>
+    </div>
+    <div class="card">
+      <h3>⬜ ホワイトボックス <span class="tag tag-thin">漏れ探しに使う</span></h3>
+      <p class="role">コードの中身（if 文の分かれ道など）を見る</p>
+      <ul>
+        <li>if が3つあれば、3つの道をすべて通るケースを用意する</li>
+        <li>失敗したときの後片付けなど、<b>仕様書には書かれない道</b>を拾える</li>
+        <li>ただし、<b>コードの勘違いをそのまま正解にしてしまう</b>危険がある</li>
+      </ul>
+      <div class="analogy">たとえ：自動販売機の<b>ふたを開けて</b>、つり銭切れのときの動きまで確かめる。</div>
+    </div>
+  </div>
+
+  <div class="note"><span>⚠️</span><span><b>ホワイトボックスだけだと危ない理由。</b>仕様が「上限2,000文字」なのに、コードが間違って「上限1,000文字」になっていたとします。コードを見てテストを書くと「1,001文字でエラーになること」を正解として書いてしまい、テストは緑のまま。バグをテストで<b>固めてしまう</b>ことになります。だから<b>正解（期待値）は仕様書から</b>決め、ホワイトボックスは「試し忘れている道がないか」の確認に使います。</span></div>
+
+  <h3>ケースを決める3つの技法（主にブラックボックス）</h3>
+  <div class="tablewrap"><table>
+    <tr><th>技法</th><th>考え方</th><th>このアプリでの例</th></tr>
+    <tr><td><b>同値分割</b></td><td>入力を「同じ結果になるグループ」に分け、各グループから1つずつ試す</td><td>対応状況（未着手・対応中・完了…）ごとに1件ずつ作って検索する</td></tr>
+    <tr><td><b>境界値分析</b></td><td>グループの境目（上限ちょうど・1つ超え）を狙う。バグは境目に出やすい</td><td>要望内容がちょうど2,000文字なら登録できる／2,001文字ならエラー</td></tr>
+    <tr><td><b>組み合わせ（デシジョンテーブル）</b></td><td>条件が複数あるとき、組み合わせを表にして漏れを防ぐ</td><td>役割（管理者・一般職員）×事務所（自分・他）×部署（担当・担当外）で、編集できるかどうか</td></tr>
+  </table></div>
+
+  <h3>このプロジェクトではどうしているか</h3>
+  <div class="tablewrap"><table>
+    <tr><th>視点</th><th>実際のやり方・テストの例</th></tr>
+    <tr><td><b>確かめ方はブラックボックス</b></td><td>Feature テストは、HTTP リクエストを送って「返ってきた画面」「DB に残ったデータ」だけを見ています。コントローラの中でどう処理したかには触れません。そのため、中身を書き直しても、利用者から見た動きが同じならテストは通り続けます</td></tr>
+    <tr><td><b>正解は設計書から</b></td><td>CLAUDE.md 7.2 のとおり、実装前に要件定義書・画面設計書・DB 設計書と突き合わせています。例：<code>RequestControllerTest</code> の「ちょうど2,000文字なら登録できる」「2,000文字を超えるとエラー」（上限は画面設計書と Issue #49 で決めた値）、<code>RequestIndexTest</code> の「一般職員は自事務所の案件のみ表示される」（要件定義の事務所スコープ）</td></tr>
+    <tr><td><b>仕様の一覧表</b></td><td><code>docs/validation-checklist.html</code> は、入力項目ごとの必須・上限・期待するエラーメッセージを設計書から一覧にしたもの。ブラックボックスの「期待値の表」にあたる</td></tr>
+    <tr><td><b>ホワイトボックスで足した例</b></td><td>コードの中身を知っているから書けたテストもあります。<br>・<code>RequestPhotoTest</code>「拡張子を png に偽装した SVG は登録できない」：ファイル名ではなく中身で形式を判定している、という実装を知っていて狙ったもの<br>・<code>LoggingTest</code>「写真の保存に失敗したら ERROR で記録し例外は投げ直す」：保存先をわざと壊して、失敗したときの道を通している<br>・<code>LoggingTest</code>「DB エラーのログには SQL に埋め込まれた値を出さない」：エラー時の処理（<code>bootstrap/app.php</code>）を知っていて狙ったもの</td></tr>
+  </table></div>
+
+  <div class="note key"><span>🔑</span><span><b>まだ無いもの：テストケース表。</b>SnsTimeLineApp では、テストを書く前に「入力・期待値・根拠（設計書のどこか）」の表（<code>docs/11_test_design.md</code>）を作りました。このプロジェクトでは表は作らず、設計書を見ながら直接テストを書いています。規模が小さいうちはこれで回っていますが、条件の組み合わせが多い権限まわりなどは、表にすると漏れが見つかりやすくなります。</span></div>
+
+  <!-- 7 -->
+  <h2 id="s7"><span class="num">7</span>テストを支える考え方</h2>
+  <p class="h2sub">種類の話とは別に、どのテストにも共通する大事な点。</p>
+
+  <div class="card">
+    <h3>テスト用のデータは本番・開発と分ける</h3>
+    <p>テストはデータを作っては消すので、普段使う DB でやると中身が壊れます。このアプリは <b>テスト専用 DB</b>（<code>civil_request_management_testing</code>）を使い、1本ごとにまっさらに戻しています。パフォーマンステストでも、大量データを入れる<b>専用の DB</b> を分ける予定です。</p>
+  </div>
+  <div class="card">
+    <h3>外の世界は「偽物」に置き換える</h3>
+    <p>写真の保存先は、本番だけ S3 で、ローカル開発とテストでは PC 内のフォルダ（<code>PHOTO_DISK=local</code>）です。テストは<b>最初から S3 には行きません</b>。そのうえで、テストの目的に合わせて2通りの「置き場」を使い分けています。</p>
+    <div class="tablewrap"><table>
+      <tr><th>やり方</th><th>保存される場所</th><th>使っているテスト</th></tr>
+      <tr><td><code>Storage::fake()</code>（Laravel が用意した偽物）</td><td><code>storage/framework/testing/disks/local/</code>。呼ぶたびに中身が空になる</td><td><code>LoggingTest</code>、サンプルデータ関係のテスト</td></tr>
+      <tr><td>本物のローカルディスクを、テスト専用フォルダに向ける</td><td><code>storage/framework/testing/request-photos/</code>。テストの前後で消す</td><td><code>RequestPhotoTest</code></td></tr>
+    </table></div>
+    <p>写真のテストで偽物を使わないのは、<code>Storage::fake()</code> が<b>署名付きURLを、署名なしのURLに差し替えてしまう</b>ためです。「期限付きの署名付きURLでのみ表示する」という要件を確かめたいので、本物のディスクを使っています。偽物にすると、その部分は確かめていないことになる、という良い例です。</p>
+    <p>S3 そのもの（本番の保存・表示）は、テストでは確かめていません。本番での手動確認で補っています。</p>
+  </div>
+  <div class="card">
+    <h3>テストが本当に効いているか、わざと壊して確かめる</h3>
+    <p>テストが緑でも、何も確かめていないテストかもしれません。守りたいコードを<b>わざと消して</b>テストが赤くなるかを見ると、テストが本物か分かります（ミューテーションテストの考え方）。ログ整備のときに、機密がログに出ないことを確かめるテストで実際にやりました。</p>
+  </div>
+  <div class="note key"><span>🔑</span><span><b>テストが全部緑でも、バグがゼロとは限らない。</b>テストは「書いたことが正しい」としか教えてくれません。本数やカバレッジ（テストが通った行の割合）を増やすこと自体を目標にせず、「<b>壊れたら困る所</b>が守られているか」で考えます。</span></div>
+
+  <!-- 8 -->
+  <h2 id="s8"><span class="num">8</span>このアプリの現状</h2>
+  <p class="h2sub">2026-10-24 時点。PHPUnit は 204本・871項目すべて成功（約97秒）。</p>
+
+  <div class="pyramid" role="img" aria-label="このアプリのテストの現状">
+    <div class="tier w1"><div><div class="name">手動確認</div><div class="meta">バリデーション確認シート、本番での動作確認</div></div><span class="tag tag-thin">部分的</span></div>
+    <div class="tier w2"><div><div class="name">E2E テスト</div><div class="meta">ブラウザでの JavaScript の動きは未確認</div></div><span class="tag tag-none">0本</span></div>
+    <div class="tier w3"><div><div class="name">結合テスト（Feature）</div><div class="meta">14ファイル・テスト専用 DB を使用</div></div><span class="tag tag-done">203本</span></div>
+    <div class="tier w4"><div><div class="name">単体テスト（Unit）</div><div class="meta">Laravel が最初から入れているサンプルのみ</div></div><span class="tag tag-thin">1本</span></div>
+    <div class="tier w5 base"><div><div class="name">静的解析・整形</div><div class="meta">Pint ／ PHPStan（レベル5）</div></div><span class="tag tag-done">実施中</span></div>
+    <div class="axis"><span>別枠：パフォーマンステスト <b>未着手</b></span><span>別枠：CI（自動実行）<b>未構築</b></span></div>
+  </div>
+
+  <h3>結合テスト（Feature）の内訳</h3>
+  <div class="tablewrap"><table>
+    <tr><th>ファイル</th><th>確かめていること</th><th>本数</th></tr>
+    <tr><td><code>AuthTest</code></td><td>ログイン・ログアウト、初回のパスワード変更</td><td class="n">11</td></tr>
+    <tr><td><code>RequestIndexTest</code></td><td>一覧・検索条件（AND 条件、期間、部分一致）、事務所ごとの見え方</td><td class="n">20</td></tr>
+    <tr><td><code>RequestControllerTest</code></td><td>案件の新規登録・削除と権限</td><td class="n">18</td></tr>
+    <tr><td><code>RequestEditTest</code></td><td>案件の編集と、部署による編集権限</td><td class="n">18</td></tr>
+    <tr><td><code>RequestShowTest</code></td><td>詳細画面の表示</td><td class="n">11</td></tr>
+    <tr><td><code>RequestLogTest</code></td><td>対応履歴の追加・編集・削除</td><td class="n">23</td></tr>
+    <tr><td><code>RequestPhotoTest</code></td><td>写真の添付・削除、署名付きURLでの表示（保存先はテスト専用フォルダ）</td><td class="n">20</td></tr>
+    <tr><td><code>RequestExportTest</code></td><td>CSV 出力</td><td class="n">9</td></tr>
+    <tr><td><code>DashboardTest</code></td><td>ダッシュボードの件数集計</td><td class="n">14</td></tr>
+    <tr><td><code>MapTest</code></td><td>地図画面に渡すデータ（ピンの表示そのものは対象外）</td><td class="n">9</td></tr>
+    <tr><td><code>UserManagementTest</code></td><td>ユーザー管理（管理者のみ）</td><td class="n">24</td></tr>
+    <tr><td><code>LoggingTest</code></td><td>リクエストID、アクセスログ、機密がログに出ないこと</td><td class="n">15</td></tr>
+    <tr><td><code>SampleDataSeederTest</code> ほか</td><td>サンプルデータの投入・入れ替え、ヘルスチェック</td><td class="n">11</td></tr>
+  </table></div>
+
+  <h3>よくできている点</h3>
+  <ul>
+    <li><b>Laravel に合った形</b>：検索・権限・事務所ごとの見え方など、DB とつながって初めて意味のある部分を、本物の MySQL で確かめている</li>
+    <li><b>テスト専用 DB</b>：開発用のデータを汚さない</li>
+    <li><b>権限と個人情報を守るテストがある</b>：他事務所の案件が見えない、機密がログに出ない、など「壊れたら困る所」を押さえている</li>
+    <li><b>コミット前に毎回回している</b>：quality-check（Pint → PHPStan → PHPUnit）を手順として固定</li>
+  </ul>
+
+  <h3>足りていない点</h3>
+  <div class="tablewrap"><table>
+    <tr><th>足りないこと</th><th>なぜ困るか</th><th>埋めるテスト</th></tr>
+    <tr><td><b>速さを一度も測っていない</b></td><td>要件の「同時利用30人」「年間1,000件」に耐えるか分からない。EC2 のメモリ実測（2026-08-15）はしたが、負荷はかけていない</td><td>パフォーマンス</td></tr>
+    <tr><td><b>画面の JavaScript が動くか未確認</b></td><td>地図（Leaflet）のピン表示、地図での位置選択、ユーザー登録画面の入力欄の切り替えは、Feature テストでは動かない</td><td>E2E</td></tr>
+    <tr><td><b>テストを回すのが「自分が覚えていること」頼み</b></td><td>回し忘れたまま PR を出しても、誰も止めてくれない</td><td>CI</td></tr>
+    <tr><td><b>単体テストがほぼ無い</b></td><td>ただし ロジックだけの部品自体が少ないので、大きな問題ではない（次章）</td><td>単体（必要な所だけ）</td></tr>
+  </table></div>
+
+  <!-- 9 -->
+  <h2 id="s9"><span class="num">9</span>今後の方針</h2>
+  <p class="h2sub">ひとことで：パフォーマンス → E2E → CI の順に、それぞれ「小さく・必要な分だけ」足す。</p>
+
+  <div class="pipe">
+    <div class="box hl"><b>① パフォーマンス</b>k6・ローカルのみ</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>② E2E</b>Playwright・主要な流れ数本</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>③ CI</b>GitHub Actions で PR ごとに自動実行</div>
+  </div>
+  <p>この順にするのは、<b>要件の数字（30人）をまだ一度も確かめていない</b>のがいちばん大きな穴だからです。E2E と CI は「今あるテストをより確実に回す・範囲を少し広げる」改善で、急ぎ度は一段下がります。</p>
+
+  <h3>① パフォーマンステスト（k6）</h3>
+  <div class="tablewrap"><table>
+    <tr><th>項目</th><th>方針</th></tr>
+    <tr><td><b>目的</b></td><td>想定の30人が同時に使っても待たされないか確かめ、遅い画面があれば原因をつかむ</td></tr>
+    <tr><td><b>どこで</b></td><td><b>ローカルの Docker 環境だけ</b>。本番には負荷をかけない</td></tr>
+    <tr><td><b>データ</b></td><td><b>テストを始める前に</b>、専用の DB へ保存期間3年分（年間1,000件 × 3年 ＝ 約3,000件）の案件と対応履歴を入れておく。検索やダッシュボードの速さは「DB にどれだけ溜まっているか」で変わるため、3年運用した後の状態を先に作っておく（棚に3年分の書類がすでにある状態）。毎回同じ内容で入れる（同じデータでないと前回と比べられない）。実在の名前は使わない</td></tr>
+    <tr><td><b>シナリオ</b></td><td>30人が、普段の使い方に近い操作をする。<b>ほとんどは「見る」操作</b>（ログイン → ダッシュボード → 一覧で検索 → 詳細）で、対応履歴の追加など「書く」操作は少しだけ混ぜる。操作の合間には数秒の間（考えている時間）を入れる。1人が大量に入力するような、業務で起きない操作はしない。地図・CSV 出力は別に測る</td></tr>
+    <tr><td><b>合格の目安</b></td><td>p95 が1秒未満・エラー率0%（SnsTimeLineApp と同じ目安）。ただし数字は「前回比」と「詰まる場所探し」に使い、本番の実力とは言わない</td></tr>
+    <tr><td><b>CI に入れるか</b></td><td><b>入れない</b>。CI のサーバーは他の処理と CPU を分け合うので、数字が毎回ぶれて比べられない</td></tr>
+  </table></div>
+
+  <p>コードを読んで、先に「詰まりそうな所」の仮説を立てておきます。測ってみて当たっているかを確かめるのがパフォーマンステストの醍醐味です。</p>
+  <div class="tablewrap"><table>
+    <tr><th>仮説</th><th>理由</th></tr>
+    <tr><td><b>PHP の同時処理数</b></td><td>php-fpm は設定を変えていないので、公式イメージの既定（同時に処理できるのは5件まで）のはず。30人が同時に押すと、残りは順番待ちになる可能性</td></tr>
+    <tr><td><b>地図画面</b></td><td>条件に合う案件を件数の上限なしで全部取り出している。件数が増えるほど重くなる</td></tr>
+    <tr><td><b>ダッシュボード</b></td><td>開くたびに全案件を数え直す集計が複数ある</td></tr>
+    <tr><td><b>キーワード検索</b></td><td>部分一致（<code>LIKE '%…%'</code>）は索引が効かず全件を見る。ただし3,000件程度なら問題にならない見込み</td></tr>
+  </table></div>
+
+  <h3>② E2E テスト（Playwright）</h3>
+  <ul>
+    <li><b>本数は絞る</b>：Feature テストで確かめられることは E2E でやり直さない。<b>JavaScript が絡む所</b>と<b>業務の主な流れ</b>だけ</li>
+    <li>候補：ログイン → 新規登録（写真つき）→ 詳細で確認／地図にピンが出る・地図で位置を選べる／ユーザー登録で役割に応じて入力欄が切り替わる／初回ログインでパスワード変更に進む</li>
+    <li>パフォーマンステストと同じく、専用のデータで動かす</li>
+  </ul>
+
+  <h3>③ CI（GitHub Actions）</h3>
+  <ul>
+    <li>PR を出したら自動で <b>Pint → PHPStan → PHPUnit</b> を実行し、赤ならマージ前に分かるようにする（今ローカルでやっている quality-check と同じ中身）</li>
+    <li><b>E2E を CI に入れるかは保留</b>：時間がかかり、落ちたときの原因調査も重いため。まずは手元で回す運用にして、必要を感じたら追加する</li>
+    <li><b>パフォーマンステストは入れない</b>（上記のとおり数字がぶれるため）</li>
+  </ul>
+
+  <h3>単体テストは「必要な所だけ」</h3>
+  <p>このアプリは、DB とつながって初めて意味のある処理が大半です。単体テストの本数を増やすこと自体は目標にせず、<b>ロジックだけの部品が増えたとき</b>に書きます。今の候補は、値を画面用の文字に変える <code>RequestLabels</code> や、編集・削除の権限を判定する <code>RequestPolicy</code> 程度です（どちらも Feature テストで間接的には確かめ済み）。</p>
+
+  <div class="note ok"><span>💡</span><span><b>まとめ。</b>今は「結合テストが厚く、その上下が薄い」形。Laravel としては自然な形なので崩さず、<b>上に E2E を少し、横にパフォーマンスを1本</b>足し、<b>CI で回し忘れを防ぐ</b>。どれも「本数を増やす」ではなく「今まで確かめられていなかった所を埋める」ために足す。</span></div>
+
+  <!-- 10 -->
+  <h2 id="s10"><span class="num">10</span>用語ミニ辞典</h2>
+  <dl class="glossary">
+    <dt>アサーション</dt><dd>「こうなっているはず」をチェックする1行。<code>assertSee</code> など。PHPUnit の「871 assertions」はこの数</dd>
+    <dt>Feature テスト</dt><dd>Laravel での呼び名。HTTP リクエストから通す結合テストのこと</dd>
+    <dt>モック・フェイク</dt><dd>テストのために本物の代わりに置く偽物。<code>Storage::fake()</code> など</dd>
+    <dt>ファクトリ</dt><dd>テスト用のデータを手早く作る仕組み（<code>database/factories</code>）</dd>
+    <dt>リグレッション</dt><dd>前は動いていた所が、別の変更で壊れること（退行）。テストが一番防ぎたいもの</dd>
+    <dt>カバレッジ</dt><dd>テストで実行されたコードの割合。高くても「正しく確かめた」保証にはならない</dd>
+    <dt>p95</dt><dd>速い順に並べて95%目の応答時間。「ほとんどの人はこれ以内」の目安</dd>
+    <dt>VU（仮想ユーザー）</dt><dd>k6 が作る「同時に使っている人」。30 VU ＝ 30人が同時に操作している状態</dd>
+    <dt>CI</dt><dd>継続的インテグレーション。PR を出すたびにテストを自動で回す仕組み</dd>
+    <dt>フレーキー</dt><dd>同じコードなのに通ったり落ちたりするテスト。E2E で起きやすい</dd>
+  </dl>
+
+  <footer>
+    要望管理システム（CivilRequestManagement）／テストの学習用まとめ（2026-10-24 時点。パフォーマンステスト着手前）。考え方は SnsTimeLineApp の <code>docs/learning/testing-basics.html</code>・<code>docs/13_performance_test.md</code>・<code>docs/14_e2e_test.md</code> を下敷きにしている。
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themebtn');
+    var root = document.documentElement;
+    btn.addEventListener('click', function () {
+      var mqDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var current = root.getAttribute('data-theme') || (mqDark ? 'dark' : 'light');
+      root.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    });
+  })();
+</script>
+</body>
+</html>
