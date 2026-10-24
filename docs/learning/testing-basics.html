@@ -271,7 +271,7 @@
     <tr><td><b>結合（Feature）</b></td><td><code>tests/Feature/</code></td></tr>
     <tr><td><b>E2E</b></td><td>まだ無い（<code>e2e/</code> に作る予定）</td><td>—</td></tr>
     <tr><td><b>手動確認</b></td><td><code>docs/validation-checklist.html</code> ほか</td><td>人が画面で確かめる</td></tr>
-    <tr><td><b>パフォーマンス</b></td><td>まだ無い（<code>perf/</code> に作る予定）</td><td>—</td></tr>
+    <tr><td><b>パフォーマンス</b></td><td><code>perf/</code>・<code>docker-compose.perf.yml</code></td><td><code>./perf/run-perf.sh</code></td></tr>
   </table></div>
   <p>quality-check の手順は <code>.claude/skills/quality-check/SKILL.md</code> にあります。</p>
 
@@ -336,12 +336,16 @@
   </div>
 
   <div class="card">
-    <h3>パフォーマンステスト <span class="tag tag-none">未着手（次の作業）</span></h3>
-    <p class="role">道具の候補：k6</p>
+    <h3>パフォーマンステスト <span class="tag tag-done">実施済み（2026-10-24）</span></h3>
+    <p class="role">道具：k6</p>
     <p>たくさんの利用者が同時に使う状態をプログラムで作り、<b>応答の速さ</b>と<b>エラーが出ないか</b>を測ります。結果が正しいかは見ません（それは上の機能テストの仕事）。次の章で詳しく。</p>
     <div class="files"><b>このプロジェクトでは</b><ul>
-      <li>まだ無い。作るときは <code>perf/</code> フォルダに、シナリオ（k6 のスクリプト）と、試験用データの投入処理を置く予定（SnsTimeLineApp と同じ置き方）</li>
-      <li>近いものとして、EC2 のメモリ・CPU を実測した記録が <code>docs/infrastructure-design.md</code> の 3.4 にある（負荷はかけていない）</li>
+      <li><code>perf/scenarios/daily.js</code>：30人の普段の業務のシナリオ。<code>perf/scenarios/export.js</code>：CSV 出力</li>
+      <li><code>perf/lib/</code>：ログイン・画面を開く・結果の表を作る、などの共通部品</li>
+      <li><code>perf/run-perf.sh</code>：環境の起動 → データ投入 → 計測 → 片付けを1本で行うスクリプト。手順は <code>perf/README.md</code></li>
+      <li><code>docker-compose.perf.yml</code>：試験専用の環境（本番と同じイメージ＋試験専用の MySQL。ポート 8082）</li>
+      <li><code>database/seeders/PerfDataSeeder.php</code>：3年分・3,000件の試験データ。試験専用 DB 以外では動かない（<code>tests/Feature/PerfDataSeederTest.php</code> で確認）</li>
+      <li><code>docs/performance-test.md</code>：設計と結果</li>
     </ul></div>
   </div>
 
@@ -366,6 +370,33 @@
     <tr><td><b>スループット</b></td><td>1秒あたりに処理できたリクエスト数</td><td>人数を増やしても伸びなくなった所が限界の目安</td></tr>
     <tr><td><b>サーバーの様子</b></td><td>CPU・メモリ（<code>docker stats</code>）</td><td>遅くなったとき「どこが詰まっているか」を探す手がかり</td></tr>
   </table></div>
+
+  <h3>k6 とは</h3>
+  <p>k6（ケーシックス）は、Grafana Labs が作っている<b>負荷試験のツール</b>です。「どの画面を、どんな順番で、何人で開くか」を <b>JavaScript で書いたシナリオ</b>として用意すると、k6 がその人数分の<b>仮想ユーザー（VU）</b>を作り、同時に動かして応答時間を集計します。</p>
+  <pre><span class="c">// このアプリのシナリオ（perf/scenarios/daily.js）のイメージ</span>
+login(<span class="s">'perf01'</span>);                      <span class="c">// 最初に1回ログイン</span>
+page(<span class="s">'/dashboard'</span>);  sleep(<span class="k">3</span>);         <span class="c">// ダッシュボードを開いて、3秒くらい眺める</span>
+page(<span class="s">'/requests'</span>);   sleep(<span class="k">3</span>);         <span class="c">// 一覧</span>
+page(<span class="s">'/requests?keyword=草'</span>);       <span class="c">// 検索 → 詳細 …を30人分同時に繰り返す</span></pre>
+  <p>結果は「画面ごとの p95 が1秒未満か」のような<b>合格ラインを決めておくと、自動で合否を出して</b>くれます（不合格なら終了コードが0以外になる）。</p>
+
+  <h3>ほかのツールとの比較（なぜ k6 か）</h3>
+  <div class="tablewrap"><table>
+    <tr><th>ツール</th><th>シナリオの書き方</th><th>動かすのに要るもの</th><th>このアプリに対して</th></tr>
+    <tr><td><b>k6</b>（採用）</td><td>JavaScript のコード</td><td>k6 本体（1つの実行ファイル）だけ</td><td>◎ 読みやすく差分も追える。追加の言語環境が要らない</td></tr>
+    <tr><td>JMeter</td><td>画面（GUI）で組み立て、巨大な XML で保存</td><td>Java</td><td>△ 老舗で情報は多いが、保存ファイルを読んで直すのがつらい</td></tr>
+    <tr><td>Gatling</td><td>Java・Scala などのコード</td><td>Java（JVM）</td><td>△ 高機能だが、PHP のプロジェクトに Java を持ち込むことになる</td></tr>
+    <tr><td>Locust</td><td>Python のコード</td><td>Python</td><td>○ 書きやすいが、このプロジェクトに Python の環境が無い</td></tr>
+    <tr><td>ab・wrk</td><td>コマンド1行（1つの URL を連打）</td><td>本体のみ</td><td>✕ 「ログイン → 一覧 → 詳細」のような流れを表せない</td></tr>
+  </table></div>
+  <p>決め手は次の4つです。</p>
+  <ul>
+    <li><b>流れを書ける</b>：ログイン（CSRF トークン・セッション Cookie）→ 検索 → 詳細 → 対応履歴の書き込み、という業務の流れをそのまま表せる</li>
+    <li><b>コードなので Git で管理できる</b>：シナリオの変更が差分で見え、レビューもしやすい</li>
+    <li><b>軽い</b>：k6 本体だけで動き、Java・Python などを新しく入れずに済む</li>
+    <li><b>合否を自動で出せる</b>：合格ライン（thresholds）を書いておけば、毎回同じ基準で判定できる。SnsTimeLineApp でも使っていて、PC にもすでに入っている</li>
+  </ul>
+  <p>SnsTimeLineApp ではシナリオを TypeScript で書きましたが、このアプリは TypeScript を使っていないため、<b>素の JavaScript</b> で書いています。</p>
 
   <div class="note"><span>⚠️</span><span><b>ローカルで測った数字を「本番の実力」と言わない。</b>パソコン1台の中で、負荷をかける側（k6）とアプリと DB が CPU を取り合うためです。ローカルの数字は「<b>前回と比べて遅くなっていないか</b>」「<b>どこが詰まるか</b>」を見るのに使います（SnsTimeLineApp と同じ考え方）。</span></div>
   <div class="note"><span>🚫</span><span><b>本番には負荷をかけない。</b>本番の EC2 は famigo と共用の小さなサーバー（t3.micro）です。負荷をかけると famigo まで止まりかねず、アラームも鳴ります。</span></div>
@@ -447,15 +478,15 @@
 
   <!-- 8 -->
   <h2 id="s8"><span class="num">8</span>このアプリの現状</h2>
-  <p class="h2sub">2026-10-24 時点。PHPUnit は 204本・871項目すべて成功（約97秒）。</p>
+  <p class="h2sub">2026-10-24 時点（パフォーマンステスト実施後）。PHPUnit は 205本すべて成功。</p>
 
   <div class="pyramid" role="img" aria-label="このアプリのテストの現状">
     <div class="tier w1"><div><div class="name">手動確認</div><div class="meta">バリデーション確認シート、本番での動作確認</div></div><span class="tag tag-thin">部分的</span></div>
     <div class="tier w2"><div><div class="name">E2E テスト</div><div class="meta">ブラウザでの JavaScript の動きは未確認</div></div><span class="tag tag-none">0本</span></div>
-    <div class="tier w3"><div><div class="name">結合テスト（Feature）</div><div class="meta">14ファイル・テスト専用 DB を使用</div></div><span class="tag tag-done">203本</span></div>
+    <div class="tier w3"><div><div class="name">結合テスト（Feature）</div><div class="meta">15ファイル・テスト専用 DB を使用</div></div><span class="tag tag-done">204本</span></div>
     <div class="tier w4"><div><div class="name">単体テスト（Unit）</div><div class="meta">Laravel が最初から入れているサンプルのみ</div></div><span class="tag tag-thin">1本</span></div>
     <div class="tier w5 base"><div><div class="name">静的解析・整形</div><div class="meta">Pint ／ PHPStan（レベル5）</div></div><span class="tag tag-done">実施中</span></div>
-    <div class="axis"><span>別枠：パフォーマンステスト <b>未着手</b></span><span>別枠：CI（自動実行）<b>未構築</b></span></div>
+    <div class="axis"><span>別枠：パフォーマンステスト <b>実施済み</b>（k6・ローカル）</span><span>別枠：CI（自動実行）<b>未構築</b></span></div>
   </div>
 
   <h3>結合テスト（Feature）の内訳</h3>
@@ -474,6 +505,7 @@
     <tr><td><code>UserManagementTest</code></td><td>ユーザー管理（管理者のみ）</td><td class="n">24</td></tr>
     <tr><td><code>LoggingTest</code></td><td>リクエストID、アクセスログ、機密がログに出ないこと</td><td class="n">15</td></tr>
     <tr><td><code>SampleDataSeederTest</code> ほか</td><td>サンプルデータの投入・入れ替え、ヘルスチェック</td><td class="n">11</td></tr>
+    <tr><td><code>PerfDataSeederTest</code></td><td>負荷試験用データが試験専用 DB 以外では投入されない</td><td class="n">1</td></tr>
   </table></div>
 
   <h3>よくできている点</h3>
@@ -487,7 +519,7 @@
   <h3>足りていない点</h3>
   <div class="tablewrap"><table>
     <tr><th>足りないこと</th><th>なぜ困るか</th><th>埋めるテスト</th></tr>
-    <tr><td><b>速さを一度も測っていない</b></td><td>要件の「同時利用30人」「年間1,000件」に耐えるか分からない。EC2 のメモリ実測（2026-08-15）はしたが、負荷はかけていない</td><td>パフォーマンス</td></tr>
+    <tr><td><s>速さを一度も測っていない</s> → <b>解消</b></td><td>30人・3,000件で全画面 p95 60ms 以下、60人でも失敗0件（次章）</td><td>パフォーマンス</td></tr>
     <tr><td><b>画面の JavaScript が動くか未確認</b></td><td>地図（Leaflet）のピン表示、地図での位置選択、ユーザー登録画面の入力欄の切り替えは、Feature テストでは動かない</td><td>E2E</td></tr>
     <tr><td><b>テストを回すのが「自分が覚えていること」頼み</b></td><td>回し忘れたまま PR を出しても、誰も止めてくれない</td><td>CI</td></tr>
     <tr><td><b>単体テストがほぼ無い</b></td><td>ただし ロジックだけの部品自体が少ないので、大きな問題ではない（次章）</td><td>単体（必要な所だけ）</td></tr>
@@ -519,12 +551,23 @@
 
   <p>コードを読んで、先に「詰まりそうな所」の仮説を立てておきます。測ってみて当たっているかを確かめるのがパフォーマンステストの醍醐味です。</p>
   <div class="tablewrap"><table>
-    <tr><th>仮説</th><th>理由</th></tr>
-    <tr><td><b>PHP の同時処理数</b></td><td>php-fpm は設定を変えていないので、公式イメージの既定（同時に処理できるのは5件まで）のはず。30人が同時に押すと、残りは順番待ちになる可能性</td></tr>
-    <tr><td><b>地図画面</b></td><td>条件に合う案件を件数の上限なしで全部取り出している。件数が増えるほど重くなる</td></tr>
-    <tr><td><b>ダッシュボード</b></td><td>開くたびに全案件を数え直す集計が複数ある</td></tr>
-    <tr><td><b>キーワード検索</b></td><td>部分一致（<code>LIKE '%…%'</code>）は索引が効かず全件を見る。ただし3,000件程度なら問題にならない見込み</td></tr>
+    <tr><th>仮説（試験前）</th><th>理由</th><th>結果（2026-10-24）</th></tr>
+    <tr><td><b>PHP の同時処理数</b></td><td>php-fpm は既定のまま（同時に処理できるのは5件まで）。30人が同時に押すと順番待ちになる可能性</td><td><b>外れ</b>。1画面が数十ms で終わるので、60人でも5つの枠で回った</td></tr>
+    <tr><td><b>地図画面</b></td><td>条件に合う案件を件数の上限なしで全部取り出している</td><td><b>速さは問題なし、量に課題</b>。管理者だとピンのデータが 1.77MB（圧縮なし）。回線が遅いと数秒かかりうる → 今後検討</td></tr>
+    <tr><td><b>ダッシュボード</b></td><td>開くたびに全案件を数え直す集計が複数ある</td><td><b>ふだんは問題なし</b>。ただし下の「思わぬ発見」あり</td></tr>
+    <tr><td><b>キーワード検索</b></td><td>部分一致（<code>LIKE '%…%'</code>）は索引が効かず全件を見る</td><td><b>問題なし</b>。3,000件なら全件見ても約25ms</td></tr>
   </table></div>
+
+  <h3>結果のまとめ</h3>
+  <div class="tablewrap"><table>
+    <tr><th>試験</th><th>結果</th></tr>
+    <tr><td>30人（想定どおり）</td><td>全画面の p95 が <b>60ms 以下</b>（目安は1秒）。失敗0件</td></tr>
+    <tr><td>60人（想定の2倍）</td><td>全画面が目安内（最大でも地図のピンのデータで p95 約0.2秒）。失敗0件</td></tr>
+    <tr><td>CSV 出力</td><td>管理者・全件（約3,000件）で約0.5秒</td></tr>
+  </table></div>
+
+  <div class="note key"><span>🔑</span><span><b>思わぬ発見：データを一気に入れた直後は、MySQL が遅い調べ方を選ぶ。</b>最初の計測で、ダッシュボードだけまれに約0.9秒かかりました。調べると、「30日以上動きなし」を数える SQL が、データを一括で入れた直後だけ索引を使わずに全件を見ていました（0.58秒）。MySQL は表ごとの<b>統計情報</b>（どんなデータがどれくらいあるか）を見て調べ方を決めますが、一気に入れた直後は統計が古いままだからです。<code>ANALYZE TABLE</code> で統計を作り直すと <b>0.006秒</b>（約90倍）になりました。ふだんの運用ではデータが少しずつ増え、統計も自動で追いつくので起きにくい現象です。将来、大量のデータを一括で取り込むときは、取り込んだ後に <code>ANALYZE TABLE</code> を実行すると安心です。</span></div>
+  <div class="note"><span>⚠️</span><span><b>測り方の落とし穴。</b>手で curl を使って測ったとき、<code>localhost</code> と書くと毎回約0.6秒余計にかかり、アプリが遅いと勘違いしかけました。Windows ではまず IPv6 で接続を試すためで、<code>127.0.0.1</code> と書くと正しく測れます。「遅い」と感じたら、まず<b>測り方が正しいか</b>を疑うのも大事です。</span></div>
 
   <h3>② E2E テスト（Playwright）</h3>
   <ul>
@@ -561,7 +604,7 @@
   </dl>
 
   <footer>
-    要望管理システム（CivilRequestManagement）／テストの学習用まとめ（2026-10-24 時点。パフォーマンステスト着手前）。考え方は SnsTimeLineApp の <code>docs/learning/testing-basics.html</code>・<code>docs/13_performance_test.md</code>・<code>docs/14_e2e_test.md</code> を下敷きにしている。
+    要望管理システム（CivilRequestManagement）／テストの学習用まとめ（2026-10-24 時点。パフォーマンステスト実施後）。考え方は SnsTimeLineApp の <code>docs/learning/testing-basics.html</code>・<code>docs/13_performance_test.md</code>・<code>docs/14_e2e_test.md</code> を下敷きにしている。
   </footer>
 </div>
 
