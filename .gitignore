@@ -53,3 +53,7 @@ override.tf.json
 
 # 負荷試験の結果（実行のたびに上書きされる。記録は docs/performance-test.md に残す）
 /perf/results/
+
+# E2E テスト（Playwright）の依存と結果（結果は実行のたびに上書きされる。記録は docs/e2e-test.md に残す）
+/e2e/node_modules/
+/e2e/results/

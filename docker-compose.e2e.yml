@@ -1,0 +1,94 @@
+# E2E テスト（Playwright）専用の環境（E2E テスト設計書 2章）。
+#
+# 負荷試験用（docker-compose.perf.yml）と同じ考え方で、本番と同じイメージ（Dockerfile.prod）で
+# nginx・php を動かし、試験専用の MySQL を足す。開発用の環境（docker-compose.yml、ポート 8081）・
+# 負荷試験用（8082）とはプロジェクト名・ネットワーク・DB を分けている。
+#
+# 通常は e2e/run-e2e.sh から起動・停止する（APP_KEY の生成・データ投入・後片付けを含む）。
+#   ./e2e/run-e2e.sh
+#
+# 本番との違い:
+#   - DB は RDS ではなく同じ PC 上の MySQL
+#   - HTTPS ではないため、セッション Cookie の Secure 属性を外す
+#   - 写真の保存先は S3 ではなくローカル（署名付き URL で表示する流れは同じ）
+name: civil-e2e
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile.prod
+    ports:
+      - "8083:80"
+    depends_on:
+      - php
+    networks:
+      - e2e-network
+
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.prod
+    environment:
+      APP_NAME: "Civil Track"
+      APP_ENV: production
+      # 試験のたびに e2e/run-e2e.sh が使い捨ての値を作って渡す（リポジトリには置かない）。
+      APP_KEY: ${E2E_APP_KEY:-}
+      APP_DEBUG: "false"
+      APP_TIMEZONE: Asia/Tokyo
+      APP_URL: http://localhost:8083
+      APP_LOCALE: ja
+      LOG_CHANNEL: stderr
+      LOG_STDERR_FORMATTER: Monolog\Formatter\JsonFormatter
+      LOG_DEPRECATIONS_CHANNEL: "null"
+      LOG_LEVEL: info
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_DATABASE: civil_request_e2e
+      DB_USERNAME: e2e
+      DB_PASSWORD: e2e
+      DB_CHARSET: utf8mb4
+      DB_COLLATION: utf8mb4_ja_0900_as_cs
+      SESSION_DRIVER: file
+      SESSION_LIFETIME: "120"
+      SESSION_SECURE_COOKIE: "false"
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+      FILESYSTEM_DISK: local
+      PHOTO_DISK: local
+      MAIL_MAILER: log
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - e2e-network
+
+  mysql:
+    image: mysql:8.4
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_ja_0900_as_cs
+    environment:
+      # 外部に公開しない使い捨ての DB のため、固定の値でよい。
+      MYSQL_ROOT_PASSWORD: e2e
+      MYSQL_DATABASE: civil_request_e2e
+      MYSQL_USER: e2e
+      MYSQL_PASSWORD: e2e
+    # データはメモリ上に置き、止めると消える（毎回まっさらな状態から試験する）。
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      # 初回の初期化中は外部接続なしの一時サーバーが動くため、TCP でつなげるかで判定する
+      # （docker-compose.perf.yml と同じ理由）。
+      test: ["CMD", "mysql", "-h", "127.0.0.1", "-ue2e", "-pe2e", "-e", "SELECT 1", "civil_request_e2e"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+    networks:
+      - e2e-network
+    # ポートは公開しない（php からのみ使う）。
+
+networks:
+  e2e-network:
+    driver: bridge
