@@ -62,8 +62,12 @@ compose up -d --build --wait
 log "試験データを投入します（3年分・約3,000件）"
 compose exec -T php php artisan db:seed --class=PerfDataSeeder --force
 
-# 起動直後の1回目はキャッシュの準備で遅いことがあるため、計測の前に1度開いておく。
-curl -s -o /dev/null "$BASE_URL/login"
+# 起動直後はポートの準備が間に合わないことがあるため、画面が返るまで待つ。
+# あわせて1度開いておくことで、最初の計測がキャッシュの準備で遅くなるのを避ける。
+for _ in $(seq 1 30); do
+  if [ "$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL/login" || true)" = "200" ]; then break; fi
+  sleep 1
+done
 
 mkdir -p "$RESULT_DIR"
 STATS_FILE="$RESULT_DIR/$(basename "$SCENARIO" .js)-docker-stats.txt"
