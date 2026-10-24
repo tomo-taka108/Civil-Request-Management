@@ -1,0 +1,17 @@
+{
+  "name": "civil-request-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "E2E テスト（Playwright）。アプリ本体の package.json（Vite）からは独立している",
+  "scripts": {
+    "test": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "report": "playwright show-report results/playwright-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0",
+    "@types/node": "24.19.1",
+    "typescript": "6.0.3"
+  }
+}
