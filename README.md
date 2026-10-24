@@ -52,6 +52,7 @@
 | [インフラ設計書](docs/infrastructure-design.md) | AWS 構成・既存環境の共有方針・デプロイ・停止再開 |
 | [運用手順](docs/operations-start-stop.md) | EC2/RDS の停止・再開、コード更新デプロイ手順 |
 | [ログ・監視設計書](docs/logging-and-monitoring.md) | ログの形式・リクエストID・ログに出さない情報・CloudWatch による監視と障害対応 |
+| [パフォーマンステスト設計書](docs/performance-test.md) | k6 による負荷試験の方法（試験専用の環境・3年分の試験データ・シナリオ）と結果 |
 | [画面モックアップ](mockup/) | 全11画面の静的HTMLプロトタイプ |
 
 ---
@@ -89,7 +90,7 @@
 | Web サーバ | Nginx | 1.27 (alpine) | リクエスト受付・静的ファイル配信 |
 | 実行環境 | Docker / Docker Compose | — | 実行環境のコンテナ化（開発・本番） |
 | インフラ | AWS（ALB / EC2 / RDS / S3 / Route53 / ACM）+ Terraform | — | 既存 AWS 基盤の活用・現場写真の保存（S3）・インフラのコード管理 |
-| 品質 | Laravel Pint / Larastan（PHPStan）/ PHPUnit | — | 整形・静的解析・テスト |
+| 品質 | Laravel Pint / Larastan（PHPStan）/ PHPUnit / k6 | — | 整形・静的解析・テスト・負荷試験 |
 
 **【選定理由】**
 
@@ -498,6 +499,12 @@ docker compose down -v
 docker compose exec -T php ./vendor/bin/pint --test                          # 整形
 docker compose exec -T php ./vendor/bin/phpstan analyse --memory-limit=512M  # 静的解析
 docker compose exec -T php php artisan test                                  # テスト
+```
+
+### 負荷試験（任意。手順は [perf/README.md](perf/README.md)）
+
+```bash
+./perf/run-perf.sh   # 試験専用の環境（ポート 8082）を立てて30人分の負荷をかけ、終わったら片付ける
 ```
 
 </details>

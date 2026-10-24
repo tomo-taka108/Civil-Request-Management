@@ -50,3 +50,6 @@ override.tf.json
 *_override.tf.json
 # プロバイダ lock は共有するのでコミットする（除外しない）
 !.terraform.lock.hcl
+
+# 負荷試験の結果（実行のたびに上書きされる。記録は docs/performance-test.md に残す）
+/perf/results/

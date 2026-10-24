@@ -5,7 +5,13 @@ node_modules
 docs
 mockup
 *.md
+# 環境変数ファイルはイメージに入れない（機密を含む。本番は compose の env_file で渡す）。
+# EC2 上ではプロジェクト直下に .env.production があるため、COPY . . で焼き込まれてしまう（#110）。
+# 見本（値が空の example）だけは残す。
 .env
+.env.*
+!.env.example
+!.env.production.example
 storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*

@@ -49,7 +49,7 @@ class SampleRequestSeeder extends Seeder
      *
      * @var array<string, string>
      */
-    private const DATA_FILES = [
+    public const DATA_FILES = [
         'みどり土木事務所' => 'sample_requests_midori.php',
         'つばき土木事務所' => 'sample_requests_tsubaki.php',
         'こはく土木事務所' => 'sample_requests_kohaku.php',
@@ -67,7 +67,7 @@ class SampleRequestSeeder extends Seeder
      *
      * @var array<string, array{float, float, float, float}>
      */
-    private const OFFICE_AREAS = [
+    public const OFFICE_AREAS = [
         'みどり土木事務所' => [34.780, 34.850, 135.490, 135.590], // 大阪府北部
         'つばき土木事務所' => [34.650, 34.700, 135.580, 135.640], // 大阪府東部
         'こはく土木事務所' => [34.430, 34.560, 135.400, 135.480], // 大阪府南部
