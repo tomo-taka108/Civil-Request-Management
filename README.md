@@ -52,6 +52,7 @@
 | [インフラ設計書](docs/infrastructure-design.md) | AWS 構成・既存環境の共有方針・デプロイ・停止再開 |
 | [運用手順](docs/operations-start-stop.md) | EC2/RDS の停止・再開、コード更新デプロイ手順 |
 | [ログ・監視設計書](docs/logging-and-monitoring.md) | ログの形式・リクエストID・ログに出さない情報・CloudWatch による監視と障害対応 |
+| [E2E テスト設計書](docs/e2e-test.md) | Playwright による E2E テストの方法（試験専用の環境・試験データ・地図タイルの扱い・テスト一覧）と結果 |
 | [パフォーマンステスト設計書](docs/performance-test.md) | k6 による負荷試験の方法（試験専用の環境・3年分の試験データ・シナリオ）と結果 |
 | [画面モックアップ](mockup/) | 全11画面の静的HTMLプロトタイプ |
 
@@ -90,7 +91,7 @@
 | Web サーバ | Nginx | 1.27 (alpine) | リクエスト受付・静的ファイル配信 |
 | 実行環境 | Docker / Docker Compose | — | 実行環境のコンテナ化（開発・本番） |
 | インフラ | AWS（ALB / EC2 / RDS / S3 / Route53 / ACM）+ Terraform | — | 既存 AWS 基盤の活用・現場写真の保存（S3）・インフラのコード管理 |
-| 品質 | Laravel Pint / Larastan（PHPStan）/ PHPUnit / k6 | — | 整形・静的解析・テスト・負荷試験 |
+| 品質 | Laravel Pint / Larastan（PHPStan）/ PHPUnit / Playwright / k6 | — | 整形・静的解析・テスト・E2E テスト・負荷試験 |
 
 **【選定理由】**
 
@@ -499,6 +500,12 @@ docker compose down -v
 docker compose exec -T php ./vendor/bin/pint --test                          # 整形
 docker compose exec -T php ./vendor/bin/phpstan analyse --memory-limit=512M  # 静的解析
 docker compose exec -T php php artisan test                                  # テスト
+```
+
+### E2E テスト（任意。手順は [e2e/README.md](e2e/README.md)。Node.js が必要）
+
+```bash
+./e2e/run-e2e.sh     # 試験専用の環境（ポート 8083）を立てて、本物のブラウザで画面を操作する。終わったら片付ける
 ```
 
 ### 負荷試験（任意。手順は [perf/README.md](perf/README.md)）

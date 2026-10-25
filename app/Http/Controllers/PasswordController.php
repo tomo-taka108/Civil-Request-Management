@@ -18,12 +18,6 @@ use Illuminate\View\View;
  */
 class PasswordController extends Controller
 {
-    /**
-     * パスワード変更後のデフォルト遷移先。
-     * 案件一覧（requests.index）実装後にここを差し替える。
-     */
-    private const HOME_ROUTE = '/';
-
     public function edit(): View
     {
         return view('auth.password');
@@ -52,6 +46,8 @@ class PasswordController extends Controller
 
         Log::info('パスワードを変更しました');
 
-        return redirect(self::HOME_ROUTE)->with('status', 'パスワードを変更しました。');
+        // ダッシュボードへ直接戻す。トップ（/）経由にすると、そこからの転送で
+        // 完了メッセージ（1回だけ表示されるもの）が使い切られ、画面に出ない（E2E で発見）。
+        return redirect()->route('dashboard.index')->with('status', 'パスワードを変更しました。');
     }
 }

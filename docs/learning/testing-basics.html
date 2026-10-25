@@ -269,7 +269,7 @@
     <tr><td><b>静的解析・整形</b></td><td><code>pint.json</code>・<code>phpstan.neon</code>（ルールの設定。対象は書いたコード全体）</td><td>quality-check の Step 1・2</td></tr>
     <tr><td><b>単体</b></td><td><code>tests/Unit/</code></td><td rowspan="2">quality-check の Step 3<br><code>php artisan test</code></td></tr>
     <tr><td><b>結合（Feature）</b></td><td><code>tests/Feature/</code></td></tr>
-    <tr><td><b>E2E</b></td><td>まだ無い（<code>e2e/</code> に作る予定）</td><td>—</td></tr>
+    <tr><td><b>E2E</b></td><td><code>e2e/</code>・<code>docker-compose.e2e.yml</code></td><td><code>./e2e/run-e2e.sh</code></td></tr>
     <tr><td><b>手動確認</b></td><td><code>docs/validation-checklist.html</code> ほか</td><td>人が画面で確かめる</td></tr>
     <tr><td><b>パフォーマンス</b></td><td><code>perf/</code>・<code>docker-compose.perf.yml</code></td><td><code>./perf/run-perf.sh</code></td></tr>
   </table></div>
@@ -304,7 +304,7 @@
     <p>ブラウザの代わりに HTTP リクエストを送り、ルーティング → ミドルウェア（ログイン確認）→ バリデーション → コントローラ → DB → 画面（HTML）まで<b>通しで</b>確かめます。ただし<b>JavaScript は動きません</b>（返ってきた HTML の文字を調べるだけ）。</p>
     <p>例：一般職員でログインして一覧を開くと、自分の事務所の案件だけが表示される。</p>
     <div class="files"><b>このプロジェクトでは</b><ul>
-      <li><code>tests/Feature/*.php</code>：テスト本体（14ファイル。内訳は8章）</li>
+      <li><code>tests/Feature/*.php</code>：テスト本体（17ファイル。内訳は8章）</li>
       <li><code>tests/TestCase.php</code>：全テスト共通の土台</li>
       <li><code>database/factories/*.php</code>：テスト用データの作り方（事務所・ユーザー・案件・対応履歴・写真の5つ）</li>
       <li><code>phpunit.xml</code>：テスト時の設定。テスト専用 DB を使う、ログを書かない、など</li>
@@ -313,14 +313,41 @@
   </div>
 
   <div class="card">
-    <h3>E2E テスト（End to End） <span class="tag tag-none">未着手</span></h3>
-    <p class="role">道具の候補：Playwright</p>
+    <h3>E2E テスト（End to End） <span class="tag tag-done">実施済み（2026-10-25）</span></h3>
+    <p class="role">道具：Playwright（Chromium）</p>
     <p>本物のブラウザ（Chrome 等）をプログラムで操作して、利用者と同じように画面を触ります。<b>JavaScript も CSS も実際に動く</b>ので、Feature テストでは確かめられない「地図にピンが立つ」「ボタンを押したら入力欄が切り替わる」なども見られます。</p>
-    <p>例：ログイン → 新規登録 → 写真を添付 → 保存 → 詳細画面に写真のサムネイルが出る。</p>
+    <p>例：ログイン → 詳細画面で写真つきの対応履歴を追加 → 写真が実際に表示される。</p>
     <div class="files"><b>このプロジェクトでは</b><ul>
-      <li>まだ無い。作るときは <code>e2e/</code> フォルダに分ける予定（SnsTimeLineApp と同じ置き方）</li>
-      <li>確かめたい JavaScript の例：<code>resources/views/map/index.blade.php</code>（地図のピン表示）、<code>resources/views/requests/partials/location-map.blade.php</code>（地図をクリックして位置を選ぶ）、<code>resources/views/users/partials/role-fields.blade.php</code>（役割で入力欄を切り替える）</li>
+      <li><code>e2e/specs/*.spec.ts</code>：テスト本体（6ファイル・7本＋任意の1本。一覧は <code>docs/e2e-test.md</code> 4章）</li>
+      <li><code>e2e/fixtures/test.ts</code>：全テスト共通の準備（地図タイルのダミー差し替え、画面の JavaScript エラーの見張り、ログイン）</li>
+      <li><code>e2e/fixtures/data.ts</code>：試験データのユーザー ID・案件の文面（Seeder と対応）</li>
+      <li><code>e2e/playwright.config.ts</code>：設定（1つずつ順に流す、失敗時に画面の写真と操作の記録を残す、など）</li>
+      <li><code>e2e/run-e2e.sh</code>：環境の起動 → データ投入 → テスト → 片付けを1本で行うスクリプト。手順は <code>e2e/README.md</code></li>
+      <li><code>docker-compose.e2e.yml</code>：試験専用の環境（本番と同じイメージ＋試験専用の MySQL。ポート 8083）</li>
+      <li><code>database/seeders/E2eDataSeeder.php</code>：ユーザー4人・案件7件の決め打ちのデータ。試験専用 DB 以外では動かない（<code>tests/Feature/E2eDataSeederTest.php</code> で確認）</li>
+      <li><code>docs/e2e-test.md</code>：設計と結果</li>
     </ul></div>
+
+    <h3>Playwright とは・ほかのツールとの比較</h3>
+    <p>Playwright は Microsoft が作っている、ブラウザを自動で操作するツールです。「このボタンを押す」「この文字が出ているはず」を TypeScript（または JavaScript）で書くと、本物のブラウザで順に実行して、合否を出します。</p>
+    <div class="tablewrap"><table>
+      <tr><th>ツール</th><th>特徴</th><th>このアプリに対して</th></tr>
+      <tr><td><b>Playwright</b>（採用）</td><td>待ち合わせを自動でしてくれる。ブラウザの通信を途中で差し替えられる。失敗時の記録（トレース）が見やすい</td><td>◎ 地図タイルをダミーに差し替えられる。SnsTimeLineApp でも使っている</td></tr>
+      <tr><td>Cypress</td><td>画面を見ながらテストを作りやすい</td><td>○ 通信の差し替えもでき十分使えるが、1つのテストで複数のタブを扱えない。SnsTimeLineApp で選ばなかった道具でもある</td></tr>
+      <tr><td>Selenium</td><td>最も歴史が長く、対応言語が多い</td><td>△ 「表示されるまで待つ」を自分で書く必要があり、不安定になりやすい</td></tr>
+      <tr><td>Laravel Dusk</td><td>Laravel 公式。PHP で書ける</td><td>○ PHP で書けるのは魅力。ただし中身は Selenium 系の仕組みで、通信の差し替えなどは Playwright のほうが得意</td></tr>
+    </table></div>
+    <h3>動かすのに必要なもの（k6 との違い）</h3>
+    <p>k6 はパソコンに1つ入れれば、どのプロジェクトからも同じものを使えます。Playwright は<b>プロジェクトごとに版を決めて入れる</b>のが基本で、さらに<b>その版に合ったテスト用のブラウザ</b>も別に入れる必要があります。</p>
+    <div class="tablewrap"><table>
+      <tr><th>もの</th><th>入れる場所</th><th>このプロジェクトでは</th></tr>
+      <tr><td><b>Node.js</b>（土台）</td><td>パソコン本体</td><td>もともと入っていたもの（v24）を使用</td></tr>
+      <tr><td><b>Playwright 本体</b></td><td>プロジェクトごと（<code>e2e/node_modules/</code>）</td><td><code>cd e2e &amp;&amp; npm ci</code> で入れる。版は 1.64.0 に固定（<code>e2e/package.json</code>）。Git には入れない</td></tr>
+      <tr><td><b>テスト用のブラウザ</b>（Chromium、約120MB）</td><td>パソコンの共通の置き場（<code>C:\Users\&lt;ユーザー名&gt;\AppData\Local\ms-playwright\</code>）。版ごとにフォルダが分かれる</td><td><code>npx playwright install chromium</code> で入れる。同じ版の Playwright を使うプロジェクト同士なら共有される</td></tr>
+    </table></div>
+    <p>どちらもインターネット経由（npm の公式の配布元と、Playwright の公式の配布元）でダウンロードします。最初に一度だけ実行すればよく、手順は <code>e2e/README.md</code> にあります。パソコンにはほかのプロジェクト用の Playwright（版違い）も入っていましたが、版が合わないため使っていません。実際に入れた版と、改ざんを確かめるための値は <code>e2e/package-lock.json</code> に記録されており、別の PC でも <code>npm ci</code> で同じものが入ります。</p>
+
+    <div class="note"><span>🗺️</span><span><b>地図タイルはダミーに差し替える。</b>地図の背景画像（国土地理院のタイル）は、テスト中は灰色の無地の画像を返します。外のサーバーの調子や回線で落ちないようにするためと、相手のサーバーに負担をかけないためです。差し替えるのは背景だけで、ピンの表示やクリックなどこのアプリの JavaScript は本物のまま動きます。本物を読み込む確認は、任意で流す1本（<code>E2E_REAL_TILES=1</code>）とデプロイ後の目視で補います。</span></div>
   </div>
 
   <div class="card">
@@ -478,12 +505,12 @@ page(<span class="s">'/requests?keyword=草'</span>);       <span class="c">// �
 
   <!-- 8 -->
   <h2 id="s8"><span class="num">8</span>このアプリの現状</h2>
-  <p class="h2sub">2026-10-24 時点（パフォーマンステスト実施後）。PHPUnit は 205本すべて成功。</p>
+  <p class="h2sub">2026-10-25 時点（E2E テスト実施後）。PHPUnit は 207本、E2E は 7本すべて成功。</p>
 
   <div class="pyramid" role="img" aria-label="このアプリのテストの現状">
     <div class="tier w1"><div><div class="name">手動確認</div><div class="meta">バリデーション確認シート、本番での動作確認</div></div><span class="tag tag-thin">部分的</span></div>
-    <div class="tier w2"><div><div class="name">E2E テスト</div><div class="meta">ブラウザでの JavaScript の動きは未確認</div></div><span class="tag tag-none">0本</span></div>
-    <div class="tier w3"><div><div class="name">結合テスト（Feature）</div><div class="meta">15ファイル・テスト専用 DB を使用</div></div><span class="tag tag-done">204本</span></div>
+    <div class="tier w2"><div><div class="name">E2E テスト</div><div class="meta">画面の JavaScript と業務の主な流れ（Playwright）</div></div><span class="tag tag-done">7本</span></div>
+    <div class="tier w3"><div><div class="name">結合テスト（Feature）</div><div class="meta">17ファイル・テスト専用 DB を使用</div></div><span class="tag tag-done">206本</span></div>
     <div class="tier w4"><div><div class="name">単体テスト（Unit）</div><div class="meta">Laravel が最初から入れているサンプルのみ</div></div><span class="tag tag-thin">1本</span></div>
     <div class="tier w5 base"><div><div class="name">静的解析・整形</div><div class="meta">Pint ／ PHPStan（レベル5）</div></div><span class="tag tag-done">実施中</span></div>
     <div class="axis"><span>別枠：パフォーマンステスト <b>実施済み</b>（k6・ローカル）</span><span>別枠：CI（自動実行）<b>未構築</b></span></div>
@@ -492,7 +519,7 @@ page(<span class="s">'/requests?keyword=草'</span>);       <span class="c">// �
   <h3>結合テスト（Feature）の内訳</h3>
   <div class="tablewrap"><table>
     <tr><th>ファイル</th><th>確かめていること</th><th>本数</th></tr>
-    <tr><td><code>AuthTest</code></td><td>ログイン・ログアウト、初回のパスワード変更</td><td class="n">11</td></tr>
+    <tr><td><code>AuthTest</code></td><td>ログイン・ログアウト、初回のパスワード変更</td><td class="n">12</td></tr>
     <tr><td><code>RequestIndexTest</code></td><td>一覧・検索条件（AND 条件、期間、部分一致）、事務所ごとの見え方</td><td class="n">20</td></tr>
     <tr><td><code>RequestControllerTest</code></td><td>案件の新規登録・削除と権限</td><td class="n">18</td></tr>
     <tr><td><code>RequestEditTest</code></td><td>案件の編集と、部署による編集権限</td><td class="n">18</td></tr>
@@ -505,7 +532,7 @@ page(<span class="s">'/requests?keyword=草'</span>);       <span class="c">// �
     <tr><td><code>UserManagementTest</code></td><td>ユーザー管理（管理者のみ）</td><td class="n">24</td></tr>
     <tr><td><code>LoggingTest</code></td><td>リクエストID、アクセスログ、機密がログに出ないこと</td><td class="n">15</td></tr>
     <tr><td><code>SampleDataSeederTest</code> ほか</td><td>サンプルデータの投入・入れ替え、ヘルスチェック</td><td class="n">11</td></tr>
-    <tr><td><code>PerfDataSeederTest</code></td><td>負荷試験用データが試験専用 DB 以外では投入されない</td><td class="n">1</td></tr>
+    <tr><td><code>PerfDataSeederTest</code>・<code>E2eDataSeederTest</code></td><td>負荷試験用・E2E 用のデータが、それぞれの試験専用 DB 以外では投入されない</td><td class="n">2</td></tr>
   </table></div>
 
   <h3>よくできている点</h3>
@@ -520,7 +547,7 @@ page(<span class="s">'/requests?keyword=草'</span>);       <span class="c">// �
   <div class="tablewrap"><table>
     <tr><th>足りないこと</th><th>なぜ困るか</th><th>埋めるテスト</th></tr>
     <tr><td><s>速さを一度も測っていない</s> → <b>解消</b></td><td>30人・3,000件で全画面 p95 60ms 以下、60人でも失敗0件（次章）</td><td>パフォーマンス</td></tr>
-    <tr><td><b>画面の JavaScript が動くか未確認</b></td><td>地図（Leaflet）のピン表示、地図での位置選択、ユーザー登録画面の入力欄の切り替えは、Feature テストでは動かない</td><td>E2E</td></tr>
+    <tr><td><s>画面の JavaScript が動くか未確認</s> → <b>解消</b></td><td>地図のピン表示・位置選択、入力欄の切り替え、確認ダイアログなどを E2E 7本で確認。その過程で不具合を1件発見して修正（次章）</td><td>E2E</td></tr>
     <tr><td><b>テストを回すのが「自分が覚えていること」頼み</b></td><td>回し忘れたまま PR を出しても、誰も止めてくれない</td><td>CI</td></tr>
     <tr><td><b>単体テストがほぼ無い</b></td><td>ただし ロジックだけの部品自体が少ないので、大きな問題ではない（次章）</td><td>単体（必要な所だけ）</td></tr>
   </table></div>
@@ -532,7 +559,7 @@ page(<span class="s">'/requests?keyword=草'</span>);       <span class="c">// �
   <div class="pipe">
     <div class="box hl"><b>① パフォーマンス</b>k6・ローカルのみ</div>
     <div class="arrow">→</div>
-    <div class="box"><b>② E2E</b>Playwright・主要な流れ数本</div>
+    <div class="box hl"><b>② E2E</b>Playwright・主要な流れ数本</div>
     <div class="arrow">→</div>
     <div class="box"><b>③ CI</b>GitHub Actions で PR ごとに自動実行</div>
   </div>
@@ -570,11 +597,15 @@ page(<span class="s">'/requests?keyword=草'</span>);       <span class="c">// �
   <div class="note"><span>⚠️</span><span><b>測り方の落とし穴。</b>手で curl を使って測ったとき、<code>localhost</code> と書くと毎回約0.6秒余計にかかり、アプリが遅いと勘違いしかけました。Windows ではまず IPv6 で接続を試すためで、<code>127.0.0.1</code> と書くと正しく測れます。「遅い」と感じたら、まず<b>測り方が正しいか</b>を疑うのも大事です。</span></div>
 
   <h3>② E2E テスト（Playwright）</h3>
-  <ul>
-    <li><b>本数は絞る</b>：Feature テストで確かめられることは E2E でやり直さない。<b>JavaScript が絡む所</b>と<b>業務の主な流れ</b>だけ</li>
-    <li>候補：ログイン → 新規登録（写真つき）→ 詳細で確認／地図にピンが出る・地図で位置を選べる／ユーザー登録で役割に応じて入力欄が切り替わる／初回ログインでパスワード変更に進む</li>
-    <li>パフォーマンステストと同じく、専用のデータで動かす</li>
-  </ul>
+  <div class="tablewrap"><table>
+    <tr><th>項目</th><th>方針・結果（2026-10-25）</th></tr>
+    <tr><td><b>本数</b></td><td><b>7本に絞った</b>。Feature テストで確かめられることはやり直さず、<b>JavaScript が絡む所</b>と<b>業務の主な流れ</b>だけ</td></tr>
+    <tr><td><b>中身</b></td><td>案件の登録（地図で位置を選ぶ）→ 一覧 → 詳細／編集・削除の確認ダイアログ／写真つきの対応履歴／地図のピンと絞り込み／管理者がユーザー登録 → 初回ログインでパスワード変更／他部署は閲覧のみ</td></tr>
+    <tr><td><b>環境・データ</b></td><td>パフォーマンステストと同じく、本番と同じイメージの試験専用の環境。データは「ピンは2本」と言い切れるよう、少ない件数を決め打ちで入れる</td></tr>
+    <tr><td><b>不安定さ</b></td><td>同じ環境で3回ずつ繰り返して21本すべて成功。失敗しても再実行しない設定にして、不安定さを隠さない</td></tr>
+    <tr><td><b>効いているか</b></td><td>地図のクリック・入力欄の切り替え・ピンの取り寄せを<b>わざと壊すと、狙ったテストが落ちる</b>ことを確認（7章のミューテーションの考え方）</td></tr>
+  </table></div>
+  <div class="note key"><span>🔑</span><span><b>E2E で見つかった不具合：パスワード変更後のメッセージが出ていなかった。</b>変更後に「パスワードを変更しました。」と出るはずが、実際の画面には一度も出ていませんでした。トップ（<code>/</code>）を経由してダッシュボードへ転送していたため、1回だけ表示されるメッセージが中継で使い切られていたのです。Feature テストは「トップへ転送される」ことまでしか見ていなかったので気づけませんでした。<b>転送の先まで、利用者と同じ画面を見る</b> E2E ならではの発見です。直したうえで、Feature テストにも「転送をたどった先にメッセージが出る」確認を足しました。</span></div>
 
   <h3>③ CI（GitHub Actions）</h3>
   <ul>
@@ -601,10 +632,11 @@ page(<span class="s">'/requests?keyword=草'</span>);       <span class="c">// �
     <dt>VU（仮想ユーザー）</dt><dd>k6 が作る「同時に使っている人」。30 VU ＝ 30人が同時に操作している状態</dd>
     <dt>CI</dt><dd>継続的インテグレーション。PR を出すたびにテストを自動で回す仕組み</dd>
     <dt>フレーキー</dt><dd>同じコードなのに通ったり落ちたりするテスト。E2E で起きやすい</dd>
+    <dt>トレース</dt><dd>Playwright が失敗時に残す操作の記録。1手ずつ巻き戻して、そのときの画面・通信を見られる</dd>
   </dl>
 
   <footer>
-    要望管理システム（CivilRequestManagement）／テストの学習用まとめ（2026-10-24 時点。パフォーマンステスト実施後）。考え方は SnsTimeLineApp の <code>docs/learning/testing-basics.html</code>・<code>docs/13_performance_test.md</code>・<code>docs/14_e2e_test.md</code> を下敷きにしている。
+    要望管理システム（CivilRequestManagement）／テストの学習用まとめ（2026-10-25 時点。E2E テスト実施後）。考え方は SnsTimeLineApp の <code>docs/learning/testing-basics.html</code>・<code>docs/13_performance_test.md</code>・<code>docs/14_e2e_test.md</code> を下敷きにしている。
   </footer>
 </div>
 

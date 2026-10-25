@@ -16,3 +16,6 @@ storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
+# E2E テスト（Playwright）は本番イメージに不要。e2e/node_modules は上の node_modules
+# （直下だけに効く）では除外されないため、フォルダごと除く。
+e2e
