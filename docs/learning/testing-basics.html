@@ -337,6 +337,16 @@
       <tr><td>Selenium</td><td>最も歴史が長く、対応言語が多い</td><td>△ 「表示されるまで待つ」を自分で書く必要があり、不安定になりやすい</td></tr>
       <tr><td>Laravel Dusk</td><td>Laravel 公式。PHP で書ける</td><td>○ PHP で書けるのは魅力。ただし中身は Selenium 系の仕組みで、通信の差し替えなどは Playwright のほうが得意</td></tr>
     </table></div>
+    <h3>動かすのに必要なもの（k6 との違い）</h3>
+    <p>k6 はパソコンに1つ入れれば、どのプロジェクトからも同じものを使えます。Playwright は<b>プロジェクトごとに版を決めて入れる</b>のが基本で、さらに<b>その版に合ったテスト用のブラウザ</b>も別に入れる必要があります。</p>
+    <div class="tablewrap"><table>
+      <tr><th>もの</th><th>入れる場所</th><th>このプロジェクトでは</th></tr>
+      <tr><td><b>Node.js</b>（土台）</td><td>パソコン本体</td><td>もともと入っていたもの（v24）を使用</td></tr>
+      <tr><td><b>Playwright 本体</b></td><td>プロジェクトごと（<code>e2e/node_modules/</code>）</td><td><code>cd e2e &amp;&amp; npm ci</code> で入れる。版は 1.64.0 に固定（<code>e2e/package.json</code>）。Git には入れない</td></tr>
+      <tr><td><b>テスト用のブラウザ</b>（Chromium、約120MB）</td><td>パソコンの共通の置き場（<code>C:\Users\&lt;ユーザー名&gt;\AppData\Local\ms-playwright\</code>）。版ごとにフォルダが分かれる</td><td><code>npx playwright install chromium</code> で入れる。同じ版の Playwright を使うプロジェクト同士なら共有される</td></tr>
+    </table></div>
+    <p>どちらもインターネット経由（npm の公式の配布元と、Playwright の公式の配布元）でダウンロードします。最初に一度だけ実行すればよく、手順は <code>e2e/README.md</code> にあります。パソコンにはほかのプロジェクト用の Playwright（版違い）も入っていましたが、版が合わないため使っていません。実際に入れた版と、改ざんを確かめるための値は <code>e2e/package-lock.json</code> に記録されており、別の PC でも <code>npm ci</code> で同じものが入ります。</p>
+
     <div class="note"><span>🗺️</span><span><b>地図タイルはダミーに差し替える。</b>地図の背景画像（国土地理院のタイル）は、テスト中は灰色の無地の画像を返します。外のサーバーの調子や回線で落ちないようにするためと、相手のサーバーに負担をかけないためです。差し替えるのは背景だけで、ピンの表示やクリックなどこのアプリの JavaScript は本物のまま動きます。本物を読み込む確認は、任意で流す1本（<code>E2E_REAL_TILES=1</code>）とデプロイ後の目視で補います。</span></div>
   </div>
 
