@@ -2,7 +2,9 @@
 # ローカル用 Dockerfile はソースをバインドマウントする前提だが、本番では
 # ソース・vendor をイメージに焼き込み、不変の成果物としてデプロイする。
 
-FROM php:8.3-fpm
+# PHP の版は細かい版まで固定する（2026-10 の PHP の脆弱性対応。docs/security-advisories.md）。
+# 版を上げるときは、ここと Dockerfile（開発用）を同じ値にそろえる。
+FROM php:8.3.36-fpm
 
 # PHP拡張のインストールに必要なOSパッケージ（ローカル用と同じ）
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -30,6 +32,9 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # 現場写真のアップロード上限（ローカルと共用。既定の 2MB/8MB では写真を送れない）。
 COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
+
+# セキュリティのための設定（使っていないアップロード進捗の記録を止める）。
+COPY docker/php/security.ini /usr/local/etc/php/conf.d/zz-security.ini
 
 # PHP-FPM のログ設定（長いログ行を分割しない・FPM 自身のアクセスログを出さない）。
 COPY docker/php/fpm-logging.conf /usr/local/etc/php-fpm.d/zz-logging.conf

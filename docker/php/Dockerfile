@@ -1,4 +1,7 @@
-FROM php:8.3-fpm
+# PHP の版は細かい版まで固定する（2026-10 の PHP の脆弱性対応。docs/security-advisories.md）。
+# 「8.3-fpm」のように大まかに書くと、どの版で動くかがビルドした時の元イメージ次第になる。
+# 版を上げるときは、ここと Dockerfile.prod を同じ値にそろえる。
+FROM php:8.3.36-fpm
 
 # PHP拡張のインストールに必要なOSパッケージ
 #  - libonig-dev : mbstring が要求する oniguruma
