@@ -148,9 +148,9 @@ docker compose -f docker-compose.prod.yml up -d
 `build` により新コードを焼き込んだイメージが作られ、`up -d` でコンテナが入れ替わる。
 起動時に entrypoint が `php artisan migrate --force` と config/route/view キャッシュ再生成を自動実行する。
 
-> **`--pull` を必ず付ける。** 付けないと、EC2 に前から残っている元イメージ（PHP・nginx の土台）をそのまま使ってビルドする。
-> そうなると、PHP や OS の修正版が出ていても本番に入らない。2026-10 の PHP の脆弱性対応で、この点が分かった
-> （[脆弱性対応の記録](security-advisories.md)）。
+> **`--pull` を必ず付ける。** 付けないと、EC2 に元イメージ（PHP・nginx の土台）が残っている場合、それをそのまま使ってビルドする。
+> そうなると、PHP や OS の修正版が出ていても本番に入らない。ステップ 4 の掃除で元イメージが消えていれば毎回取り直されるが、
+> 掃除を忘れたときにも確実に最新にするため付ける（[脆弱性対応の記録](security-advisories.md)）。
 
 #### ステップ 3：反映確認
 
