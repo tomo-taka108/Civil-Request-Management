@@ -8,7 +8,8 @@
 
 services:
   nginx:
-    image: nginx:1.27-alpine
+    # 版は本番用（docker/nginx/Dockerfile.prod）とそろえる。
+    image: nginx:1.30.6-alpine
     ports:
       - "8081:80"
     volumes:

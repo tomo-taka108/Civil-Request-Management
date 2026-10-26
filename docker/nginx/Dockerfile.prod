@@ -3,7 +3,9 @@
 # ビルド済みアプリの public/ をイメージに焼き込む。動的リクエストは
 # fastcgi_pass で php コンテナ（php:9000）へ渡す。
 
-FROM nginx:1.27-alpine
+# nginx の版は細かい版まで固定する（更新が続いている安定版の系列を使う。docs/security-advisories.md）。
+# 版を上げるときは、ここと docker-compose.yml（開発用）を同じ値にそろえる。
+FROM nginx:1.30.6-alpine
 
 # server ブロック（php コンテナへ fastcgi する設定。ローカルと共通で流用可能）。
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf

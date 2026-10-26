@@ -89,7 +89,7 @@
 | フロントビルド | Vite / Tailwind CSS | 6 / 3 | 画面スタイルの構築（ビルド時のみ使用） |
 | DB | MySQL | 8.4 | データストア（既存 RDS インスタンス内の専用スキーマを利用） |
 | 地図 | Leaflet + 国土地理院地図タイル | — | 要望箇所のピン表示 |
-| Web サーバ | Nginx | 1.27 (alpine) | リクエスト受付・静的ファイル配信 |
+| Web サーバ | Nginx | 1.30（1.30.6-alpine に固定） | リクエスト受付・静的ファイル配信 |
 | 実行環境 | Docker / Docker Compose | — | 実行環境のコンテナ化（開発・本番） |
 | インフラ | AWS（ALB / EC2 / RDS / S3 / Route53 / ACM）+ Terraform | — | 既存 AWS 基盤の活用・現場写真の保存（S3）・インフラのコード管理 |
 | 品質 | Laravel Pint / Larastan（PHPStan）/ PHPUnit / Playwright / k6 | — | 整形・静的解析・テスト・E2E テスト・負荷試験 |
