@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CI の基礎と導入</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #fafbfc;
+    --ink: #1b2130;
+    --ink-soft: #4b5464;
+    --ink-faint: #858da0;
+    --line: #e3e6ec;
+    --accent: #2f5bd6;
+    --accent-soft: #e7edfc;
+    --accent-ink: #1a2e63;
+    --exist: #6d7688;
+    --exist-soft: #eceef2;
+    --net: #0f9b8e;
+    --net-soft: #e2f4f1;
+    --warn: #c56636;
+    --warn-soft: #fbeee5;
+    --err: #c8384e;
+    --err-soft: #fbe8eb;
+    --radius: 14px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10131a; --surface: #191d26; --surface-2: #151922; --ink: #e9ebf1;
+      --ink-soft: #b3bbcb; --ink-faint: #7c8598; --line: #2a3040;
+      --accent: #7099f5; --accent-soft: #22304f; --accent-ink: #d9e4ff;
+      --exist: #8a93a5; --exist-soft: #242a36;
+      --net: #52c9bc; --net-soft: #153230;
+      --warn: #e0895e; --warn-soft: #2f2016;
+      --err: #ef7d8f; --err-soft: #34181e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10131a; --surface: #191d26; --surface-2: #151922; --ink: #e9ebf1;
+    --ink-soft: #b3bbcb; --ink-faint: #7c8598; --line: #2a3040;
+    --accent: #7099f5; --accent-soft: #22304f; --accent-ink: #d9e4ff;
+    --exist: #8a93a5; --exist-soft: #242a36; --net: #52c9bc; --net-soft: #153230;
+    --warn: #e0895e; --warn-soft: #2f2016;
+    --err: #ef7d8f; --err-soft: #34181e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 44px 16px 80px; }
+  @media (min-width: 600px) { .wrap { padding-left: 22px; padding-right: 22px; } }
+
+  .themebtn { position: fixed; top: 14px; right: 14px; z-index: 10; border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); border-radius: 20px; padding: 6px 14px; font: 600 13px var(--font); cursor: pointer; }
+  .themebtn:hover { color: var(--ink); }
+  .themebtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  header .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 8px; }
+  h1 { font-size: clamp(25px, 4.5vw, 36px); line-height: 1.2; margin: 0 0 10px; letter-spacing: -.02em; text-wrap: balance; }
+  header .lede { color: var(--ink-soft); font-size: 16px; margin: 0; }
+
+  nav.toc { margin-top: 26px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; }
+  nav.toc b { font-size: 13px; color: var(--ink-faint); }
+  nav.toc ol { margin: 6px 0 0; padding-left: 22px; columns: 2; column-gap: 28px; font-size: 14px; }
+  @media (max-width: 600px) { nav.toc ol { columns: 1; } }
+  nav.toc a { color: var(--accent); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  h2 { font-size: 21px; margin: 56px 0 4px; letter-spacing: -.01em; scroll-margin-top: 20px; }
+  h2 .num { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 10px; }
+  .h2sub { color: var(--ink-faint); font-size: 14px; margin: 0 0 18px; }
+  h3 { font-size: 17px; margin: 26px 0 6px; }
+  p { margin: 0 0 12px; color: var(--ink-soft); font-size: 15px; }
+  p b, li b, td b { color: var(--ink); }
+  ul, ol.body { margin: 0 0 12px; padding-left: 22px; color: var(--ink-soft); font-size: 15px; }
+  li { margin-bottom: 4px; }
+
+  code { font-family: var(--mono); font-size: .88em; background: var(--exist-soft); padding: 1px 6px; border-radius: 5px; overflow-wrap: anywhere; }
+  pre { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: 10px 0 14px; color: var(--ink); }
+  pre .k { color: var(--accent); }
+  pre .s { color: var(--net); }
+  pre .e { color: var(--err); font-weight: 700; }
+  pre .c { color: var(--ink-faint); }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px; margin-top: 14px; }
+  .card h3 { margin: 0 0 4px; font-size: 17px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .card .role { font-size: 12.5px; color: var(--ink-faint); font-weight: 600; margin: 0; }
+  .card p { margin: 8px 0 0; font-size: 14.5px; }
+  .card ul { margin: 8px 0 0; font-size: 14.5px; }
+  .analogy { margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border-left: 3px solid var(--accent); border-radius: 6px; font-size: 13.5px; color: var(--ink-soft); }
+  .analogy b { color: var(--ink); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+  .grid2 .card { margin-top: 0; }
+
+  .tag { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px; white-space: nowrap; }
+  .tag-done { background: var(--net-soft); color: var(--net); }
+  .tag-plan { background: var(--warn-soft); color: var(--warn); }
+  .tag-none { background: var(--err-soft); color: var(--err); }
+
+  .tablewrap { overflow-x: auto; margin: 12px 0 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-soft); }
+  th { background: var(--surface-2); color: var(--ink); font-size: 13px; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+
+  /* 横並びの流れ図 */
+  .pipe { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 14px 0; }
+  .pipe .box { flex: 1 1 140px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; color: var(--ink-soft); }
+  .pipe .box b { display: block; color: var(--ink); font-size: 14px; }
+  .pipe .box.hl { border-color: var(--accent); background: var(--accent-soft); }
+  .pipe .box.gh { border-color: var(--net); background: var(--net-soft); }
+  .pipe .arrow { align-self: center; color: var(--ink-faint); font-weight: 700; }
+  @media (max-width: 600px) { .pipe { flex-direction: column; } .pipe .arrow { transform: rotate(90deg); align-self: center; } }
+
+  /* 2つの場所（あなたのPC / GitHub） */
+  .places { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+  @media (max-width: 720px) { .places { grid-template-columns: 1fr; } }
+  .place { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; background: var(--surface); }
+  .place.gh { border-color: var(--net); }
+  .place h4 { margin: 0 0 8px; font-size: 15px; }
+  .place ol { margin: 0; padding-left: 20px; font-size: 14px; color: var(--ink-soft); }
+
+  /* タイムライン */
+  .timeline { list-style: none; margin: 14px 0; padding: 0; border-left: 2px solid var(--line); }
+  .timeline li { position: relative; padding: 4px 0 12px 20px; font-size: 14.5px; color: var(--ink-soft); }
+  .timeline li::before { content: ""; position: absolute; left: -7px; top: 11px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 2px solid var(--exist); }
+  .timeline li.run::before { background: var(--net); border-color: var(--net); }
+  .timeline li b { color: var(--ink); }
+  .timeline .res { display: inline-block; margin-left: 6px; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 20px; }
+  .timeline .res.on { background: var(--net-soft); color: var(--net); }
+  .timeline .res.off { background: var(--exist-soft); color: var(--exist); }
+
+  .note { display: flex; gap: 11px; align-items: flex-start; background: var(--warn-soft); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 8px; padding: 13px 15px; margin-top: 16px; font-size: 14px; color: var(--ink-soft); }
+  .note b { color: var(--ink); }
+  .note.ok { background: var(--net-soft); border-left-color: var(--net); }
+  .note.key { background: var(--accent-soft); border-left-color: var(--accent); }
+
+  dl.glossary { margin: 12px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; font-size: 14.5px; }
+  dl.glossary dt { font-weight: 700; color: var(--ink); }
+  dl.glossary dd { margin: 0; color: var(--ink-soft); }
+  @media (max-width: 600px) { dl.glossary { grid-template-columns: 1fr; } dl.glossary dd { margin-bottom: 8px; } }
+
+  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 13px; }
+</style>
+</head>
+<body>
+<button class="themebtn" id="themebtn" type="button" aria-label="ライト・ダーク切替">🌓 テーマ切替</button>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">CI · 基礎と導入</p>
+    <h1>CI の基礎 ── 仕組み・使う技術・このアプリでの作り方</h1>
+    <p class="lede">CI（継続的インテグレーション）は「コードを GitHub に送るたびに、決まったチェックをロボットが自動でやってくれる仕組み」です。何のためにあり、どこで・いつ・何が動くのか。基礎を整理したうえで、このアプリに GitHub Actions で CI を入れたときの考え方と、設定ファイル（<code>.github/workflows/ci.yml</code>）の読み方をまとめます。</p>
+  </header>
+
+  <nav class="toc" aria-label="目次">
+    <b>目次</b>
+    <ol>
+      <li><a href="#s1">CI とは</a></li>
+      <li><a href="#s2">何のためにあるか</a></li>
+      <li><a href="#s3">CI と CD の違い</a></li>
+      <li><a href="#s4">仕組み：どこで動くのか</a></li>
+      <li><a href="#s5">使う技術（GitHub Actions の部品）</a></li>
+      <li><a href="#s6">いつ動くか（作業の流れに当てはめる）</a></li>
+      <li><a href="#s7">CI が見つけられること・られないこと</a></li>
+      <li><a href="#s8">このアプリの ci.yml を読む</a></li>
+      <li><a href="#s9">このアプリでの作り方のポイント</a></li>
+      <li><a href="#s10">導入の流れ</a></li>
+      <li><a href="#s11">❌ が出たときの見方・直し方</a></li>
+      <li><a href="#s12">用語ミニ辞典</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1 -->
+  <h2 id="s1"><span class="num">1</span>CI とは</h2>
+  <p class="h2sub">ひとことで：手で回している品質チェックを、GitHub 側で毎回・自動で・必ず回す仕組み。</p>
+
+  <p>このアプリでは、コミットの前に <b>Pint（書式）・PHPStan（静的解析）・PHPUnit（自動テスト）</b> の3つを手で回すルールにしています（<code>quality-check</code>）。CI は、これと同じことを <b>PR を出すたびに GitHub が自動でやってくれる</b>ようにするものです。</p>
+
+  <div class="card">
+    <h3>CI = Continuous Integration（継続的インテグレーション）</h3>
+    <p>「インテグレーション（統合）」は、自分の変更を main に合流させること。「継続的」は、それを小さく・何度も行うこと。<b>合流させる前に、毎回自動でチェックを通す</b>のが CI の中心です。</p>
+    <div class="analogy">たとえ：<b>空港の保安検査</b>。乗客（変更）は全員、毎回、同じ機械を通る。「自分は大丈夫」と思っていても通る。人の記憶や気分に頼らず、決まった確認を必ず通すことで安全を保ちます。</div>
+  </div>
+
+  <!-- 2 -->
+  <h2 id="s2"><span class="num">2</span>何のためにあるか</h2>
+  <p class="h2sub">ひとことで：やり忘れを防ぎ、「自分の PC でだけ動いた」を見つけ、合否を一目で分かるようにする。</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>① やり忘れを防ぐ</h3>
+      <p>手で回すルールは、急いでいるときや「小さな直しだから」と思ったときに抜けます。CI は<b>毎回必ず</b>回るので、抜けがありません。</p>
+    </div>
+    <div class="card">
+      <h3>② 「自分の PC では動いた」を見つける</h3>
+      <p>CI は GitHub にあるファイルだけで、新品のコンピューターに一から組み立てて試します。<b>手元にだけあるファイルや設定</b>に頼って「たまたま通った」状態を見つけられます（<a href="#s7">7章</a>）。</p>
+    </div>
+    <div class="card">
+      <h3>③ 合否が PR 画面で一目で分かる</h3>
+      <p>PR に ✅／❌ が付くので、マージしてよいかをすぐ判断できます。「テストは通しましたか？」と聞く必要がなくなります。</p>
+    </div>
+    <div class="card">
+      <h3>④ main を「いつでも動く状態」に保つ</h3>
+      <p>❌ の変更を main に入れない、というルールを GitHub の設定で強制できます（ブランチ保護。<a href="#s10">10章</a>）。main から取ったコードは常にチェック済み、という安心につながります。</p>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <h2 id="s3"><span class="num">3</span>CI と CD の違い</h2>
+  <p class="h2sub">ひとことで：CI は「確かめる」まで、CD は「本番に届ける」まで。このアプリは CI だけを作る。</p>
+
+  <div class="pipe">
+    <div class="box hl"><b>CI</b>変更のたびに自動でチェックする</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>継続的デリバリー</b>いつでも本番に出せる形（イメージ等）まで自動で作る。出すボタンは人が押す</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>継続的デプロイ</b>マージしたら本番まで自動で反映する</div>
+  </div>
+  <p>後ろの2つをまとめて <b>CD</b> と呼びます。このアプリでは <b>CI だけを作り、CD は作りません</b>。</p>
+
+  <div class="tablewrap"><table>
+    <tr><th>CD を作らない理由</th><th>中身</th></tr>
+    <tr><td><b>famigo と同じ EC2 に相乗り</b></td><td>famigo を止めないことが最優先。今の手順には「famigo-api が動いているのを確かめてから古いイメージを消す」など、人が目で見て判断する場面がある</td></tr>
+    <tr><td><b>ディスクに余裕がない</b></td><td>普段 78%、ビルド中は 82〜83%。自動で回すと、気づかないうちにいっぱいになるおそれがある（#102）</td></tr>
+    <tr><td><b>AWS の権限を GitHub に渡すことになる</b></td><td>「本番 AWS の変更は人が手で打つ」方針に反する。渡すなら権限の設計から必要</td></tr>
+    <tr><td><b>デプロイは月に数回</b></td><td>自動化で減る手間が小さく、作る手間とリスクに見合わない</td></tr>
+  </table></div>
+  <div class="note key"><span>🧭</span><span><b>将来やるなら。</b>GitHub が AWS に一時的にだけ入れる仕組み（OIDC）を使い、イメージは CI で作って AWS の保管場所（ECR）に置き、EC2 は受け取るだけにする形が考えられます。EC2 でビルドしなくなるのでディスクの問題も軽くなります。今は設計書の「今後検討」に残しています。</span></div>
+
+  <!-- 4 -->
+  <h2 id="s4"><span class="num">4</span>仕組み：どこで動くのか</h2>
+  <p class="h2sub">ひとことで：あなたの PC ではなく、GitHub が貸してくれる使い捨てのコンピューターで動く。</p>
+
+  <div class="places">
+    <div class="place">
+      <h4>💻 あなたの PC</h4>
+      <ol>
+        <li>コードを編集してコミット</li>
+        <li><code>git push</code> ／ <code>gh pr create</code></li>
+        <li>（あとは待つだけ。PC の電源を切っても CI は続く）</li>
+        <li>PR 画面で ✅／❌ を見る</li>
+      </ol>
+    </div>
+    <div class="place gh">
+      <h4>☁️ GitHub（インターネットの向こう）</h4>
+      <ol>
+        <li>PR が来たことに気づく</li>
+        <li>使い捨ての Linux のコンピューター（<b>ランナー</b>）を1台起動</li>
+        <li><b>GitHub にあるコードだけ</b>を取ってくる</li>
+        <li>PHP・MySQL を用意し、3つのチェックを実行</li>
+        <li>結果を PR に書き込み、コンピューターは捨てる</li>
+      </ol>
+    </div>
+  </div>
+
+  <p>大事なのは、<b>ランナーには「push されたもの」しか無い</b>ことです。あなたの PC にあって GitHub に無いファイル（コミットし忘れたファイル、<code>.env</code>、手元のDBに残ったデータなど）は存在しません。毎回まっさらな状態から始まるので、前回の実行の残りカスにも左右されません。</p>
+
+  <div class="tablewrap"><table>
+    <tr><th></th><th>ローカルの quality-check</th><th>CI</th></tr>
+    <tr><td><b>どこで</b></td><td>あなたの PC（Docker のコンテナ）</td><td>GitHub のランナー（毎回新品）</td></tr>
+    <tr><td><b>いつ</b></td><td>コミット前に手で</td><td>PR を作った・更新したとき、main にマージしたとき（自動）</td></tr>
+    <tr><td><b>使うコード</b></td><td>手元のファイル全部（未コミットも含む）</td><td>GitHub に push されたものだけ</td></tr>
+    <tr><td><b>役割</b></td><td>早く気づいて、すぐ直す</td><td>最後の関所。新品の環境で「本当に大丈夫か」を確かめる</td></tr>
+  </table></div>
+  <p>CI を入れても<b>ローカルのチェックはやめません</b>。手元で先に見つけるほうが早く直せるからです。CI は抜けを拾う安全網です。</p>
+
+  <!-- 5 -->
+  <h2 id="s5"><span class="num">5</span>使う技術（GitHub Actions の部品）</h2>
+  <p class="h2sub">ひとことで：「いつ（トリガー）」「どこで（ランナー）」「何を（ジョブ・ステップ）」を YAML ファイル1枚に書く。</p>
+
+  <p><b>GitHub Actions</b> は GitHub に組み込まれた自動実行の仕組みです。リポジトリの <code>.github/workflows/</code> に YAML ファイルを置くだけで動きます。<b>公開リポジトリなら無料</b>で使えます（このリポジトリは公開なので 0 円）。</p>
+
+  <div class="tablewrap"><table>
+    <tr><th>部品</th><th>役割</th><th>ci.yml での書き方</th></tr>
+    <tr><td><b>ワークフロー</b></td><td>自動実行の手順書1枚。YAML ファイル1つが1ワークフロー</td><td><code>.github/workflows/ci.yml</code>、<code>name: CI</code></td></tr>
+    <tr><td><b>トリガー</b></td><td>いつ動かすか</td><td><code>on:</code> の <code>pull_request</code>・<code>push</code>・<code>workflow_dispatch</code></td></tr>
+    <tr><td><b>ジョブ</b></td><td>1台のランナーで行う作業のまとまり。複数あれば並行して走らせられる</td><td><code>jobs:</code> の <code>quality</code>（今回は1つ）</td></tr>
+    <tr><td><b>ランナー</b></td><td>ジョブを実行する使い捨てのコンピューター</td><td><code>runs-on: ubuntu-24.04</code></td></tr>
+    <tr><td><b>ステップ</b></td><td>ジョブの中の1つ1つの作業。上から順に実行</td><td><code>steps:</code> の各 <code>- name:</code></td></tr>
+    <tr><td><b>アクション</b></td><td>誰かが作って公開している「よく使う作業の部品」</td><td><code>uses: actions/checkout@…</code> など</td></tr>
+    <tr><td><b>サービスコンテナ</b></td><td>ジョブの横で一緒に動かすコンテナ。DB などに使う</td><td><code>services: mysql:</code></td></tr>
+    <tr><td><b>キャッシュ</b></td><td>前回ダウンロードしたものを次回に使い回して速くする</td><td><code>actions/cache</code></td></tr>
+    <tr><td><b>権限</b></td><td>ワークフローがリポジトリに対してできること</td><td><code>permissions: contents: read</code></td></tr>
+    <tr><td><b>同時実行の制御</b></td><td>同じ PR の古い実行を止める</td><td><code>concurrency:</code></td></tr>
+  </table></div>
+
+  <h3>ランナーの上で使うもの</h3>
+  <div class="tablewrap"><table>
+    <tr><th>道具</th><th>役割</th></tr>
+    <tr><td><b>actions/checkout</b></td><td>GitHub からコードを取ってくる（<code>git clone</code> にあたる）</td></tr>
+    <tr><td><b>shivammathur/setup-php</b></td><td>指定した版の PHP と拡張機能・composer を入れる。Laravel の CI で広く使われている</td></tr>
+    <tr><td><b>MySQL 8.4（サービスコンテナ）</b></td><td>テスト用の DB。開発環境の <code>docker-compose.yml</code> と同じイメージ</td></tr>
+    <tr><td><b>Pint / PHPStan / PHPUnit</b></td><td>手元と同じ3つのチェック。composer で入る</td></tr>
+  </table></div>
+
+  <!-- 6 -->
+  <h2 id="s6"><span class="num">6</span>いつ動くか（作業の流れに当てはめる）</h2>
+  <p class="h2sub">ひとことで：PR を作った瞬間から、その PR に push するたびに動く。マージ後にもう一度動く。</p>
+
+  <p>「main 向けの PR」は、<b>マージ先（base）が main の PR</b> のことです。<code>gh pr create --base main</code> で作る PR はすべて当てはまります。</p>
+
+  <ul class="timeline">
+    <li><b>ブランチを作って編集・コミット</b><span class="res off">動かない</span></li>
+    <li><b>git push（まだ PR は無い）</b><span class="res off">動かない</span></li>
+    <li class="run"><b>gh pr create（main 向けの PR を作る）</b><span class="res on">動く</span><br>PR 画面に「チェック中」→ ✅／❌</li>
+    <li class="run"><b>直しをコミットして同じブランチに push</b><span class="res on">もう一度動く</span><br>前の実行がまだ途中なら、それは止めて新しいほうだけ回す</li>
+    <li class="run"><b>あなたが PR をマージ</b><span class="res on">main で最後にもう一度動く</span><br>PR を同時に複数出したときなど、組み合わせで壊れていないかの確認</li>
+  </ul>
+  <p>このほか、GitHub の「Actions」タブから<b>ボタンで手動実行</b>もできます（<code>workflow_dispatch</code>）。</p>
+
+  <!-- 7 -->
+  <h2 id="s7"><span class="num">7</span>CI が見つけられること・られないこと</h2>
+  <p class="h2sub">ひとことで：「必要な部品が足りない」「テストに書いたことが壊れた」は見つかる。「書いていないこと」は見つからない。</p>
+
+  <h3>見つかる例：マイグレーションの入れ忘れ</h3>
+  <p>案件テーブルに「優先度（priority）」の列を足したのに、マイグレーションのファイルだけ <code>git add</code> し忘れた場合です。</p>
+  <div class="tablewrap"><table>
+    <tr><th>ファイル</th><th>コミットに入ったか</th></tr>
+    <tr><td>マイグレーション（priority 列を足す）</td><td><span class="tag tag-none">入れ忘れ</span></td></tr>
+    <tr><td>モデル・コントローラー（priority を使う）</td><td><span class="tag tag-done">入っている</span></td></tr>
+    <tr><td>テスト（priority を保存できるか確かめる）</td><td><span class="tag tag-done">入っている</span></td></tr>
+  </table></div>
+  <pre><span class="c">// あなたの PC：マイグレーションのファイルが手元にあるので、priority 列ができる</span>
+Tests: 207 passed  <span class="s">✅</span>
+
+<span class="c">// CI：GitHub にファイルが無いので、priority 列が作られない</span>
+<span class="e">SQLSTATE[42S22]: Column not found: 1054 Unknown column 'priority'</span>
+Tests: 1 failed, 206 passed  <span class="e">❌</span></pre>
+  <p>CI は「GitHub にあるものだけ」で一から組み立てるので、<b>コミットしたコードが必要とする部品が足りないと、そこで止まります</b>。新しく作ったクラスのファイルを入れ忘れた場合も、PHPStan とテストが「クラスが見つからない」と ❌ になります。</p>
+
+  <h3>見つからない例</h3>
+  <ul>
+    <li><b>テストファイルだけの入れ忘れ</b>：GitHub に無いテストは「存在しない」扱いで、実行されないので ✅ になる。</li>
+    <li><b>テストを書いていない動き</b>：CI はテストに書いたことしか確かめない。画面の見た目や、テストの無い機能の不具合は見つからない。</li>
+    <li><b>本番でしか起きないこと</b>：本番の設定・S3・ALB などは CI では使わない。</li>
+  </ul>
+  <div class="note ok"><span>💡</span><span><b>一番の予防はコミット前の <code>git status</code>。</b>新しく作ったファイル（Untracked files）が残っていないかを見る習慣が先で、CI はその見落としを拾う安全網です。</span></div>
+
+  <!-- 8 -->
+  <h2 id="s8"><span class="num">8</span>このアプリの ci.yml を読む</h2>
+  <p class="h2sub">ひとことで：「PHP と MySQL を用意 → パッケージを入れる → .env を作る → 3つのチェック」。</p>
+
+  <h3>① いつ・どんな権限で動くか</h3>
+  <pre><span class="k">on</span>:
+  <span class="k">pull_request</span>:          <span class="c"># main 向けの PR を作った・更新したとき</span>
+    <span class="k">branches</span>: [main]
+  <span class="k">push</span>:                  <span class="c"># main にマージされたとき</span>
+    <span class="k">branches</span>: [main]
+  <span class="k">workflow_dispatch</span>:     <span class="c"># 画面のボタンで手動実行</span>
+
+<span class="k">permissions</span>:
+  <span class="k">contents</span>: read        <span class="c"># コードを読むだけ。書き込みはさせない</span>
+
+<span class="k">concurrency</span>:            <span class="c"># 同じ PR の古い実行は止める</span>
+  <span class="k">group</span>: ci-${{ github.ref }}
+  <span class="k">cancel-in-progress</span>: ${{ github.event_name == 'pull_request' }}</pre>
+
+  <h3>② テスト用の MySQL を横で動かす</h3>
+  <pre><span class="k">services</span>:
+  <span class="k">mysql</span>:
+    <span class="k">image</span>: <span class="s">mysql:8.4</span>                       <span class="c"># 開発環境と同じ版</span>
+    <span class="k">env</span>:
+      <span class="k">MYSQL_DATABASE</span>: <span class="s">civil_request_management_testing</span>  <span class="c"># phpunit.xml と同じ DB 名</span>
+      <span class="k">MYSQL_USER</span>: <span class="s">civil_request_app</span>
+      <span class="k">MYSQL_PASSWORD</span>: <span class="s">ci_password</span>           <span class="c"># CI 専用の使い捨ての値</span>
+    <span class="k">options</span>: --health-cmd="mysqladmin ping -h 127.0.0.1 ..."  <span class="c"># 起動完了まで待つ</span></pre>
+  <p>開発環境では <code>docker/mysql/init.sql</code> が照合順序を <code>utf8mb4_ja_0900_as_cs</code>（日本語の並び順・大文字小文字を区別）にそろえています。CI でも同じにするため、MySQL が起動したあとに <code>ALTER DATABASE</code> を流しています。照合順序が違うと、日本語の並び順や検索の結果が開発環境と変わりうるためです。</p>
+
+  <h3>③ 準備</h3>
+  <pre>- <span class="k">uses</span>: actions/checkout@3d3c42e…  <span class="c"># v7.0.1  ← コードを取ってくる</span>
+- <span class="k">uses</span>: shivammathur/setup-php@eb7c497…  <span class="c"># 2.40.0</span>
+  <span class="k">with</span>:
+    <span class="k">php-version</span>: <span class="s">'8.3'</span>                  <span class="c"># Dockerfile と同じ 8.3 系</span>
+    <span class="k">extensions</span>: <span class="s">pdo_mysql, mbstring, exif, pcntl, bcmath, gd, zip</span>  <span class="c"># Dockerfile と同じ</span>
+- <span class="k">uses</span>: actions/cache@55cc834…  <span class="c"># v6.1.0  ← composer のダウンロードを使い回す</span>
+- <span class="k">run</span>: composer install --no-interaction --prefer-dist --no-progress
+- <span class="k">run</span>: cp .env.example .env &amp;&amp; php artisan key:generate   <span class="c"># 使い捨ての APP_KEY</span></pre>
+
+  <h3>④ 3つのチェック</h3>
+  <pre>- <span class="k">name</span>: Pint（書式）
+  <span class="k">if</span>: ${{ !cancelled() &amp;&amp; steps.install.outcome == 'success' }}
+  <span class="k">run</span>: ./vendor/bin/pint --test
+- <span class="k">name</span>: PHPStan（静的解析）
+  <span class="k">if</span>: ${{ !cancelled() &amp;&amp; steps.install.outcome == 'success' }}
+  <span class="k">run</span>: ./vendor/bin/phpstan analyse --memory-limit=512M --no-progress
+- <span class="k">name</span>: PHPUnit（自動テスト）
+  <span class="k">if</span>: ${{ !cancelled() &amp;&amp; steps.install.outcome == 'success' }}
+  <span class="k">run</span>: php artisan test</pre>
+  <p>ふつうは1つのステップが失敗すると、そこで止まります。ここでは <code>if:</code> を付けて、<b>Pint が ❌ でも PHPStan と PHPUnit は最後まで実行</b>するようにしています。1回の実行で、どこがだめかをまとめて知るためです（準備の <code>composer install</code> が失敗したときは、意味がないので実行しません）。</p>
+
+  <!-- 9 -->
+  <h2 id="s9"><span class="num">9</span>このアプリでの作り方のポイント</h2>
+  <p class="h2sub">ひとことで：手元とそろえる、秘密を持ち込まない、部品を固定する、速くする。</p>
+
+  <div class="card">
+    <h3>① 手元・本番とそろえる</h3>
+    <ul>
+      <li><b>PHP は 8.3 系</b>、拡張機能は <code>docker/php/Dockerfile</code> と同じものを入れる。</li>
+      <li><b>MySQL は 8.4</b>、照合順序は <code>utf8mb4_ja_0900_as_cs</code>。</li>
+      <li><b>チェックのコマンドは quality-check と同じ</b>。手元で緑なら CI でも緑、という状態を保つ。</li>
+    </ul>
+    <div class="analogy">補足：setup-php は「8.3 系の最新」を入れるので、Dockerfile の <code>8.3.36</code> とは細かい版がずれることがあります。実際の版は「PHP の版を表示する」ステップで毎回ログに出しています。完全に同じにしたいなら Docker で回す方法もありますが、毎回イメージを作るぶん遅くなるので、速さを優先しました。本番と同じイメージでの確認は E2E（手元）が受け持ちます。</div>
+  </div>
+
+  <div class="card">
+    <h3>② 秘密情報を持ち込まない・権限を絞る</h3>
+    <ul>
+      <li>本番の <code>.env.production</code>・AWS の鍵は<b>一切使わない</b>。APP_KEY はその場で作って捨てる。</li>
+      <li>DB のパスワードは CI 専用の使い捨ての値なので、ファイルに書いても問題ない。</li>
+      <li>ワークフローの権限は <b>読み取りだけ</b>（<code>contents: read</code>）。<code>persist-credentials: false</code> で、取ってきたコードに GitHub の認証情報を残さない。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>③ 外部の部品は「コミットの値」で固定する</h3>
+    <p><code>actions/checkout@v7</code> のように書くと、作者が <code>v7</code> の指す中身を差し替えたとき、知らないうちに別のコードが動きます。実際に、有名なアクションが乗っ取られて中身を書き換えられた事件もありました。そこで <code>@3d3c42e…</code> のように<b>コミットの値（SHA）で固定</b>し、横に <code># v7.0.1</code> と人が読める版を書いています。上げるときは両方を書き換えます。</p>
+  </div>
+
+  <div class="card">
+    <h3>④ 速くする</h3>
+    <ul>
+      <li><b>キャッシュ</b>：composer のダウンロードを使い回す。<code>composer.lock</code> が変わったときだけ作り直す。</li>
+      <li><b>古い実行を止める</b>：同じ PR に続けて push したら、前の実行はやめる。</li>
+      <li><b>ジョブは1つ</b>：3つのチェックで準備（PHP・composer）を共有する。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>⑤ ドキュメントだけの PR でも回す</h3>
+    <p>「docs だけの変更なら CI を飛ばす」設定（<code>paths-ignore</code>）もできます。ただし「CI が ✅ でないとマージできない」設定（10章）と組み合わせると、CI が始まらないまま<b>マージできなくなる</b>落とし穴があります。数分で終わり無料なので、毎回回すことにしました。</p>
+  </div>
+
+  <div class="card">
+    <h3>⑥ 入れなかったもの</h3>
+    <div class="tablewrap" style="margin-bottom:0"><table>
+      <tr><th>もの</th><th>入れない理由</th></tr>
+      <tr><td><b>E2E テスト（Playwright）</b></td><td>本番イメージのビルドとブラウザの準備で1回 5〜10分かかる。画面まわりを変えたときに手元で回す運用で足りている。必要になったら「手動で動かせる別のワークフロー」として足す</td></tr>
+      <tr><td><b>負荷試験（k6）</b></td><td>CI のランナーは他と CPU を分け合うので数字がぶれ、比べられない</td></tr>
+      <tr><td><b>フロントのビルド（vite）</b></td><td><code>@vite</code> を使うのは使っていない <code>welcome.blade.php</code> だけで、テストに影響しない</td></tr>
+      <tr><td><b>CD（自動デプロイ）</b></td><td>3章のとおり</td></tr>
+    </table></div>
+  </div>
+
+  <!-- 10 -->
+  <h2 id="s10"><span class="num">10</span>導入の流れ</h2>
+  <p class="h2sub">ひとことで：ci.yml を置いた PR そのもので CI を試し、わざと ❌ も出して確かめる。</p>
+
+  <ol class="body">
+    <li><b>Issue とブランチ</b>：Issue #128 → <code>chore/128-github-actions-ci</code></li>
+    <li><b>ci.yml を書く</b>：<code>.github/workflows/ci.yml</code></li>
+    <li><b>PR を作る</b>：ci.yml を含む PR そのものに CI が動く（PR のブランチにある ci.yml が使われるため）。✅ になるのを確かめる</li>
+    <li><b>わざと失敗させる</b>：書式を崩したコミットを1回 push して ❌ になることを確かめ、すぐ元に戻す。「失敗をちゃんと失敗と言えるか」の確認</li>
+    <li><b>ドキュメント</b>：README（CI の表示と説明）、開発ルール（PR で CI が ✅ であること）、設計書（CD を作らない理由と将来案）</li>
+    <li><b>マージ</b>（人が行う）→ main でももう一度 CI が動く</li>
+    <li><b>ブランチ保護を設定する</b>（人が GitHub の画面で行う）</li>
+  </ol>
+
+  <h3>ブランチ保護（マージ前の必須チェック）</h3>
+  <p>CI を作っただけでは、❌ のままでもマージボタンは押せます。GitHub の設定で <b>「CI が ✅ でないと main にマージできない」</b>を有効にして、初めて抜けがなくなります。</p>
+  <pre>リポジトリの Settings → Rules → Rulesets → New branch ruleset
+  対象ブランチ：main（Include default branch）
+  ☑ Require status checks to pass
+      追加するチェック：品質チェック（Pint・PHPStan・PHPUnit）
+  ☑ Block force pushes</pre>
+  <p>チェックの名前は、一度 CI が動いたあとでないと候補に出てきません。そのため、CI のマージ後に設定します。</p>
+
+  <!-- 11 -->
+  <h2 id="s11"><span class="num">11</span>❌ が出たときの見方・直し方</h2>
+  <p class="h2sub">ひとことで：ログで「どのステップの何行目か」を見て、手元で同じコマンドを回して直す。</p>
+
+  <ol class="body">
+    <li>PR 画面の下にある「Some checks were not successful」の <b>Details</b> を押す（または PR の <b>Checks</b> タブ）</li>
+    <li>❌ が付いたステップを開くと、そのときの出力（ログ）が読める</li>
+    <li>手元で同じコマンドを回して再現する
+      <pre>docker compose exec -T php ./vendor/bin/pint --test
+docker compose exec -T php ./vendor/bin/phpstan analyse --memory-limit=512M
+docker compose exec -T php php artisan test</pre>
+    </li>
+    <li>直してコミット・push すると、CI が自動でもう一度動く</li>
+  </ol>
+
+  <div class="tablewrap"><table>
+    <tr><th>状況</th><th>考えられる原因</th></tr>
+    <tr><td><b>手元は ✅ なのに CI だけ ❌</b></td><td>ファイルのコミット忘れ（<code>git status</code> を見る）、手元の DB や <code>.env</code> に頼っている、PHP の細かい版の違い</td></tr>
+    <tr><td><b>準備（composer install）で ❌</b></td><td><code>composer.json</code> と <code>composer.lock</code> がずれている。パッケージの配布元が一時的に落ちている</td></tr>
+    <tr><td><b>コードと関係なく ❌</b></td><td>GitHub 側の一時的な不調。Actions の画面の <b>Re-run jobs</b> でやり直す</td></tr>
+  </table></div>
+
+  <!-- 12 -->
+  <h2 id="s12"><span class="num">12</span>用語ミニ辞典</h2>
+  <dl class="glossary">
+    <dt>CI</dt><dd>継続的インテグレーション。変更のたびに自動でチェックを回す仕組み</dd>
+    <dt>CD</dt><dd>継続的デリバリー／デプロイ。チェック済みの変更を本番まで自動で届ける仕組み。このアプリでは作らない</dd>
+    <dt>GitHub Actions</dt><dd>GitHub に組み込まれた自動実行の仕組み。公開リポジトリは無料</dd>
+    <dt>ワークフロー</dt><dd><code>.github/workflows/</code> に置く YAML ファイル。自動実行の手順書</dd>
+    <dt>ランナー</dt><dd>ワークフローを実行する使い捨てのコンピューター</dd>
+    <dt>ジョブ／ステップ</dt><dd>ジョブはランナー1台ぶんの作業のまとまり。ステップはその中の1つ1つの作業</dd>
+    <dt>アクション</dt><dd>公開されている作業の部品。<code>uses:</code> で呼び出す</dd>
+    <dt>サービスコンテナ</dt><dd>ジョブの横で一緒に動かすコンテナ。テスト用 DB など</dd>
+    <dt>SHA（コミットの値）</dt><dd>コミットごとに付く40桁の識別子。中身が変わると値も変わるので、版の固定に使える</dd>
+    <dt>ブランチ保護</dt><dd>main へのマージに条件（CI が ✅ など）を付ける GitHub の設定</dd>
+    <dt>ステータスチェック</dt><dd>PR に付く ✅／❌ の1つ1つ。ブランチ保護の条件に使う</dd>
+  </dl>
+
+  <footer>
+    要望管理システム（CivilRequestManagement）／CI の学習用まとめ（2026-10-28 時点。Issue #128 で導入）。テスト全体の考え方は <code>testing-basics.html</code>、E2E は <code>docs/e2e-test.md</code> を参照。
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themebtn');
+    var root = document.documentElement;
+    btn.addEventListener('click', function () {
+      var mqDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var current = root.getAttribute('data-theme') || (mqDark ? 'dark' : 'light');
+      root.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    });
+  })();
+</script>
+</body>
+</html>

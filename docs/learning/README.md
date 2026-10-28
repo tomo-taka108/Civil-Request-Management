@@ -14,6 +14,7 @@
 | [deploy-recap-image.html](deploy-recap-image.html) | **デプロイ振り返り（イメージ版）**。実際のデプロイ作業を「インフラ構築／本番設定／デプロイ」の3幕に分け、目的とやったことを直感的にたどる |
 | [deploy-recap-technical.html](deploy-recap-technical.html) | **デプロイ振り返り（技術版）**。上記の各ステップに、実際のコマンド・作成ファイル・要点コード・「再実行が必要か早見表」を添えた技術寄りの版 |
 | [logging-monitoring-basics.html](logging-monitoring-basics.html) | **ログと監視の基礎**。ログ・メトリクス・アラームの違い、ログレベル、構造化ログ、リクエストID、出してはいけない情報、Docker のログの流れ、CloudWatch の部品と、このアプリでの組み立て方 |
+| [ci-basics.html](ci-basics.html) | **CI の基礎と導入**。CI の目的、CI と CD の違い（このアプリで CD を作らない理由）、GitHub Actions の部品（トリガー・ランナー・ジョブ・ステップ・サービスコンテナ等）、いつ動くか、CI で見つかること・見つからないこと、このアプリの `ci.yml` の読み方と作り方のポイント、❌ が出たときの直し方 |
 | [testing-basics.html](testing-basics.html) | **テストの基礎と方針**。単体・結合・総合・E2E・パフォーマンスの違い（範囲と性質の2つの軸）、テストピラミッド、ブラックボックス／ホワイトボックス、このアプリのテストの現状（PHPUnit 204本の内訳）と、パフォーマンス → E2E → CI の順で足す方針 |
 
 ## 補足

@@ -169,7 +169,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP
 - 本システム側のコンテナ構成：**Nginx + PHP-FPMの2コンテナ**（Laravelは「PHP-FPMのみ」では画面を返せず、リバースプロキシ・静的ファイル配信を担うNginxが別途必要なため）
   - famigo：既存の8080番ポート（変更しない）
   - 本システム：新規ポート（例：8081）でNginxがLISTEN、PHP-FPMはNginxからのみ到達可能な内部ポート
-- **デプロイ方式：当面は手動デプロイとする。** EC2 に SSH または SSM Session Manager で入り、本システムのソースを配置（`git pull` 等）した上で、`docker compose -f /opt/civil/docker-compose.prod.yml up -d --build` を実行する。GitHub Actions 等の CI/CD は今回は導入しない（famigo は GitHub Actions → S3 → SSM RunCommand 方式だが、本システムは規模・運用体制から手動で十分と判断）。**将来 CI/CD を導入する場合は、famigo と同方式（SSM RunCommand 等）を踏襲する方向で本節を更新する。**
+- **デプロイ方式：当面は手動デプロイとする。** EC2 に SSH または SSM Session Manager で入り、本システムのソースを配置（`git pull` 等）した上で、`docker compose -f /opt/civil/docker-compose.prod.yml up -d --build` を実行する。本番への自動デプロイ（CD）は導入しない（famigo は GitHub Actions → S3 → SSM RunCommand 方式だが、本システムは famigo 無停止を最優先にしており、ディスク残量や famigo の稼働を目で確かめながら進める手動デプロイとする。デプロイ頻度も低く、自動化の効果に対して AWS の権限を GitHub に渡すリスクが見合わない）。**品質チェックの CI（GitHub Actions で PR ごとに Pint / PHPStan / PHPUnit を実行）は導入済み**（`.github/workflows/ci.yml`、#128）。**将来 CD を導入する場合は、GitHub から AWS へ一時的な権限で入る方式（OIDC）を前提に、イメージを CI でビルドして ECR に置き EC2 は取得のみとする方式（EC2 のディスク逼迫も緩和できる）か、famigo と同方式（SSM RunCommand）を検討し、本節を更新する。**
 - Docker Volumeについても、famigoと本システムで共有せず、それぞれ独立したVolumeを利用する（Composeファイルを分けてもVolume名が衝突・共有されると、データが混在する事故につながるため）
 - **famigo への影響と再起動の粒度（重要）：** 本システムの通常デプロイ（下記①）では famigo は停止しない。famigo が巻き添えで止まるのは Docker エンジンや EC2 自体を再起動する場合（下記②③）に限られる。②③は本システムの運用上は避け、必要なとき（スケールアップ・OS/Docker 更新等）だけ、事前に famigo 側の可否を確認して実施する。
   - **①本システムのコンテナのみ起動/再起動**（`docker compose -f docker-compose.prod.yml up -d` 等）：famigo コンテナには触れない。**famigo 停止 0 秒**（通常のデプロイはこれ）。

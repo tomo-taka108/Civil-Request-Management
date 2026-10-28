@@ -10,6 +10,9 @@ disable-model-invocation: false
 すべて Docker コンテナ内で実行するため、コマンドは `docker compose exec php ...` の形になる
 （ローカルに PHP/Composer は無い前提）。**コミット前に必ず実施すること。**
 
+Step 1〜3 は PR を出すと GitHub Actions（`.github/workflows/ci.yml`）でも自動実行される。
+CI は抜けを拾う安全網なので、ここでの確認を省かないこと。PR 作成後は `gh pr checks` で結果を確認する。
+
 ## Step 1: Pint（コードフォーマット）
 
 ```bash
