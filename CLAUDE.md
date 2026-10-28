@@ -104,9 +104,12 @@ gh pr create --title "docs: 要件定義書を作成" --base main
 5. コミット（Conventional Commits形式）
 6. git push origin feature/<ブランチ名>
 7. gh pr create でPRを作成する
-8. PRをマージする（マージはユーザーが行う）
-9. git branch -d feature/<ブランチ名> でローカルブランチを削除する
+8. PR 上の CI（GitHub Actions。Pint / PHPStan / PHPUnit）が ✅ になったことを確認する（gh pr checks）
+9. PRをマージする（マージはユーザーが行う）
+10. git branch -d feature/<ブランチ名> でローカルブランチを削除する
 ```
+
+CI（`.github/workflows/ci.yml`）は手順4と同じチェックを GitHub 側で自動実行する安全網であり、手順4（ローカルの品質チェック）を省略してよい理由にはならない。
 
 ---
 

@@ -1,5 +1,7 @@
 # Civil Track（土木施設要望・対応管理システム）
 
+[![CI](https://github.com/tomo-taka108/Civil-Request-Management/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/tomo-taka108/Civil-Request-Management/actions/workflows/ci.yml)
+
 土木インフラ施設（道路・河川・砂防）に関する住民からの**要望・意見・苦情**、および職員パトロールで見つかる**異常箇所**を、受付から対応完了まで一元管理する庁内業務システム。国や地方自治体における土木事務所での利用を想定しています。
 
 私自身が**土木行政の実務に携わっており**、日々の業務で感じている「**対応漏れを防ぐために、全案件の進捗を網羅的に一目で把握したい**」「過去の対応履歴を探すのに時間がかかる」といった課題を解決するために制作しました（詳細は[制作背景](#本システムの制作背景)を参照）。
@@ -93,6 +95,7 @@
 | 実行環境 | Docker / Docker Compose | — | 実行環境のコンテナ化（開発・本番） |
 | インフラ | AWS（ALB / EC2 / RDS / S3 / Route53 / ACM）+ Terraform | — | 既存 AWS 基盤の活用・現場写真の保存（S3）・インフラのコード管理 |
 | 品質 | Laravel Pint / Larastan（PHPStan）/ PHPUnit / Playwright / k6 | — | 整形・静的解析・テスト・E2E テスト・負荷試験 |
+| CI | GitHub Actions | — | PR ごとに整形・静的解析・テストを自動実行（本番への自動デプロイは行わない） |
 
 **【選定理由】**
 
@@ -390,14 +393,14 @@ ALB のリスナールール（ホストベースルーティング）・ACM 証
 
 **中長期**
 - 地図上の範囲指定検索（緯度経度の範囲／空間インデックス）
-- GitHub Actions による CI/CD 自動デプロイ（現状は手動デプロイ）
+- 本番への自動デプロイ（CD）（現状は手動デプロイ。品質チェックの CI は導入済み。famigo 無停止を優先して当面は手動とする理由は [インフラ設計書](docs/infrastructure-design.md) を参照）
 - データ保存期間（3年）経過後の廃棄バッチ
 
 ---
 
 ## 開発・学習メモ
 
-開発・デプロイを通じた個人の学習・振り返りメモを [`docs/learning/`](docs/learning/) に置いています（AWSデプロイの仕組み・デプロイ振り返り。HTML）。
+開発・デプロイを通じた個人の学習・振り返りメモを [`docs/learning/`](docs/learning/) に置いています（AWSデプロイの仕組み・デプロイ振り返り・ログと監視・テスト・CI。HTML）。
 
 ---
 
@@ -502,6 +505,8 @@ docker compose exec -T php ./vendor/bin/pint --test                          # �
 docker compose exec -T php ./vendor/bin/phpstan analyse --memory-limit=512M  # 静的解析
 docker compose exec -T php php artisan test                                  # テスト
 ```
+
+同じ3つのチェックは、main 向けの PR を作ったとき・更新したとき、main にマージしたときに **GitHub Actions の CI** でも自動で実行されます（[.github/workflows/ci.yml](.github/workflows/ci.yml)。MySQL 8.4 を一緒に起動してテスト。ドキュメント（`docs/` 配下と `.md` ファイル）だけの PR では飛ばす。仕組みは [docs/learning/ci-basics.html](docs/learning/ci-basics.html)）。
 
 ### E2E テスト（任意。手順は [e2e/README.md](e2e/README.md)。Node.js が必要）
 

@@ -548,7 +548,7 @@ page(<span class="s">'/requests?keyword=草'</span>);       <span class="c">// �
     <tr><th>足りないこと</th><th>なぜ困るか</th><th>埋めるテスト</th></tr>
     <tr><td><s>速さを一度も測っていない</s> → <b>解消</b></td><td>30人・3,000件で全画面 p95 60ms 以下、60人でも失敗0件（次章）</td><td>パフォーマンス</td></tr>
     <tr><td><s>画面の JavaScript が動くか未確認</s> → <b>解消</b></td><td>地図のピン表示・位置選択、入力欄の切り替え、確認ダイアログなどを E2E 7本で確認。その過程で不具合を1件発見して修正（次章）</td><td>E2E</td></tr>
-    <tr><td><b>テストを回すのが「自分が覚えていること」頼み</b></td><td>回し忘れたまま PR を出しても、誰も止めてくれない</td><td>CI</td></tr>
+    <tr><td><s>テストを回すのが「自分が覚えていること」頼み</s> → <b>解消</b></td><td>PR ごとに GitHub Actions で Pint・PHPStan・PHPUnit を自動実行（次章。詳しくは <code>ci-basics.html</code>）</td><td>CI</td></tr>
     <tr><td><b>単体テストがほぼ無い</b></td><td>ただし ロジックだけの部品自体が少ないので、大きな問題ではない（次章）</td><td>単体（必要な所だけ）</td></tr>
   </table></div>
 
@@ -561,7 +561,7 @@ page(<span class="s">'/requests?keyword=草'</span>);       <span class="c">// �
     <div class="arrow">→</div>
     <div class="box hl"><b>② E2E</b>Playwright・主要な流れ数本</div>
     <div class="arrow">→</div>
-    <div class="box"><b>③ CI</b>GitHub Actions で PR ごとに自動実行</div>
+    <div class="box hl"><b>③ CI</b>GitHub Actions で PR ごとに自動実行</div>
   </div>
   <p>この順にするのは、<b>要件の数字（30人）をまだ一度も確かめていない</b>のがいちばん大きな穴だからです。E2E と CI は「今あるテストをより確実に回す・範囲を少し広げる」改善で、急ぎ度は一段下がります。</p>
 
@@ -609,8 +609,8 @@ page(<span class="s">'/requests?keyword=草'</span>);       <span class="c">// �
 
   <h3>③ CI（GitHub Actions）</h3>
   <ul>
-    <li>PR を出したら自動で <b>Pint → PHPStan → PHPUnit</b> を実行し、赤ならマージ前に分かるようにする（今ローカルでやっている quality-check と同じ中身）</li>
-    <li><b>E2E を CI に入れるかは保留</b>：時間がかかり、落ちたときの原因調査も重いため。まずは手元で回す運用にして、必要を感じたら追加する</li>
+    <li>PR を出したら自動で <b>Pint → PHPStan → PHPUnit</b> を実行し、赤ならマージ前に分かるようにする（今ローカルでやっている quality-check と同じ中身）。<b>2026-10-28 に導入</b>（#128。<code>.github/workflows/ci.yml</code>、仕組みは <code>ci-basics.html</code>）</li>
+    <li><b>E2E は CI に入れていない</b>：時間がかかり、落ちたときの原因調査も重いため。手元で回す運用にして、必要を感じたら手動で動かせる別のワークフローとして足す</li>
     <li><b>パフォーマンステストは入れない</b>（上記のとおり数字がぶれるため）</li>
   </ul>
 

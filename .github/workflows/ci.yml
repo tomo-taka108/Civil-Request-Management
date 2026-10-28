@@ -1,0 +1,179 @@
+# CI（継続的インテグレーション）。
+# PR を出すたびに、GitHub が用意する使い捨てのコンピューターで品質チェックを自動で回す。
+# 手元の quality-check スキル（Pint / PHPStan / PHPUnit）と同じ3つを実行する。
+# 仕組みと読み方は docs/learning/ci-basics.html、方針は docs/e2e-test.md・infrastructure-design.md を参照。
+#
+# ドキュメント（docs/ 配下と .md ファイル）だけの PR では、品質チェックを飛ばす（changes ジョブ）。
+#
+# やらないこと:
+#   - E2E テスト（Playwright）：時間がかかるため、今は手元で回す（e2e/README.md）
+#   - 本番への自動デプロイ（CD）：famigo と相乗りのため、手で確かめながらデプロイする方針
+name: CI
+
+on:
+  # main 向けの PR を作ったとき・その PR のブランチに push したとき
+  pull_request:
+    branches: [main]
+  # main にマージされたとき（念のための最終確認）
+  push:
+    branches: [main]
+  # GitHub の画面からボタンで手動実行できるようにする
+  workflow_dispatch:
+
+# ワークフローに与える権限は「コードを読む」だけ（最小限）。
+permissions:
+  contents: read
+
+# 同じ PR に続けて push したら、古いほうの実行は止めて新しいほうだけ回す（待ち時間の節約）。
+# main への push は途中で止めない。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # ドキュメントだけの PR では、品質チェックを飛ばすための下調べ。
+  # on: の paths-ignore でワークフローごと飛ばすと、必須チェック（ブランチ保護）が
+  # 「待機中」のまま終わらず、マージできなくなる。ジョブを if: で飛ばした場合は
+  # GitHub が「成功」として扱うため、ワークフローは毎回始めて、ジョブ単位で飛ばす。
+  changes:
+    name: 変更の種類を調べる
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # PR の変更ファイル一覧を読むための権限（読み取りのみ）。
+    permissions:
+      pull-requests: read
+    outputs:
+      code: ${{ steps.check.outputs.code }}
+    steps:
+      # ドキュメント＝ docs/ 配下のファイルと、どこかにある .md ファイル（README.md 等）。
+      # 1つでもそれ以外のファイルが含まれていれば品質チェックを行う。
+      # PR 以外（main への push・手動実行）は、念のため常に品質チェックを行う。
+      - name: ドキュメント以外の変更があるか調べる
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "PR 以外のため、品質チェックを行う"
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # 名前を変えたファイルは、変更前の名前も調べる（コードを docs/ へ移した場合も見逃さない）。
+          # 一覧が取れなかったときは、安全側に倒して品質チェックを行う。
+          if ! files=$(gh api "repos/$REPO/pulls/$PR_NUMBER/files" --paginate \
+            --jq '.[] | .filename, (.previous_filename // empty)'); then
+            echo "変更ファイルの一覧が取れなかったため、品質チェックを行う"
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "変更されたファイル:"
+          echo "$files"
+          others=$(echo "$files" | grep -Ev '^docs/|\.md$' || true)
+          if [ -n "$others" ]; then
+            echo "ドキュメント以外の変更があるため、品質チェックを行う"
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ドキュメントだけの変更のため、品質チェックを飛ばす"
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  quality:
+    name: 品質チェック（Pint・PHPStan・PHPUnit）
+    needs: changes
+    # ドキュメントだけの PR では飛ばす（飛ばしたジョブは GitHub 上で「成功」扱いになる）。
+    if: ${{ needs.changes.outputs.code == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    # テストで使う MySQL を、ジョブの横で一緒に起動する（サービスコンテナ）。
+    # 版・照合順序は開発環境（docker-compose.yml・docker/mysql/init.sql）にそろえる。
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: civil_request_management_testing
+          MYSQL_USER: civil_request_app
+          MYSQL_PASSWORD: ci_password
+        ports:
+          - 3306:3306
+        # 起動が終わるまで待つ。-h 127.0.0.1 で外からつながるか確かめる
+        # （初期設定中の一時的なサーバーは外からつながらないので、準備中を「完了」と見誤らない）。
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    # テストが MySQL につなぐための値（.env より優先される）。CI 専用の使い捨ての値で、秘密情報ではない。
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USERNAME: civil_request_app
+      DB_PASSWORD: ci_password
+
+    steps:
+      # 外部の部品（アクション）は、中身が勝手に差し替わらないようコミットの値で版を固定する。
+      - name: コードを取ってくる
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # PHP は Dockerfile と同じ 8.3 系。拡張機能も Dockerfile（docker-php-ext-install）にそろえる。
+      - name: PHP を用意する
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, exif, pcntl, bcmath, gd, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: PHP の版を表示する
+        run: php -v
+
+      # composer がダウンロードしたパッケージを次回に使い回す（composer.lock が変わったら作り直す）。
+      - name: composer のキャッシュ置き場を調べる
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: composer のキャッシュを使う
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: パッケージを入れる（composer install）
+        id: install
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      # .env は Git に入っていないので、見本から作り、使い捨ての APP_KEY を作る。
+      - name: .env を用意する
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+
+      # テスト用DBの照合順序を開発環境と同じにする（docker/mysql/init.sql と同じ考え方）。
+      # MYSQL_DATABASE で作られた DB は既定の照合順序になるため、作ったあとで直す。
+      - name: テスト用DBの照合順序をそろえる
+        run: >-
+          docker exec ${{ job.services.mysql.id }}
+          mysql -uroot -proot -e
+          "ALTER DATABASE civil_request_management_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_ja_0900_as_cs;"
+
+      # ここから3つのチェック。1つが失敗しても残りは実行し、まとめて結果が分かるようにする
+      # （準備の composer install が失敗したときは実行しない）。
+      - name: Pint（書式）
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: ./vendor/bin/pint --test
+
+      - name: PHPStan（静的解析）
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: ./vendor/bin/phpstan analyse --memory-limit=512M --no-progress
+
+      - name: PHPUnit（自動テスト）
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: php artisan test
