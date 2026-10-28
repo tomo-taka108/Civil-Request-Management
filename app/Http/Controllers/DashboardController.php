@@ -18,7 +18,7 @@ class DashboardController extends Controller
     {
         $isAdmin = ($request->user()->role ?? null) === 'admin';
 
-        return view('dashboard.index', [
+        return view (  'dashboard.index', [
             'stats' => new DashboardStats($isAdmin),
         ]);
     }
