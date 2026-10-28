@@ -506,7 +506,7 @@ docker compose exec -T php ./vendor/bin/phpstan analyse --memory-limit=512M  # �
 docker compose exec -T php php artisan test                                  # テスト
 ```
 
-同じ3つのチェックは、main 向けの PR を作ったとき・更新したとき、main にマージしたときに **GitHub Actions の CI** でも自動で実行されます（[.github/workflows/ci.yml](.github/workflows/ci.yml)。MySQL 8.4 を一緒に起動してテスト。仕組みは [docs/learning/ci-basics.html](docs/learning/ci-basics.html)）。
+同じ3つのチェックは、main 向けの PR を作ったとき・更新したとき、main にマージしたときに **GitHub Actions の CI** でも自動で実行されます（[.github/workflows/ci.yml](.github/workflows/ci.yml)。MySQL 8.4 を一緒に起動してテスト。ドキュメント（`docs/` 配下と `.md` ファイル）だけの PR では飛ばす。仕組みは [docs/learning/ci-basics.html](docs/learning/ci-basics.html)）。
 
 ### E2E テスト（任意。手順は [e2e/README.md](e2e/README.md)。Node.js が必要）
 

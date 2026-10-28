@@ -278,7 +278,7 @@
     <tr><th>部品</th><th>役割</th><th>ci.yml での書き方</th></tr>
     <tr><td><b>ワークフロー</b></td><td>自動実行の手順書1枚。YAML ファイル1つが1ワークフロー</td><td><code>.github/workflows/ci.yml</code>、<code>name: CI</code></td></tr>
     <tr><td><b>トリガー</b></td><td>いつ動かすか</td><td><code>on:</code> の <code>pull_request</code>・<code>push</code>・<code>workflow_dispatch</code></td></tr>
-    <tr><td><b>ジョブ</b></td><td>1台のランナーで行う作業のまとまり。複数あれば並行して走らせられる</td><td><code>jobs:</code> の <code>quality</code>（今回は1つ）</td></tr>
+    <tr><td><b>ジョブ</b></td><td>1台のランナーで行う作業のまとまり。複数あれば並行して走らせられる</td><td><code>jobs:</code> の <code>changes</code>（変更の種類を調べる）と <code>quality</code>（品質チェック）。<code>needs:</code> で順番を決める</td></tr>
     <tr><td><b>ランナー</b></td><td>ジョブを実行する使い捨てのコンピューター</td><td><code>runs-on: ubuntu-24.04</code></td></tr>
     <tr><td><b>ステップ</b></td><td>ジョブの中の1つ1つの作業。上から順に実行</td><td><code>steps:</code> の各 <code>- name:</code></td></tr>
     <tr><td><b>アクション</b></td><td>誰かが作って公開している「よく使う作業の部品」</td><td><code>uses: actions/checkout@…</code> など</td></tr>
@@ -306,7 +306,7 @@
   <ul class="timeline">
     <li><b>ブランチを作って編集・コミット</b><span class="res off">動かない</span></li>
     <li><b>git push（まだ PR は無い）</b><span class="res off">動かない</span></li>
-    <li class="run"><b>gh pr create（main 向けの PR を作る）</b><span class="res on">動く</span><br>PR 画面に「チェック中」→ ✅／❌</li>
+    <li class="run"><b>gh pr create（main 向けの PR を作る）</b><span class="res on">動く</span><br>PR 画面に「チェック中」→ ✅／❌。<b>ドキュメントだけの PR なら、品質チェックは「Skipped（飛ばした）」になり、すぐ ✅ 扱いで終わる</b></li>
     <li class="run"><b>直しをコミットして同じブランチに push</b><span class="res on">もう一度動く</span><br>前の実行がまだ途中なら、それは止めて新しいほうだけ回す</li>
     <li class="run"><b>あなたが PR をマージ</b><span class="res on">main で最後にもう一度動く</span><br>PR を同時に複数出したときなど、組み合わせで壊れていないかの確認</li>
   </ul>
@@ -342,7 +342,7 @@ Tests: 1 failed, 206 passed  <span class="e">❌</span></pre>
 
   <!-- 8 -->
   <h2 id="s8"><span class="num">8</span>このアプリの ci.yml を読む</h2>
-  <p class="h2sub">ひとことで：「PHP と MySQL を用意 → パッケージを入れる → .env を作る → 3つのチェック」。</p>
+  <p class="h2sub">ひとことで：「変更の種類を調べる → PHP と MySQL を用意 → パッケージを入れる → .env を作る → 3つのチェック」。</p>
 
   <h3>① いつ・どんな権限で動くか</h3>
   <pre><span class="k">on</span>:
@@ -359,7 +359,25 @@ Tests: 1 failed, 206 passed  <span class="e">❌</span></pre>
   <span class="k">group</span>: ci-${{ github.ref }}
   <span class="k">cancel-in-progress</span>: ${{ github.event_name == 'pull_request' }}</pre>
 
-  <h3>② テスト用の MySQL を横で動かす</h3>
+  <h3>② ドキュメントだけなら品質チェックを飛ばす</h3>
+  <pre><span class="k">jobs</span>:
+  <span class="k">changes</span>:                              <span class="c"># 先に動く：変更の種類を調べる</span>
+    <span class="k">permissions</span>:
+      <span class="k">pull-requests</span>: read              <span class="c"># PR の変更ファイル一覧を読むだけ</span>
+    <span class="k">outputs</span>:
+      <span class="k">code</span>: ${{ steps.check.outputs.code }}   <span class="c"># 結果を次のジョブへ渡す（true / false）</span>
+    <span class="k">steps</span>:
+      - <span class="k">run</span>: |
+          files=$(gh api "repos/$REPO/pulls/$PR_NUMBER/files" ...)   <span class="c"># 変更ファイル一覧</span>
+          others=$(echo "$files" | grep -Ev <span class="s">'^docs/|\.md$'</span>)    <span class="c"># ドキュメント以外を残す</span>
+          <span class="c"># 残りがあれば code=true（チェックする）、無ければ code=false（飛ばす）</span>
+
+  <span class="k">quality</span>:
+    <span class="k">needs</span>: changes                        <span class="c"># changes が終わってから</span>
+    <span class="k">if</span>: ${{ needs.changes.outputs.code == 'true' }}   <span class="c"># false なら飛ばす（成功扱い）</span></pre>
+  <p><code>grep -Ev</code> は「この形に<b>当てはまらない</b>行だけを残す」という意味です。<code>^docs/</code>（docs/ で始まる）か <code>\.md$</code>（.md で終わる）に当てはまらないファイルが1つでも残れば、コードの変更ありと判断します。理由は <a href="#s9">9章の⑤</a>。</p>
+
+  <h3>③ テスト用の MySQL を横で動かす</h3>
   <pre><span class="k">services</span>:
   <span class="k">mysql</span>:
     <span class="k">image</span>: <span class="s">mysql:8.4</span>                       <span class="c"># 開発環境と同じ版</span>
@@ -370,7 +388,7 @@ Tests: 1 failed, 206 passed  <span class="e">❌</span></pre>
     <span class="k">options</span>: --health-cmd="mysqladmin ping -h 127.0.0.1 ..."  <span class="c"># 起動完了まで待つ</span></pre>
   <p>開発環境では <code>docker/mysql/init.sql</code> が照合順序を <code>utf8mb4_ja_0900_as_cs</code>（日本語の並び順・大文字小文字を区別）にそろえています。CI でも同じにするため、MySQL が起動したあとに <code>ALTER DATABASE</code> を流しています。照合順序が違うと、日本語の並び順や検索の結果が開発環境と変わりうるためです。</p>
 
-  <h3>③ 準備</h3>
+  <h3>④ 準備</h3>
   <pre>- <span class="k">uses</span>: actions/checkout@3d3c42e…  <span class="c"># v7.0.1  ← コードを取ってくる</span>
 - <span class="k">uses</span>: shivammathur/setup-php@eb7c497…  <span class="c"># 2.40.0</span>
   <span class="k">with</span>:
@@ -380,7 +398,7 @@ Tests: 1 failed, 206 passed  <span class="e">❌</span></pre>
 - <span class="k">run</span>: composer install --no-interaction --prefer-dist --no-progress
 - <span class="k">run</span>: cp .env.example .env &amp;&amp; php artisan key:generate   <span class="c"># 使い捨ての APP_KEY</span></pre>
 
-  <h3>④ 3つのチェック</h3>
+  <h3>⑤ 3つのチェック</h3>
   <pre>- <span class="k">name</span>: Pint（書式）
   <span class="k">if</span>: ${{ !cancelled() &amp;&amp; steps.install.outcome == 'success' }}
   <span class="k">run</span>: ./vendor/bin/pint --test
@@ -430,8 +448,21 @@ Tests: 1 failed, 206 passed  <span class="e">❌</span></pre>
   </div>
 
   <div class="card">
-    <h3>⑤ ドキュメントだけの PR でも回す</h3>
-    <p>「docs だけの変更なら CI を飛ばす」設定（<code>paths-ignore</code>）もできます。ただし「CI が ✅ でないとマージできない」設定（10章）と組み合わせると、CI が始まらないまま<b>マージできなくなる</b>落とし穴があります。数分で終わり無料なので、毎回回すことにしました。</p>
+    <h3>⑤ ドキュメントだけの PR では飛ばす（落とし穴を避ける形で）</h3>
+    <p>docs だけの変更でテストを回しても意味がないので、品質チェックを飛ばします。ただし、飛ばし方には<b>落とし穴</b>があります。</p>
+    <div class="tablewrap" style="margin-bottom:0"><table>
+      <tr><th>飛ばし方</th><th>GitHub での扱い</th><th>ブランチ保護（10章）と組み合わせると</th></tr>
+      <tr><td><b>ワークフローごと飛ばす</b><br><code>on:</code> に <code>paths-ignore</code></td><td>チェックが始まらず「待機中」のまま</td><td><span class="tag tag-none">マージできなくなる</span></td></tr>
+      <tr><td><b>ジョブを条件で飛ばす</b><br>ジョブに <code>if:</code></td><td>飛ばしたジョブは「成功」扱い</td><td><span class="tag tag-done">マージできる</span></td></tr>
+    </table></div>
+    <p>そこで、<b>ワークフローは毎回始め、最初に「変更の種類を調べる」ジョブ（<code>changes</code>）で変更ファイルを見て、ドキュメントだけなら品質チェックのジョブを <code>if:</code> で飛ばす</b>形にしています（GitHub の公式ドキュメントで、条件で飛ばしたジョブは「Success」と報告されると明記されています）。</p>
+    <ul>
+      <li><b>ドキュメントの範囲</b>：<code>docs/</code> 配下のファイルと、どこにある <code>.md</code> ファイルも（README.md・CLAUDE.md・e2e/README.md など）。</li>
+      <li><b>1つでもそれ以外が混ざれば回す</b>：README とコントローラーを両方直した PR は、ふつうにチェックする。</li>
+      <li><b>名前を変えたファイルは変更前の名前も見る</b>：<code>app/</code> のファイルを <code>docs/</code> に移した場合も見逃さない。</li>
+      <li><b>安全側に倒す</b>：変更ファイルの一覧が取れなかったとき、main への push、手動実行のときは、必ずチェックする。</li>
+    </ul>
+    <div class="analogy">たとえ：<b>受付で用件を聞く係</b>。来た人（PR）を全員いったん受付（<code>changes</code>）に通し、「書類の差し替えだけです」なら検査室（品質チェック）を通らずに「問題なし」の札をもらえる。受付そのものを閉めてしまう（<code>paths-ignore</code>）と、札がもらえず先に進めない。</div>
   </div>
 
   <div class="card">
@@ -464,9 +495,12 @@ Tests: 1 failed, 206 passed  <span class="e">❌</span></pre>
   <pre>リポジトリの Settings → Rules → Rulesets → New branch ruleset
   対象ブランチ：main（Include default branch）
   ☑ Require status checks to pass
-      追加するチェック：品質チェック（Pint・PHPStan・PHPUnit）
+      追加するチェック（2つとも）：
+        ・変更の種類を調べる
+        ・品質チェック（Pint・PHPStan・PHPUnit）
   ☑ Block force pushes</pre>
   <p>チェックの名前は、一度 CI が動いたあとでないと候補に出てきません。そのため、CI のマージ後に設定します。</p>
+  <p><b>2つとも必須にする理由</b>：「変更の種類を調べる」ジョブそのものが GitHub 側の不調などで失敗すると、品質チェックは実行されずに飛ばされます。品質チェックだけを必須にしていると、その「飛ばされた」を成功と見なしてマージできてしまうおそれがあります。調べる係の失敗でもマージを止められるよう、両方を必須にします。</p>
 
   <!-- 11 -->
   <h2 id="s11"><span class="num">11</span>❌ が出たときの見方・直し方</h2>
