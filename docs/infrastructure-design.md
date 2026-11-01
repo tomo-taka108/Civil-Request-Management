@@ -1,6 +1,6 @@
 # インフラ設計書
 
-最終更新日: 2026-08-15
+最終更新日: 2026-11-01
 
 本システムのAWSインフラ構築・デプロイ方針を定める。
 [要件定義書](requirements.md) の「4.3 保守性・運用」「4.4 技術スタック」を前提とし、既存の別アプリ（famigo）用AWS環境への相乗り方針を具体化したもの。変更履歴は`git log docs/infrastructure-design.md`を参照。
@@ -25,6 +25,8 @@ famigo 既存 AWS 環境（ALB・EC2・RDS）に相乗りする構成の全体�
 
 ![要望管理システム インフラ構成図](images/infrastructure-diagram.svg)
 
+> **図に未記載のもの**：現場写真の S3 バケット `civil-request-photos`（3.9）と、ログ・監視の CloudWatch・SNS（3.11）。図への追加は Issue #100 で行う。
+>
 > 図の実体は [`images/infrastructure-diagram.svg`](images/infrastructure-diagram.svg)（README でも同じ画像を使用）。図を修正するときは SVG を直接編集するか、下記 mermaid を編集してから SVG を描き直す。以下の mermaid は同じ内容の編集用ソース（GitHub 上ではそのまま図として描画される）。
 
 ```mermaid
@@ -92,7 +94,7 @@ flowchart TB
 | プライベートIP | 10.0.15.78 |
 | セキュリティグループ | `famigo-sg-ec2`（`sg-0bfa7f20eb86ee312`） |
 
-SGルール（`famigo-sg-ec2`）：8080/tcp をALB SGから許可、SSHを自宅IPから許可（説明文ベース、要現物確認）。
+SGルール（`famigo-sg-ec2`）：8080/tcp をALB SGから許可、SSH（22/tcp）を自宅の固定IP 1つ（/32）から許可。2026-11-01 に現物を確認し、本システムが追加した 8081/tcp（ALB SGから）を含めた現在のルールを 2.6 に記載した。
 
 **EC2上のアプリ実行方式**（`famigo-backend`リポジトリの調査結果）：famigoのバックエンドはJava 21 / Spring Boot構成で、8080番ポートで`/health`エンドポイントを公開している。実行方式はsystemd/PM2ではなく**Docker Compose**（GitHub Actions → S3にjarを配置 → SSM RunCommand経由でEC2上`/opt/famigo-docker`配下で`docker build` & `docker compose up -d`）。本システム（Laravel/PHP）を相乗りさせる場合も、既存構成に合わせて**別コンテナとしてDocker上で共存**させるのが自然（「3.2 EC2相乗り」参照）。
 
@@ -101,7 +103,7 @@ SGルール（`famigo-sg-ec2`）：8080/tcp をALB SGから許可、SSHを自宅
 | 項目 | 値 |
 |---|---|
 | インスタンス識別子 | `famigo-mysql` |
-| エンジン | MySQL 8.4.7 |
+| エンジン | MySQL 8.4.7（自動マイナーバージョンアップが有効のため、2026-11-01 時点では 8.4.8。2.6） |
 | クラス | db.t4g.micro |
 | ストレージ | 20GB（gp2） |
 | Multi-AZ | いいえ |
@@ -136,7 +138,26 @@ SGルール（`famigo-sg-rds`）：3306/tcp を `famigo-sg-ec2`（EC2側SG）か
 - **バックエンドAPI**（Java/Spring Boot）：ALB（`famigo-alb`）→ EC2の8080番ポート（Docker） という経路。ACM証明書のドメインが`api.famigo-odekake.com`となっているのはこのため（APIサブドメイン専用）
 - **フロントエンド**（React SPA）：別リポジトリ`famigo-frontend`で開発され、**S3 + CloudFrontで配信**（ALB・EC2は経由しない）
 
-つまり、ALB・EC2・RDSはfamigoの「API・DB」部分のみを担っており、フロントエンド配信用のS3・CloudFrontは完全に別経路。本システム（Laravel + Blade、画面表示とAPIが1プロセスに統合された構成）が相乗りの対象とするのは**ALB・EC2・RDSの3つのみ**であり、famigoのS3・CloudFrontとは関わりを持たない（Bladeがサーバーサイドで画面を描画するため、S3/CloudFrontのような静的フロント配信基盤はそもそも不要）。
+つまり、ALB・EC2・RDSはfamigoの「API・DB」部分のみを担っており、フロントエンド配信用のS3・CloudFrontは完全に別経路。本システム（Laravel + Blade、画面表示とAPIが1プロセスに統合された構成）が相乗りの対象とするのは**ALB・EC2・RDSの3つのみ**であり、famigoのS3・CloudFrontとは関わりを持たない（Bladeがサーバーサイドで画面を描画するため、S3/CloudFrontのような静的フロント配信基盤はそもそも不要）。のちに現場写真の保存先として、本システム専用の S3 バケットを別に作った（3.9。famigo のバケットとは無関係）。
+
+### 2.6 現在の構成（2026-11-01 時点、AWS CLI で確認）
+
+2.1〜2.5 は相乗り前（2026-07-20）の調査結果。本システムの構築後の状態を読み取り専用の操作で確認した結果を、変わった点を中心にまとめる。Terraform の管理対象（`terraform state list`）と AWS 上の実物も一致していた。
+
+| リソース | 現在の状態 |
+|---|---|
+| EC2 `famigo-ec2` | t3.micro・Amazon Linux 2023。普段は停止（[運用手順](operations-start-stop.md)）。パブリックIPは起動のたびに変わる（Elastic IP は付けていない。接続は SSM のため支障なし）。メタデータは IMDSv2 必須・ホップ数上限2（3.9） |
+| EBS（EC2 のディスク） | `vol-05b542e00e67f491e`。gp3・**8GB**（3,000 IOPS・125MB/s）。拡張しない判断と目安は 3.4 |
+| `famigo-sg-ec2` のインバウンド | 8080/tcp ← ALB SG（famigo）、**8081/tcp ← ALB SG（本システムが追加）**、22/tcp ← 自宅の固定IP（/32） |
+| RDS `famigo-mysql` | MySQL **8.4.8**（自動マイナーバージョンアップ有効）。db.t4g.micro・20GB（gp2）・ストレージ暗号化あり・Multi-AZ なし。自動バックアップ保持1日（19:32-20:02 UTC）、メンテナンス枠 土 20:08-20:38 UTC。普段は停止 |
+| ALB `famigo-alb` の 443 リスナー | 既定の転送先は `famigo-tg-8080` のまま。**優先度100のルール**（ホスト名 `civil-track.com` → `civil-request-tg-8081`）を追加。証明書は SNI で2枚（`api.famigo-odekake.com` が既定、`civil-track.com` を追加）。TLS ポリシー `ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09`。80番は 443 へリダイレクト |
+| ターゲットグループ `civil-request-tg-8081` | HTTP:8081。ヘルスチェック `/health`・30秒ごと・タイムアウト5秒・正常判定3回・異常判定3回 |
+| Route53 | `civil-track.com` のホストゾーン（ALB へのエイリアス A レコード、ACM 検証用 CNAME）を追加。`famigo-odekake.com` のゾーンは変更なし |
+| ACM | `civil-track.com`（DNS 検証・自動更新の対象。有効期限 2027-02-16 は自動で延びる） |
+| S3 `civil-request-photos` | 3.9 のとおり。サンプルの写真56枚・約21MB（2026-10-31 のサンプル入れ替え後） |
+| EC2 の IAM ロール `famigo-EC2-SSM-Role` | 管理ポリシー `AmazonSSMManagedInstanceCore` と famigo のインライン `ReadBackendArtifactFromS3` に、本システムのインライン `CivilTrackPhotosS3Access`（3.9）と `CivilTrackLogsAndMetrics`（3.11）の2枚を追加 |
+| CloudWatch・SNS | 3.11 のとおり（ロググループ `/civil/app`・アラーム3つ・SNS トピック `civil-request-alerts`） |
+| 予算アラート | 月 40 USD の予算（`My Monthly Cost Budget`）。アカウント全体が対象で、本システム専用ではない |
 
 ---
 
@@ -164,8 +185,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP
 
 **docker-compose.ymlはfamigoと完全に分離する（同一ファイルに統合しない）。**
 
-- famigo用とは別に、本システム専用の`docker-compose.yml`を別ディレクトリに配置する（例：famigo側`/opt/famigo/docker-compose.yml`、本システム側`/opt/civil/docker-compose.yml`）
-- デプロイ時は`docker compose -f /opt/civil/docker-compose.yml up -d`のように**対象ファイルを明示して実行する**。1つのファイルに両アプリのservicesを同居させると、どちらかのデプロイ時に実行する`docker compose up -d`がデフォルトでファイル内の全serviceを対象にしてしまい、意図せずもう片方のコンテナまで再起動される事故につながる。ファイル自体を分離することでこのリスクを構造的に防ぐ
+- famigo用とは別に、本システム専用の Compose ファイルを別ディレクトリに配置する（実際の配置：本システムは`/opt/civil/docker-compose.prod.yml`、famigo は`/opt/famigo`・`/opt/famigo-docker`。[運用手順](operations-start-stop.md)「参考：関連ファイル・場所」）
+- デプロイ時は`docker compose -f docker-compose.prod.yml up -d`のように**対象ファイルを明示して実行する**。1つのファイルに両アプリのservicesを同居させると、どちらかのデプロイ時に実行する`docker compose up -d`がデフォルトでファイル内の全serviceを対象にしてしまい、意図せずもう片方のコンテナまで再起動される事故につながる。ファイル自体を分離することでこのリスクを構造的に防ぐ
 - 本システム側のコンテナ構成：**Nginx + PHP-FPMの2コンテナ**（Laravelは「PHP-FPMのみ」では画面を返せず、リバースプロキシ・静的ファイル配信を担うNginxが別途必要なため）
   - famigo：既存の8080番ポート（変更しない）
   - 本システム：新規ポート（例：8081）でNginxがLISTEN、PHP-FPMはNginxからのみ到達可能な内部ポート
@@ -248,7 +269,40 @@ $ df -h /          # 掃除後
 - 掃除により **80% → 77%** に改善。稼働中の3コンテナは`Up 3 days`のままで、**再起動は発生しない**（Docker は使用中イメージの削除を拒否するため、famigo にも影響しない）
 - Docker の表示上は856.7MBが「回収可能」だが、イメージ間でレイヤーが共有されているため**実際に空くのは約227MB**。`docker system df -v`の`UNIQUE SIZE`が実質的な削減量の目安になる
 - **デプロイ後は`docker image prune -a`を実行する運用とする**（[運用手順](operations-start-stop.md)に記載）
-- 使用率が90%を超える場合は、EBSボリュームの拡張を検討する
+- 拡張するかどうかの判断は、下の「EBS の拡張は当面見送る」を参照
+
+#### その後の推移
+
+| 日付 | 作業 | 作業前 | ビルド中の最大 | 掃除後 |
+|---|---|---|---|---|
+| 2026-10-22 | ログの CloudWatch 転送（ログ・監視設計書 8.4） | 78% | **90%**（ディスク逼迫のアラームが鳴った） | 78% |
+| 2026-10-26 | PHP・nginx の修正版への入れ替え（[脆弱性対応の記録](security-advisories.md)） | 78% | 82〜83% | 78% |
+| 2026-10-31 | 応答ヘッダーの版を隠す対応（#126）＋サンプルの入れ替え（#105） | 78% | **90%**（空き 861MB） | 78%（約890MB 回収） |
+
+ログは CloudWatch に送るようにした（3.11）ため EC2 には溜まらず、平常時は 78% で横ばい。ビルド中だけ新旧のイメージが並び、一時的に 82〜90% まで上がる。
+
+#### EBS の拡張は当面見送る（2026-10-31 判断）
+
+8GB → 16GB への拡張（Issue #102）を検討したが、**当面は 8GB のまま運用する**。
+
+| 観点 | 内容 |
+|---|---|
+| 費用 | 16GB にすると月 **約115円**（税抜）増える。EBS は EC2 を止めていても容量分の料金がかかる（gp3 は東京で 1GB あたり月 0.096 USD、1USD=150円換算） |
+| 困っていること | ディスクの余裕だけ。ログは CloudWatch に送っており増えにくく、平常 78% は横ばい |
+| 戻せるか | EBS は動かしたまま（famigo も止めずに）いつでも大きくできるが、**小さくは戻せない**。必要になってからで間に合う |
+
+**増やさない代わりに守ること**（[運用手順](operations-start-stop.md)のデプロイ手順に記載）
+
+- デプロイ前に `df -h /` を見る。**80% を超えていたら、先に `docker image prune -a` で掃除してからビルドする**
+- デプロイ後は従来どおり `docker image prune -a` で掃除する
+
+**拡張に踏み切る目安**（どれか1つに当たったら Issue #102 で拡張する）
+
+- 掃除をしても、平常時に 80% を超える
+- デプロイ中に 90% を超える（10/22・10/31 はちょうど 90% で、超えてはいない）
+- famigo・本システムのどちらかに、アプリやコンテナを追加する
+
+ディスク逼迫のアラーム（85% 以上。3.11）は、この目安に近づいたことを知らせる役目も持つ。
 
 ### 3.5 ALB相乗り方式
 
@@ -331,6 +385,19 @@ ALB自体は既にfamigo用として稼働しており、本システムの相�
 - コンテナが落ちたときの自動復帰は、Composeの `restart: unless-stopped` で代替できる
 - 以上から、追加費用ゼロで運用を続けられる現構成を選んだ。**利用規模が増えた場合や専用環境へ移す場合は、ECS on Fargate への移行を第一候補とする**
 
+#### 実際の使い方で計算し直した結果（2026-10-31 再検討）
+
+上の表は24時間稼働が前提。実際には EC2・RDS を普段止めており、2026年10月の EC2 の稼働は月8〜10時間ほどだった（Cost Explorer で確認）。ディスク不足（3.4）の対策として「EBS を 8GB → 16GB に拡張する」案と「本システムだけ ECS on Fargate に移す」案を、この使い方で比べ直した。
+
+| 案 | 月8〜10時間程度の今の使い方 | 24時間稼働した場合 | famigo への影響・作業量 |
+|---|---|---|---|
+| EBS を 16GB に拡張 | +約115円（停止中もかかる） | +約115円 | famigo を止めずに拡張できる。作業は数分 |
+| 本システムを ECS on Fargate へ | ほぼ同額（動いている時間だけ課金） | +約2,500〜5,600円 | デプロイ方式・ログ・権限・ターゲットグループの作り直しが要る。famigo の EC2 からは外れる |
+| ECS on EC2 | 0円 | 0円 | 同じ EC2 のディスクを使うため、ディスク不足は解決しない |
+
+- 今の使い方では費用に差が無く、移行の作業量と famigo への影響の分だけ ECS が不利。24時間稼働にすると ECS の差額が大きくなる
+- ディスクは EBS の拡張で足り、それも当面は見送る（3.4）。**ECS への移行は、専用環境に移すときなどに改めて検討する**
+
 ### 3.11 ログの集約と監視（CloudWatch）
 
 コンテナのログを CloudWatch Logs に集め、異常をメールで知らせる（`infra/monitoring.tf`。設計の詳細は [ログ・監視設計書](logging-and-monitoring.md) 7章・8章）。
@@ -359,13 +426,13 @@ ALB自体は既にfamigo用として稼働しており、本システムの相�
 - 全リソース（VPC・Subnet・RouteTable・NACL・IGW・SG・ALB・Listener・EC2・RDS・Route53・ACM・IAM等）を一律importする方針は、個人開発の工数に対して過大と判断し採らない。importしたリソースは実物との差分（設定漂流）を継続的に追従する管理コストも発生し続けるため、変更を予定しない既存部分まで抱え込む必要は薄い
 - ALBの既存Listener（443）についても、importは不要と判断する。`aws_lb_listener_rule`は`listener_arn`（文字列）を引数に取るだけで、そのARNの発行元が`resource`か`data`かをTerraformは区別しない。そのため`data "aws_lb_listener"`で既存Listenerを参照し、そのARNを渡して`aws_lb_listener_rule`を追加すれば、Listener自体を管理下に置かなくても新規ルール追加は安全に行える
 - 使い分けの基準：
-  - **data source参照**（import不要）：VPC・Subnet・既存SG（`famigo-sg-ec2`等）・RDSインスタンス本体・EC2インスタンス本体・既存ALB本体・既存ALB Listener・既存Route53ホストゾーン（famigo側）など、参照はするが本システム側から変更を加えない既存リソース全般
+  - **data source参照**（import不要）：VPC・Subnet・既存SG（`famigo-sg-ec2`等）・RDSインスタンス本体・EC2インスタンス本体・既存ALB本体・既存ALB Listener・EC2 の IAM インスタンスプロファイル（ポリシーを1枚追加する先のロールを辿るため。3.9）など、参照はするが本システム側から変更を加えない既存リソース全般
   - **import**：本方針では対象なし（新規追加するものはすべて`resource`ブロックで素直に作成する）
   - **既存リソースへの「追加」**：famigoの既存リソースに本システム用の設定を足す場合は、追加分だけを管理するリソースを使い、既存リソース本体は管理下に置かない（SGへのルール1本：`aws_vpc_security_group_ingress_rule`、Listenerへのルール：`aws_lb_listener_rule`、EC2のIAMロールへのポリシー1枚：`aws_iam_role_policy`。「3.9 現場写真の保存先」参照）
 
 ### 4.2 手順
 
-1. `data "aws_vpc"` `data "aws_subnet"` `data "aws_security_group"` `data "aws_lb"` `data "aws_lb_listener"` `data "aws_db_instance"` `data "aws_route53_zone"`（本システム用に新規取得するドメインのゾーンは`resource`側で新規作成）等で、依存する既存famigoリソースを参照する
+1. `data "aws_vpc"` `data "aws_lb"` `data "aws_lb_listener"` `data "aws_instance"` `data "aws_security_group"`（EC2用・ALB用） `data "aws_iam_instance_profile"` で、依存する既存famigoリソースを参照する（`infra/data.tf`・`infra/s3_photos.tf`）。RDS は Terraform から参照しない（スキーマ作成は管轄外。4.3）。本システム用に取得したドメインのゾーンは`resource`側で新規作成する
 2. `data "aws_lb_listener"`で取得したARNを`listener_arn`に渡し、本システム用の`aws_lb_listener_rule`を`resource`として追加する（importは行わない）
 3. その他の本システム用新規リソース（SGルール、ターゲットグループ、Route53ホストゾーン・レコード、ACM証明書等）も`resource`として追加し、`terraform plan`の出力を確認した上で`apply`する。「追加差分のみ」と機械的に限定するのではなく、**表示された差分の内容（新規作成／変更／削除、対象リソース）が意図と一致しているかを都度確認する**（プロバイダー更新やAWS側のドリフト、意図した設定変更により、新規作成以外の差分が表示されることもあり得るため）
 
@@ -373,7 +440,7 @@ ALB自体は既にfamigo用として稼働しており、本システムの相�
 
 - RDS内のデータベース・アプリケーションユーザー作成（`CREATE DATABASE` / `CREATE USER` / `GRANT`）：Terraform・Laravel Migrationいずれの管理対象外とし、RDSに対する初期セットアップ手順として実施・管理する
 - RDS内のテーブル・カラム・インデックス・外部キー制約：Laravel Migration側で管理
-- EC2上のコンテナ内部の設定（Dockerfile、Nginx server_block、PHP-FPM pool設定等）・docker-compose.ymlの中身：Terraformの対象はEC2インスタンス自体（起動設定・SG・アタッチするIAMロール等）までとし、コンテナ内部の構成はアプリケーションリポジトリ側で管理する（`[要検討: 将来的にUser Data / Systems Manager等での自動デプロイを検討]`）
+- EC2上のコンテナ内部の設定（Dockerfile、Nginx server_block、PHP-FPM pool設定等）・docker-compose.ymlの中身：Terraformの対象はEC2インスタンス自体（起動設定・SG・アタッチするIAMロール等）までとし、コンテナ内部の構成はアプリケーションリポジトリ側で管理する。デプロイは手動で行い、自動デプロイ（CD）は導入しない（理由と将来導入する場合の方式は 3.2）
 
 ### 4.4 State管理
 
@@ -386,12 +453,12 @@ ALB自体は既にfamigo用として稼働しており、本システムの相�
 
 ## 5. 今後決めること
 
-- [ ] 本システム用独自ドメインの選定・取得（ドメイン名・TLD・取得先レジストラを確定。「3.6 ドメイン方針」参照）
+- [x] 本システム用独自ドメインの選定・取得（ドメイン名・TLD・取得先レジストラを確定。「3.6 ドメイン方針」参照） → **`civil-track.com` を取得し、2026-08-02 に本番公開**（3.6）
 - [x] EC2（t3.micro）でfamigo（Java/Spring Boot）・本システム（PHP/Laravel + Nginx）2アプリ同時稼働時のメモリ・CPU使用率を`free -h`・`docker stats`で実測し、本ドキュメント「3.4 EC2のリソース検証」に結果を追記 → **2026-08-15 実施。`available` 282Mi/916Mi（30.8%）・CPU ほぼアイドルで余裕ありと確認し、t3.small へのスケールアップは不要と判断（3.4）。併せてディスク使用率80%を発見し、デプロイ後の`docker image prune -a`を運用手順に追加**
-- [ ] famigo-ec2上の既存docker-compose.yml・ディレクトリ構成の現物確認（`/opt/famigo/`配下の実際のパス名等）、本システム用docker-compose.ymlの配置・分離方法の具体化
-- [ ] famigo-sg-ec2の現物ルール確認（SSH許可元IP等、CLIでの要約は簡略化されているため`.tf`化前に詳細を再取得）
+- [x] famigo-ec2上の既存docker-compose.yml・ディレクトリ構成の現物確認（`/opt/famigo/`配下の実際のパス名等）、本システム用docker-compose.ymlの配置・分離方法の具体化 → famigo は `/opt/famigo`・`/opt/famigo-docker`、本システムは `/opt/civil/docker-compose.prod.yml` に分離して配置（3.2・[運用手順](operations-start-stop.md)）
+- [x] famigo-sg-ec2の現物ルール確認（SSH許可元IP等、CLIでの要約は簡略化されているため`.tf`化前に詳細を再取得） → 2026-11-01 に確認（2.6）。本システムは 8081 のルール1本だけを Terraform で追加している（`infra/security_group.tf`）
 - [x] Terraform tfstateの保管方式確定 → **ローカル保存**（`infra/versions.tf` の `backend "local"`）。個人開発・1台作業のため。tfstateは機密を含みうるため `.gitignore` でコミット除外。将来、複数PC・複数人になればS3 backendへ移行する（4.4）
-- [x] EC2上のアプリ切り替え・デプロイ手順の確定 → **当面は手動デプロイ**（SSH/SSMでEC2に入り `docker compose -f docker-compose.prod.yml up -d --build`）。CI/CDは今回導入せず将来検討（3.2）。本番用の Dockerfile.prod / docker-compose.prod.yml / entrypoint.prod.sh / .env.production.example をアプリリポジトリに用意済み（6章）
+- [x] EC2上のアプリ切り替え・デプロイ手順の確定 → **当面は手動デプロイ**（SSMでEC2に入り `docker compose -f docker-compose.prod.yml build --pull` → `up -d`）。CI は導入済み（#128）、CD は導入しない（3.2）。本番用の Dockerfile.prod / docker-compose.prod.yml / entrypoint.prod.sh / .env.production.example をアプリリポジトリに用意済み（6章）
 - [x] Laravel側`/health`エンドポイントの実装（「3.5 ALB相乗り方式」参照）→ 実装済み（`routes/web.php`。認証なしで`200 OK`を返す。DB等の外部依存は見ない）
 
 ---
@@ -428,7 +495,7 @@ ALB自体は既にfamigo用として稼働しており、本システムの相�
 | `APP_URL` | `https://<本番ドメイン>` | 生成URL・リダイレクトの基準 |
 | `DB_*` | RDS（`famigo-mysql`）の本システム用スキーマ・専用ユーザー（インフラ設計3.1） | — |
 | `SESSION_SECURE_COOKIE` | `true` | HTTPSでのみcookieを送る |
-| `SESSION_DRIVER` | `database` または `file` | EC2 1台構成のため`file`で可。将来スケール時は`database`等を検討 |
+| `SESSION_DRIVER` | `file`（採用） | EC2 1台構成のためファイルで足りる（`sessions` テーブルは作っていない）。将来、複数台にするなら`database`等を検討 |
 | `LOG_CHANNEL` | `stderr` | ログを標準エラー出力に出し、Docker のログドライバで外部（CloudWatch Logs）へ運ぶ。コンテナ内のファイルには書かない（再ビルドで消え、ディスクも圧迫するため）。[ログ・監視設計書](logging-and-monitoring.md) 3章 |
 | `LOG_STDERR_FORMATTER` | `Monolog\Formatter\JsonFormatter` | 1行1件の JSON にし、項目を指定して検索・集計できるようにする |
 | `LOG_LEVEL` | `info` | 業務の記録（ログイン・削除等）とアクセスログを残す。`debug` は本番では使わない |
@@ -445,7 +512,7 @@ php artisan view:cache             # Bladeビューのコンパイルキャッ�
 ```
 
 - 開発用 `docker/php/entrypoint.sh` は storage 初期化のみ。**本番用は `docker/php/entrypoint.prod.sh` を用意済み**（上記 migrate + config/route/view:cache を実行）。本番イメージは `docker/php/Dockerfile.prod`・`docker/nginx/Dockerfile.prod`、起動は `docker-compose.prod.yml`、環境変数は `.env.production.example` を雛形とする（いずれもアプリリポジトリ側で管理。4.3参照）。
-- 初期データ投入：初回のみ `php artisan db:seed --class=OfficeSeeder`・`--class=AdminUserSeeder` を実行する（管理者は投入後すぐパスワード変更）。体験用サンプル（`SampleStaffSeeder`/`SampleRequestSeeder`）を本番に入れるかは運用方針次第。
+- 初期データ投入：初回のみ `php artisan db:seed --class=OfficeSeeder`・`--class=AdminUserSeeder` を実行する（管理者は投入後すぐパスワード変更）。本番には体験用サンプル（`SampleStaffSeeder`/`SampleRequestSeeder`）も入れており、内容を更新したときは `php artisan sample:refresh --force` で入れ替える（直近は 2026-10-31。[運用手順](operations-start-stop.md)「サンプルデータの入れ替え」）。
 
 ### 6.4 ヘルスチェックエンドポイントの使い分け
 

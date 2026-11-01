@@ -1,6 +1,6 @@
 # 画面設計書
 
-最終更新日: 2026-10-11
+最終更新日: 2026-11-01
 
 [要件定義書](requirements.md) 5章の画面イメージ、および `mockup/` の画面プロトタイプをもとに、
 Laravel（Blade）でのルーティング・コントローラ・権限制御を設計する。
@@ -17,8 +17,8 @@ Laravel（Blade）でのルーティング・コントローラ・権限制御�
 | 2 | パスワード変更 | `password-change.html` | 認証済み全ユーザー |
 | 3 | 案件一覧・検索 | `list.html` | 認証済み全ユーザー |
 | 4 | 案件詳細（対応履歴タイムライン・現場写真を含む） | `detail.html` | 認証済み全ユーザー（対応履歴・現場写真の追加・編集・削除は対応部署が一致する担当者・管理者のみ） |
-| 5 | 案件新規登録 | `register.html` | 認証済み全ユーザー |
-| 6 | 案件編集・削除 | `edit.html` | 対応部署が一致する担当者のみ |
+| 5 | 案件新規登録 | `register.html` | 一般職員（担当部署によらず登録できる。システム管理者は登録不可。3.2参照） |
+| 6 | 案件編集・削除 | `edit.html` | 対応部署が一致する担当者、およびシステム管理者 |
 | 7 | 地図表示 | `map.html` | 認証済み全ユーザー |
 | 8 | ユーザー一覧 | `user-list.html` | システム管理者のみ |
 | 9 | ユーザー登録 | `user-register.html` | システム管理者のみ |
@@ -31,11 +31,11 @@ Laravel（Blade）でのルーティング・コントローラ・権限制御�
 ## 2. ルーティング設計
 
 Laravel標準のリソースルーティングを基本とし、業務要件に合わせて命名する。
-全ルートは `auth` ミドルウェア配下（ログイン画面を除く）。
+全ルートは `auth` ミドルウェア配下（ログイン画面と、死活確認用の `/health`・`/up` を除く）。以下は [routes/web.php](../routes/web.php) の要点の抜粋（コメントは省略）。
 
 ```php
 // ALB（ロードバランサ）ヘルスチェック用。認証なしで 200 を返す（インフラ設計書 3.5）
-Route::get('/health', fn () => response('OK', 200))->name('health');
+Route::get('/health', fn () => response('OK', 200)->header('Content-Type', 'text/plain'))->name('health');
 
 // 認証（未ログインユーザー向け）
 Route::middleware('guest')->group(function () {
@@ -200,6 +200,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function () {
 | MapController | index / pins | `map/index.blade.php` | `requests`から緯度経度を持つ案件を条件検索（一般職員は事務所スコープ適用、管理者は全事務所）。`pins`は一覧の各件の緯度経度・受付日時・緊急性等をGeoJSON等で返す |
 | UserController | index / create / store / edit / update / deactivate / activate / destroy / reissuePassword | `users/*.blade.php` | `users`のCRUD（Gate: admin）。事務所スコープなし、全事務所のユーザーが対象。`index`は所属事務所によるフィルタをオプションで受け付ける。`deactivate`＝無効化・`activate`＝再有効化・`destroy`＝物理削除（案件を持たない誤登録アカウントのみ）・`reissuePassword`＝初期パスワード再発行（`must_change_password`を`true`に戻す） |
 | （ルート直書き） | GET /health | -（`OK`テキスト） | なし。ALBヘルスチェック用に認証なしで200を返す（インフラ設計書3.5） |
+| （例外時の共通画面） | — | `errors/500.blade.php` | なし。想定外のエラー時に表示し、問い合わせ番号（リクエストID）を出す（[ログ・監視設計書](logging-and-monitoring.md) 4章） |
 
 ---
 

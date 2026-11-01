@@ -258,7 +258,7 @@
 
   <h3>Laravel では「結合テスト」が厚くなりやすい</h3>
   <p>ピラミッドは目安で、形はアプリの性質で変わります。Laravel の画面アプリは、処理の多くが「リクエストを受けて、DB を検索して、画面を返す」ことでできています。この場合、DB を偽物にした単体テストでは<b>自分で書いた検索条件（SQL）が1行も実行されず</b>、肝心なところを確かめられません。</p>
-  <p>そのため Laravel では、本物の DB につないで HTTP リクエストから通す <b>Feature テスト（＝結合テスト）が中心</b>になるのが普通です。Laravel の Feature テストは DB を毎回まっさらに戻すので、結合テストでも1本あたり平均0.5秒ほどで回ります（このアプリは204本で約97秒）。</p>
+  <p>そのため Laravel では、本物の DB につないで HTTP リクエストから通す <b>Feature テスト（＝結合テスト）が中心</b>になるのが普通です。Laravel の Feature テストは DB を毎回まっさらに戻すので、結合テストでも1本あたり平均0.5秒ほどで回ります（このアプリは207本で約100秒）。</p>
 
   <!-- 4 -->
   <h2 id="s4"><span class="num">4</span>それぞれのテストの中身</h2>
@@ -505,7 +505,7 @@ page(<span class="s">'/requests?keyword=草'</span>);       <span class="c">// �
 
   <!-- 8 -->
   <h2 id="s8"><span class="num">8</span>このアプリの現状</h2>
-  <p class="h2sub">2026-10-25 時点（E2E テスト実施後）。PHPUnit は 207本、E2E は 7本すべて成功。</p>
+  <p class="h2sub">2026-10-25 時点（E2E テスト実施後）。PHPUnit は 207本、E2E は 7本すべて成功。CI はその後 2026-10-28 に構築した。</p>
 
   <div class="pyramid" role="img" aria-label="このアプリのテストの現状">
     <div class="tier w1"><div><div class="name">手動確認</div><div class="meta">バリデーション確認シート、本番での動作確認</div></div><span class="tag tag-thin">部分的</span></div>
@@ -513,7 +513,7 @@ page(<span class="s">'/requests?keyword=草'</span>);       <span class="c">// �
     <div class="tier w3"><div><div class="name">結合テスト（Feature）</div><div class="meta">17ファイル・テスト専用 DB を使用</div></div><span class="tag tag-done">206本</span></div>
     <div class="tier w4"><div><div class="name">単体テスト（Unit）</div><div class="meta">Laravel が最初から入れているサンプルのみ</div></div><span class="tag tag-thin">1本</span></div>
     <div class="tier w5 base"><div><div class="name">静的解析・整形</div><div class="meta">Pint ／ PHPStan（レベル5）</div></div><span class="tag tag-done">実施中</span></div>
-    <div class="axis"><span>別枠：パフォーマンステスト <b>実施済み</b>（k6・ローカル）</span><span>別枠：CI（自動実行）<b>未構築</b></span></div>
+    <div class="axis"><span>別枠：パフォーマンステスト <b>実施済み</b>（k6・ローカル）</span><span>別枠：CI（自動実行）<b>構築済み</b>（GitHub Actions）</span></div>
   </div>
 
   <h3>結合テスト（Feature）の内訳</h3>
