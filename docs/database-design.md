@@ -1,6 +1,6 @@
 # データベース設計書
 
-最終更新日: 2026-10-11
+最終更新日: 2026-11-01
 
 対象DB：MySQL（既存 `famigo-mysql` インスタンス内に新規スキーマを作成）。
 本設計は [要件定義書](requirements.md) の「3. 登録項目」「1.3 想定利用者・権限方針」を正規化したもの。変更履歴は`git log docs/database-design.md`を参照。
@@ -30,7 +30,7 @@ erDiagram
     users {
         bigint id PK
         bigint office_id FK "NULL可：システム管理者は事務所非依存"
-        varchar user_id UK "ログインID（事務所内一意。管理者は全体で一意）"
+        varchar user_id UK "ログインID（システム全体で一意）"
         varchar name
         varchar password_hash
         boolean must_change_password
@@ -98,6 +98,10 @@ erDiagram
 
 ## 2. テーブル定義
 
+本システムのテーブルは、下記の5つと、Laravel がマイグレーションの実行記録に使う `migrations` の計6つ。Laravel の新規プロジェクトに含まれる `sessions`・`cache`・`jobs`・`password_reset_tokens` は作らない（セッション・キャッシュはファイルに保存し（`SESSION_DRIVER=file`・`CACHE_STORE=file`）、キューは使わず、パスワードの再設定はシステム管理者による再発行で行うため）。
+
+**作成日時・更新日時（`created_at`・`updated_at`）について**：Laravel 標準の `timestamps()` で作るため、DB 上は NULL 可になっている。登録・更新は必ずアプリ（Eloquent）を通し、そのたびに値が入るため、実際に NULL になることはない。
+
 ### 2.1 offices（事務所マスタ）
 
 要件定義書 1.3「事務所ごとのデータ分離方式」に基づき、ユーザー・案件を事務所単位で分離するためのマスタ。
@@ -106,8 +110,8 @@ erDiagram
 |---|---|---|---|
 | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
 | name | VARCHAR(100) | NOT NULL, UNIQUE | 例：〇〇土木事務所 |
-| created_at | TIMESTAMP | NOT NULL | |
-| updated_at | TIMESTAMP | NOT NULL | |
+| created_at | TIMESTAMP | NULL可 | Laravel 標準（`timestamps()`）。登録時にアプリが必ず値を入れる |
+| updated_at | TIMESTAMP | NULL可 | Laravel 標準。更新のたびにアプリが値を入れる |
 
 ---
 
@@ -126,8 +130,8 @@ erDiagram
 | department | ENUM('road','river','sabo') | NULL可 | 担当部署（道路／河川／砂防）。編集・削除権限の判定に使用。**`role`が`admin`の場合はNULL**（管理者は担当部署によらず全案件を編集・削除できるため） |
 | role | ENUM('staff','admin') | NOT NULL, DEFAULT 'staff' | 権限区分（一般職員／システム管理者） |
 | status | ENUM('active','inactive') | NOT NULL, DEFAULT 'active' | アカウント状態（有効／無効化） |
-| created_at | TIMESTAMP | NOT NULL | |
-| updated_at | TIMESTAMP | NOT NULL | |
+| created_at | TIMESTAMP | NULL可 | Laravel 標準（`timestamps()`）。登録時にアプリが必ず値を入れる |
+| updated_at | TIMESTAMP | NULL可 | Laravel 標準。更新のたびにアプリが値を入れる |
 
 **インデックス**
 - `UNIQUE(user_id)` — ログインID重複チェック。`office_id`がNULL（管理者）になり得るため、事務所単位の複合ユニークではなく単一カラムのユニーク制約とする
@@ -169,8 +173,8 @@ erDiagram
 | response_policy | TEXT | NULL | 対応方針 |
 | response_status | ENUM('not_started','in_progress','completed') | NOT NULL, DEFAULT 'not_started' | 対応状況（未対応／対応中／対応完了） |
 | response_completed_date | DATE | NULL | 対応状況が「対応完了」になった日 |
-| created_at | TIMESTAMP | NOT NULL | |
-| updated_at | TIMESTAMP | NOT NULL | 表示用「最終更新日時」を兼ねる（要件定義書 2.1：変更履歴は保持しないが最終更新日時のみ表示。Laravel標準の自動更新カラムをそのまま画面表示に用い、専用カラムは持たない）。**`request_logs` の追加・編集・削除でも更新される**（Eloquentの`$touches`。2.4参照） |
+| created_at | TIMESTAMP | NULL可 | Laravel 標準（`timestamps()`）。登録時にアプリが必ず値を入れる |
+| updated_at | TIMESTAMP | NULL可 | 表示用「最終更新日時」を兼ねる（要件定義書 2.1：変更履歴は保持しないが最終更新日時のみ表示。Laravel標準の自動更新カラムをそのまま画面表示に用い、専用カラムは持たない）。**`request_logs` の追加・編集・削除でも更新される**（Eloquentの`$touches`。2.4参照） |
 | deleted_at | TIMESTAMP | NULL | 論理削除（Laravel SoftDeletes を使用） |
 
 **インデックス**
@@ -198,8 +202,8 @@ erDiagram
 | logged_on | DATE | NOT NULL | 対応日（実際に対応した日）。未来日は不可（アプリケーション層でバリデーション） |
 | content | TEXT | NOT NULL | 対応内容・経過（自由記述。最大1,000文字はアプリケーション層でバリデーション） |
 | recorded_by | BIGINT UNSIGNED | NOT NULL, FK → users.id (RESTRICT) | 記録者。**編集後も変更されない**（誰が記録したかの事実を保持する） |
-| created_at | TIMESTAMP | NOT NULL | |
-| updated_at | TIMESTAMP | NOT NULL | 内容を訂正すると更新される。`created_at` と異なれば「編集済み」として画面表示する（`RequestLog::wasEdited()`） |
+| created_at | TIMESTAMP | NULL可 | Laravel 標準（`timestamps()`）。登録時にアプリが必ず値を入れる |
+| updated_at | TIMESTAMP | NULL可 | 内容を訂正すると更新される。`created_at` と異なれば「編集済み」として画面表示する（`RequestLog::wasEdited()`） |
 | deleted_at | TIMESTAMP | NULL | 論理削除 |
 
 **インデックス**
@@ -224,8 +228,8 @@ erDiagram
 | original_name | VARCHAR(255) | NOT NULL | アップロード時の元のファイル名（画面表示用） |
 | size | INT UNSIGNED | NOT NULL | ファイルサイズ（バイト） |
 | uploaded_by | BIGINT UNSIGNED | NOT NULL, FK → users.id (RESTRICT) | 登録者 |
-| created_at | TIMESTAMP | NOT NULL | |
-| updated_at | TIMESTAMP | NOT NULL | |
+| created_at | TIMESTAMP | NULL可 | Laravel 標準（`timestamps()`）。登録時にアプリが必ず値を入れる |
+| updated_at | TIMESTAMP | NULL可 | Laravel 標準。更新のたびにアプリが値を入れる |
 
 **インデックス**
 - `INDEX(request_id, request_log_id)` — 案件の写真の取得と、対応履歴ごと・受付時の枚数カウント（上限5枚の判定）

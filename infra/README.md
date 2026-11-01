@@ -23,7 +23,9 @@
 
 EC2 上で動かす定期実行（ディスク使用率の送信）は Terraform の管轄外のため、ファイルだけを `ec2/` に置き、運用手順書の手順で EC2 に設置する。
 
-**作らない（既存 famigo を `data` 参照するだけ・`data.tf`）**：VPC / ALB 本体 / ALB リスナー / EC2 本体 / 既存 SG。
+**作らない（既存 famigo を `data` 参照するだけ・`data.tf` ほか）**：VPC / ALB 本体 / ALB リスナー / EC2 本体 / 既存 SG / EC2 の IAM インスタンスプロファイル（ポリシーの追加先を辿るため）。
+
+**現在の状態**：`civil-track.com` を `terraform.tfvars` に設定して全リソースを作成済み（2026-08-02 本番公開、写真用 S3 は 2026-10-17、ログ・監視は 2026-10-22 に追加）。下の「使い方」の 3・4 は初回構築時の手順。
 
 ### famigo 無影響の設計
 
@@ -81,6 +83,9 @@ terraform apply         # 適用
 - `route53_name_servers`：レジストラに登録するネームサーバー
 - `target_group_arn` / `target_group_name`：ターゲットグループ
 - `app_url`：公開 URL（ドメイン設定時）
+- `photos_bucket_name`：現場写真の S3 バケット名（`.env.production` の `AWS_BUCKET`）
+- `log_group_name` / `alerts_topic_arn`：ログの送り先・アラームの通知先
+- `alb_dns_name`：相乗り先 ALB の DNS 名
 
 ## 注意
 

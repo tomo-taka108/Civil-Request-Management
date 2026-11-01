@@ -1,5 +1,5 @@
 ---
-description: Laravel（Pint整形・PHPStan静的解析・PHPUnitテスト）の品質チェックを実行する。エラーがあれば自動修正または修正して再チェックする。インフラ（Terraform）は infra/ 追加後に有効化する。
+description: Laravel（Pint整形・PHPStan静的解析・PHPUnitテスト）の品質チェックを実行する。エラーがあれば自動修正または修正して再チェックする。infra/（Terraform）を変更したときは terraform fmt・validate も行う。
 allowed-tools: Bash
 disable-model-invocation: false
 ---
@@ -58,17 +58,20 @@ docker compose exec -T php php artisan test
 docker compose exec -T mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS civil_request_management_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_ja_0900_as_cs; GRANT ALL PRIVILEGES ON civil_request_management_testing.* TO '"'"'civil_request_app'"'"'@'"'"'%'"'"'; FLUSH PRIVILEGES;"'
 ```
 
-## Step 4: インフラ（Terraform）※ infra/ 追加後に有効化
+## Step 4: インフラ（Terraform）※ `infra/` を変更したときだけ
 
-Terraform コード（`infra/`）はまだ存在しない。インフラ着手後、以下を有効化する。
+Terraform のコードは `infra/` 直下にある（環境ごとのフォルダは無い）。`.tf` を変更したときは以下を実行する（ホストの `terraform` を使う。Docker 不要）。
 
 ```bash
-# cd infra/envs/dev && terraform fmt -check -recursive -diff
-# cd infra/envs/dev && terraform validate   # 初回は terraform init -backend=false が必要
+cd infra
+terraform fmt -check *.tf   # 書式。コミットするファイルだけを対象にする
+terraform validate          # 構文・参照の検証。初回は terraform init -backend=false が必要
 ```
 
+- `terraform fmt -check -recursive` にしないのは、コミットしない手元の `terraform.tfvars`（通知先メールアドレス等）まで検査対象になるため
 - `terraform fmt` / `terraform validate` を必須とし、`tflint` はインストール時のみ任意で実行する
-- `terraform validate` は AWS 上にリソースを作成しない静的チェックで、課金は発生しない
+- どちらも AWS 上にリソースを作成しない静的チェックで、課金は発生しない
+- AWS に反映する `terraform plan` / `apply` は品質チェックではない。本番の変更になるため、ユーザーの確認のもとで行う（[infra/README.md](../../../infra/README.md)）
 
 ## 重要事項
 
