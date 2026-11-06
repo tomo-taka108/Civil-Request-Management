@@ -1,6 +1,6 @@
 # インフラ設計書
 
-最終更新日: 2026-11-01
+最終更新日: 2026-11-06
 
 本システムのAWSインフラ構築・デプロイ方針を定める。
 [要件定義書](requirements.md) の「4.3 保守性・運用」「4.4 技術スタック」を前提とし、既存の別アプリ（famigo）用AWS環境への相乗り方針を具体化したもの。変更履歴は`git log docs/infrastructure-design.md`を参照。
@@ -21,12 +21,10 @@
 
 ## 1.5 全体構成図
 
-famigo 既存 AWS 環境（ALB・EC2・RDS）に相乗りする構成の全体像。色分けは「famigo 既存（流用・参照）／本システムが新規追加するもの／外部」を表す。詳細な各リソースの値は「2. 既存famigo環境の実地調査結果」、経路・切り分けは「3. 相乗り方式の詳細設計」を参照。
+famigo 既存 AWS 環境（ALB・EC2・RDS）に相乗りし、現場写真は S3（3.9）、ログ・監視は CloudWatch・SNS（3.11）を使う構成の全体像。色分けは「famigo 既存（流用・参照）／本システムが新規追加するもの／外部」を表す。詳細な各リソースの値は「2. 既存famigo環境の実地調査結果」、経路・切り分けは「3. 相乗り方式の詳細設計」を参照。
 
 ![要望管理システム インフラ構成図](images/infrastructure-diagram.svg)
 
-> **図に未記載のもの**：現場写真の S3 バケット `civil-request-photos`（3.9）と、ログ・監視の CloudWatch・SNS（3.11）。図への追加は Issue #100 で行う。
->
 > 図の実体は [`images/infrastructure-diagram.svg`](images/infrastructure-diagram.svg)（README でも同じ画像を使用）。図を修正するときは SVG を直接編集するか、下記 mermaid を編集してから SVG を描き直す。以下の mermaid は同じ内容の編集用ソース（GitHub 上ではそのまま図として描画される）。
 
 ```mermaid
@@ -42,7 +40,7 @@ flowchart TB
         subgraph ec2["EC2  famigo-ec2  (t3.micro, Public配置)"]
           direction TB
           cFamigo["famigo コンテナ<br/>Spring Boot : 8080"]:::exist
-          cCivil["本システム コンテナ<br/>Nginx + PHP-FPM : 8081<br/>GET /health → 200"]:::new
+          cCivil["本システム コンテナ<br/>Nginx + PHP-FPM : 8081<br/>GET /health → 200<br/>EC2 の IAM ロールで接続（キー無し）"]:::new
         end
       end
       subgraph prv["Private サブネット (1a / 1c)"]
@@ -50,12 +48,25 @@ flowchart TB
       end
     end
 
+    subgraph managed["AWS のマネージドサービス（VPC の外）"]
+      direction LR
+      s3["S3  civil-request-photos<br/>現場写真（非公開）"]:::new
+      cw["CloudWatch<br/>Logs /civil/app（30日保存）<br/>アラーム3種（エラー・停止・ディスク）"]:::new
+      sns["SNS  civil-request-alerts"]:::new
+    end
+    mail["管理者のメール"]:::net
+
     user -->|"名前解決"| dns
     user -->|"HTTPS 443"| alb
     alb -->|"既定 forward → tg-8080"| cFamigo
     alb -->|"ホストベースルール（新規）→ civil-request-tg-8081"| cCivil
     cFamigo -->|"3306"| rds
     cCivil -->|"3306"| rds
+    cCivil -.->|"写真の保存・削除（IAM ロール）"| s3
+    user -.->|"署名付き URL で写真を直接表示（30分）"| s3
+    cCivil -.->|"ログ送信（awslogs）"| cw
+    cw -.->|"アラーム"| sns
+    sns -.->|"メール通知"| mail
 
     classDef net fill:#e3f5f2,stroke:#0f9b8e,color:#0b3f39;
     classDef exist fill:#eceef2,stroke:#7a8394,color:#333a47;
