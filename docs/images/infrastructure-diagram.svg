@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" width="960" height="640" font-family="'Segoe UI','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif" role="img" aria-label="要望管理システム インフラ構成図。famigo既存のAWS環境（ALB・EC2・RDS）に相乗りする構成。">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 930" width="960" height="930" font-family="'Segoe UI','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif" role="img" aria-label="Civil Track インフラ構成図。famigo既存のAWS環境（ALB・EC2・RDS）に相乗りし、現場写真はS3、ログと監視はCloudWatchとSNSを使う構成。">
   <style>
     /* CSS変数は svg 要素自身に定義する（:root だと img 埋め込み時に解決されず
        Cursor/GitHub のプレビューで色が出ない環境があるため）。 */
@@ -20,130 +20,185 @@
     }
     .bg { fill: var(--bg); }
     .zone { fill: none; stroke: var(--zone); stroke-dasharray: 5 4; }
-    .zone-lbl { fill: var(--ink-soft); font-size: 13px; font-weight: 600; }
+    .zone-lbl { fill: var(--ink-soft); font-size: 15px; font-weight: 600; }
     .box-new { fill: var(--new-fill); stroke: var(--new); stroke-width: 2; }
     .box-exist { fill: var(--exist-fill); stroke: var(--exist); stroke-width: 1.5; }
     .box-net { fill: var(--net-fill); stroke: var(--net); stroke-width: 1.5; }
     .t-new { fill: var(--new-ink); }
     .t-exist { fill: var(--exist-ink); }
     .t-net { fill: var(--net-ink); }
-    .title { font-weight: 700; font-size: 14px; }
-    .sub { font-size: 11.5px; }
-    .edge { fill: none; stroke: var(--ink-soft); stroke-width: 1.6; }
-    .edge-new { fill: none; stroke: var(--new); stroke-width: 1.8; stroke-dasharray: 6 4; }
-    .elbl { fill: var(--ink-soft); font-size: 11px; }
-    .elbl-new { fill: var(--new); font-size: 11px; font-weight: 600; }
-    .head { fill: var(--ink); font-weight: 700; font-size: 18px; }
-    .head-sub { fill: var(--ink-soft); font-size: 12px; }
-    .lg { fill: var(--ink-soft); font-size: 12px; }
+    .title { font-weight: 700; font-size: 17px; }
+    .sub { font-size: 14px; }
+    .edge { fill: none; stroke: var(--ink-soft); stroke-width: 1.8; }
+    .edge-new { fill: none; stroke: var(--new); stroke-width: 2; stroke-dasharray: 6 4; }
+    .elbl { fill: var(--ink-soft); font-size: 13.5px; }
+    .elbl-new { fill: var(--new); font-size: 13.5px; font-weight: 600; }
+    .head { fill: var(--ink); font-weight: 700; font-size: 22px; }
+    .head-sub { fill: var(--ink-soft); font-size: 14px; }
+    .lg { fill: var(--ink-soft); font-size: 14px; }
   </style>
 
-  <rect class="bg" x="0" y="0" width="960" height="640"/>
+  <rect class="bg" x="0" y="0" width="960" height="930"/>
 
   <!-- header -->
-  <text class="head" x="32" y="38">要望管理システム インフラ構成図</text>
-  <text class="head-sub" x="32" y="58">famigo 既存 AWS 環境（ALB・EC2・RDS）に相乗り／ap-northeast-1（東京）</text>
+  <text class="head" x="32" y="42">Civil Track インフラ構成図</text>
+  <text class="head-sub" x="32" y="66">famigo 既存 AWS 環境（ALB・EC2・RDS）に相乗り／東京リージョン</text>
 
   <!-- legend -->
-  <g transform="translate(600,22)">
-    <rect class="box-net" x="0" y="0" width="18" height="12" rx="3"/>
-    <text class="lg" x="24" y="10">インターネット・外部</text>
-    <rect class="box-exist" x="0" y="18" width="18" height="12" rx="3"/>
-    <text class="lg" x="24" y="28">famigo 既存（流用・参照）</text>
-    <rect class="box-new" x="0" y="36" width="18" height="12" rx="3"/>
-    <text class="lg" x="24" y="46">本システム 新規追加</text>
-    <line class="edge-new" x1="0" y1="60" x2="18" y2="60"/>
-    <text class="lg" x="24" y="64">新規トラフィック経路</text>
+  <g transform="translate(650,18)">
+    <rect class="box-net" x="0" y="0" width="18" height="13" rx="3"/>
+    <text class="lg" x="26" y="12">インターネット・外部</text>
+    <rect class="box-exist" x="0" y="20" width="18" height="13" rx="3"/>
+    <text class="lg" x="26" y="32">famigo 既存（流用・参照）</text>
+    <rect class="box-new" x="0" y="40" width="18" height="13" rx="3"/>
+    <text class="lg" x="26" y="52">本システム 新規追加</text>
+    <line class="edge-new" x1="0" y1="66" x2="18" y2="66"/>
+    <text class="lg" x="26" y="71">本システムの経路</text>
   </g>
 
   <!-- users -->
   <g>
-    <rect class="box-net" x="40" y="150" width="150" height="60" rx="8"/>
-    <text class="title t-net" x="115" y="178" text-anchor="middle">利用者のブラウザ</text>
-    <text class="sub t-net" x="115" y="196" text-anchor="middle">HTTPS でアクセス</text>
+    <rect class="box-net" x="40" y="150" width="180" height="66" rx="8"/>
+    <text class="title t-net" x="130" y="179" text-anchor="middle">利用者のブラウザ</text>
+    <text class="sub t-net" x="130" y="201" text-anchor="middle">HTTPS でアクセス</text>
   </g>
 
   <!-- DNS -->
   <g>
-    <rect class="box-new" x="40" y="300" width="150" height="96" rx="8"/>
-    <text class="title t-new" x="115" y="326" text-anchor="middle">独自ドメイン（新規）</text>
-    <text class="sub t-new" x="115" y="346" text-anchor="middle">Route53</text>
-    <text class="sub t-new" x="115" y="362" text-anchor="middle">ホストゾーン</text>
-    <text class="sub t-new" x="115" y="380" text-anchor="middle">＋ ACM 証明書</text>
+    <rect class="box-new" x="40" y="300" width="180" height="100" rx="8"/>
+    <text class="title t-new" x="130" y="327" text-anchor="middle">独自ドメイン（新規）</text>
+    <text class="sub t-new" x="130" y="349" text-anchor="middle">Route53</text>
+    <text class="sub t-new" x="130" y="368" text-anchor="middle">ホストゾーン</text>
+    <text class="sub t-new" x="130" y="387" text-anchor="middle">＋ ACM 証明書</text>
   </g>
 
   <!-- VPC zone -->
-  <rect class="zone" x="250" y="86" width="680" height="520" rx="12"/>
-  <text class="zone-lbl" x="268" y="108">VPC  famigo-vpc  (10.0.0.0/16)  ※ NATゲートウェイ無し</text>
+  <rect class="zone" x="240" y="106" width="700" height="550" rx="12"/>
+  <text class="zone-lbl" x="256" y="130">VPC  famigo-vpc  (10.0.0.0/16)  ※ NATゲートウェイ無し</text>
 
   <!-- Public subnet zone -->
-  <rect class="zone" x="272" y="124" width="636" height="330" rx="10"/>
-  <text class="zone-lbl" x="288" y="144">Public サブネット (1a / 1c)</text>
+  <rect class="zone" x="258" y="144" width="664" height="336" rx="10"/>
+  <text class="zone-lbl" x="274" y="166">Public サブネット (1a / 1c)</text>
 
   <!-- ALB -->
   <g>
-    <rect class="box-exist" x="300" y="160" width="180" height="70" rx="8"/>
-    <text class="title t-exist" x="390" y="186" text-anchor="middle">ALB  famigo-alb</text>
-    <text class="sub t-exist" x="390" y="204" text-anchor="middle">internet-facing</text>
-    <text class="sub t-exist" x="390" y="220" text-anchor="middle">443 HTTPS リスナー</text>
+    <rect class="box-exist" x="270" y="184" width="170" height="84" rx="8"/>
+    <text class="title t-exist" x="355" y="212" text-anchor="middle">ALB  famigo-alb</text>
+    <text class="sub t-exist" x="355" y="234" text-anchor="middle">internet-facing</text>
+    <text class="sub t-exist" x="355" y="254" text-anchor="middle">443 HTTPS リスナー</text>
   </g>
 
   <!-- EC2 zone -->
-  <rect class="zone" x="540" y="150" width="348" height="288" rx="10"/>
-  <text class="zone-lbl" x="556" y="170">EC2  famigo-ec2  (t3.micro, Public配置)</text>
+  <rect class="zone" x="500" y="178" width="406" height="286" rx="10"/>
+  <text class="zone-lbl" x="514" y="200">EC2  famigo-ec2  (t3.micro, Public 配置)</text>
 
   <!-- famigo container -->
   <g>
-    <rect class="box-exist" x="560" y="186" width="300" height="70" rx="8"/>
-    <text class="title t-exist" x="710" y="212" text-anchor="middle">famigo コンテナ</text>
-    <text class="sub t-exist" x="710" y="232" text-anchor="middle">Spring Boot : 8080</text>
+    <rect class="box-exist" x="516" y="216" width="324" height="72" rx="8"/>
+    <text class="title t-exist" x="678" y="246" text-anchor="middle">famigo コンテナ</text>
+    <text class="sub t-exist" x="678" y="270" text-anchor="middle">Spring Boot : 8080</text>
   </g>
 
   <!-- civil container -->
   <g>
-    <rect class="box-new" x="560" y="286" width="300" height="82" rx="8"/>
-    <text class="title t-new" x="710" y="312" text-anchor="middle">本システム コンテナ</text>
-    <text class="sub t-new" x="710" y="332" text-anchor="middle">Nginx + PHP-FPM : 8081</text>
-    <text class="sub t-new" x="710" y="350" text-anchor="middle">GET /health → 200</text>
+    <rect class="box-new" x="516" y="320" width="324" height="112" rx="8"/>
+    <text class="title t-new" x="678" y="348" text-anchor="middle">本システム コンテナ</text>
+    <text class="sub t-new" x="678" y="371" text-anchor="middle">Nginx + PHP-FPM : 8081</text>
+    <text class="sub t-new" x="678" y="392" text-anchor="middle">GET /health → 200</text>
+    <text class="sub t-new" x="678" y="413" text-anchor="middle">EC2 の IAM ロールで接続（キー無し）</text>
   </g>
 
   <!-- Private subnet zone -->
-  <rect class="zone" x="272" y="474" width="636" height="112" rx="10"/>
-  <text class="zone-lbl" x="288" y="494">Private サブネット (1a / 1c)</text>
+  <rect class="zone" x="258" y="496" width="664" height="144" rx="10"/>
+  <text class="zone-lbl" x="350" y="518">Private サブネット (1a / 1c)</text>
 
   <!-- RDS -->
   <g>
-    <rect class="box-exist" x="300" y="508" width="560" height="64" rx="8"/>
-    <text class="title t-exist" x="580" y="532" text-anchor="middle">RDS  famigo-mysql  (MySQL 8.4)</text>
-    <text class="sub t-exist" x="580" y="552" text-anchor="middle">famigo DB ＋ civil_request_management スキーマ（新規・専用ユーザーで最小権限）</text>
+    <rect class="box-exist" x="600" y="526" width="305" height="100" rx="8"/>
+    <text class="title t-exist" x="752" y="553" text-anchor="middle">RDS  famigo-mysql (MySQL 8.4)</text>
+    <text class="sub t-exist" x="752" y="575" text-anchor="middle">famigo DB ＋ 専用スキーマ（新規）</text>
+    <text class="sub t-exist" x="752" y="594" text-anchor="middle">civil_request_management</text>
+    <text class="sub t-exist" x="752" y="613" text-anchor="middle">（専用ユーザー・最小権限）</text>
+  </g>
+
+  <!-- AWS managed services (outside the VPC) -->
+  <rect class="zone" x="240" y="676" width="700" height="150" rx="12"/>
+  <text class="zone-lbl" x="256" y="700">AWS のマネージドサービス（VPC の外）</text>
+
+  <!-- S3 -->
+  <g>
+    <rect class="box-new" x="258" y="716" width="200" height="92" rx="8"/>
+    <text class="title t-new" x="358" y="743" text-anchor="middle">S3</text>
+    <text class="sub t-new" x="358" y="765" text-anchor="middle">civil-request-photos</text>
+    <text class="sub t-new" x="358" y="786" text-anchor="middle">現場写真（非公開）</text>
+  </g>
+
+  <!-- CloudWatch -->
+  <g>
+    <rect class="box-new" x="480" y="716" width="220" height="92" rx="8"/>
+    <text class="title t-new" x="590" y="741" text-anchor="middle">CloudWatch</text>
+    <text class="sub t-new" x="590" y="762" text-anchor="middle">Logs /civil/app（30日保存）</text>
+    <text class="sub t-new" x="590" y="781" text-anchor="middle">アラーム3種</text>
+    <text class="sub t-new" x="590" y="799" text-anchor="middle">（エラー・停止・ディスク）</text>
+  </g>
+
+  <!-- SNS -->
+  <g>
+    <rect class="box-new" x="722" y="716" width="200" height="92" rx="8"/>
+    <text class="title t-new" x="822" y="743" text-anchor="middle">SNS</text>
+    <text class="sub t-new" x="822" y="765" text-anchor="middle">civil-request-alerts</text>
+    <text class="sub t-new" x="822" y="786" text-anchor="middle">アラームを通知</text>
+  </g>
+
+  <!-- admin mail -->
+  <g>
+    <rect class="box-net" x="722" y="852" width="200" height="54" rx="8"/>
+    <text class="title t-net" x="822" y="885" text-anchor="middle">管理者のメール</text>
   </g>
 
   <!-- edges -->
   <!-- user -> dns (name resolution) -->
-  <path class="edge" d="M115,210 L115,300"/>
-  <text class="elbl" x="122" y="258">名前解決</text>
+  <path class="edge" d="M130,216 L130,300"/>
+  <text class="elbl" x="138" y="262">名前解決</text>
 
   <!-- user -> alb (https) -->
-  <path class="edge" d="M190,175 C 250,175 250,190 298,192" marker-end="url(#arrow)"/>
-  <text class="elbl" x="210" y="168">HTTPS 443</text>
+  <path class="edge" d="M220,183 C 245,183 248,214 268,216" marker-end="url(#arrow)"/>
+  <text class="elbl" x="214" y="174">443</text>
 
   <!-- alb -> famigo (default) -->
-  <path class="edge" d="M480,205 C 520,205 520,215 558,218" marker-end="url(#arrow)"/>
-  <text class="elbl" x="486" y="200">既定 forward</text>
-  <text class="elbl" x="486" y="214">tg-8080</text>
+  <path class="edge" d="M440,236 C 470,236 480,250 514,250" marker-end="url(#arrow)"/>
+  <text class="elbl" x="446" y="224">既定</text>
+  <text class="elbl" x="450" y="272">8080</text>
 
   <!-- alb -> civil (new host rule) -->
-  <path class="edge-new" d="M420,230 C 420,320 480,320 558,322" marker-end="url(#arrow-new)"/>
-  <text class="elbl-new" x="330" y="292">ホストベース</text>
-  <text class="elbl-new" x="330" y="306">ルール（新規）</text>
-  <text class="elbl-new" x="330" y="320">→ tg-8081</text>
+  <path class="edge-new" d="M355,268 C 355,352 440,352 514,352" marker-end="url(#arrow-new)"/>
+  <text class="elbl-new" x="388" y="290">ホストベース</text>
+  <text class="elbl-new" x="388" y="306">ルール（新規）</text>
+  <text class="elbl-new" x="400" y="324">→ tg-8081</text>
 
-  <!-- containers -> rds (3306). Both containers feed a shared trunk at x=840
-       (inside the EC2 zone, right of both boxes), which drops into the RDS top edge.
-       Nothing is crossed. -->
-  <path class="edge" d="M710,256 L710,270 L840,270 L840,508" marker-end="url(#arrow)"/>
-  <path class="edge" d="M710,368 L710,395 L840,395"/>
-  <text class="elbl" x="848" y="450">3306</text>
+  <!-- containers -> rds (3306). Both containers feed a shared trunk at x=872
+       (inside the EC2 zone, right of both boxes), which drops into the RDS top edge. -->
+  <path class="edge" d="M678,288 L678,302 L872,302 L872,524" marker-end="url(#arrow)"/>
+  <path class="edge" d="M840,376 L872,376"/>
+  <text class="elbl" x="878" y="514">3306</text>
+
+  <!-- civil -> S3 (photos via IAM role) -->
+  <path class="edge-new" d="M516,404 L300,404 L300,714" marker-end="url(#arrow-new)"/>
+  <text class="elbl-new" x="308" y="440">写真の保存・削除</text>
+  <text class="elbl-new" x="308" y="458">（IAM ロール）</text>
+
+  <!-- civil -> CloudWatch (logs) -->
+  <path class="edge-new" d="M580,432 L580,714" marker-end="url(#arrow-new)"/>
+  <text class="elbl-new" x="588" y="454">ログ送信（awslogs）</text>
+
+  <!-- browser -> S3 (signed URL) -->
+  <path class="edge-new" d="M40,200 L28,200 L28,762 L256,762" marker-end="url(#arrow-new)"/>
+  <text class="elbl-new" x="38" y="726">署名付き URL で</text>
+  <text class="elbl-new" x="38" y="744">写真を直接表示（30分）</text>
+
+  <!-- CloudWatch -> SNS -> mail -->
+  <path class="edge-new" d="M700,762 L720,762" marker-end="url(#arrow-new)"/>
+  <path class="edge-new" d="M822,808 L822,850" marker-end="url(#arrow-new)"/>
 
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
