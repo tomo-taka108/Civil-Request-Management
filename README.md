@@ -14,7 +14,7 @@
 
 ### 紹介動画（ダッシュボードからの画面の流れ）
 
-INTRO_VIDEO_URL
+https://github.com/user-attachments/assets/9a066e9a-9859-4b92-85d2-eccebd111a6f
 
 ### デモ用アカウント
 
