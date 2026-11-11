@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 930" width="960" height="930" font-family="'Segoe UI','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif" role="img" aria-label="Civil Track インフラ構成図。famigo既存のAWS環境（ALB・EC2・RDS）に相乗りし、現場写真はS3、ログと監視はCloudWatchとSNSを使う構成。">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 930" width="960" height="930" font-family="'Segoe UI','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif" role="img" aria-label="Civil Track インフラ構成図。famigo既存のAWS環境（ALB・EC2・RDS）に相乗りし、データベースはRDS内に本アプリ専用のものを作成。、現場写真はS3、ログと監視はCloudWatchとSNSを使う構成。">
   <style>
     /* CSS変数は svg 要素自身に定義する（:root だと img 埋め込み時に解決されず
        Cursor/GitHub のプレビューで色が出ない環境があるため）。 */
@@ -116,7 +116,7 @@
   <g>
     <rect class="box-exist" x="600" y="526" width="305" height="100" rx="8"/>
     <text class="title t-exist" x="752" y="553" text-anchor="middle">RDS  famigo-mysql (MySQL 8.4)</text>
-    <text class="sub t-exist" x="752" y="575" text-anchor="middle">famigo DB ＋ 専用スキーマ（新規）</text>
+    <text class="sub t-exist" x="752" y="575" text-anchor="middle">famigo の DB ＋ 本アプリの DB（新規）</text>
     <text class="sub t-exist" x="752" y="594" text-anchor="middle">civil_request_management</text>
     <text class="sub t-exist" x="752" y="613" text-anchor="middle">（専用ユーザー・最小権限）</text>
   </g>
@@ -128,7 +128,7 @@
   <!-- S3 -->
   <g>
     <rect class="box-new" x="258" y="716" width="200" height="92" rx="8"/>
-    <text class="title t-new" x="358" y="743" text-anchor="middle">S3</text>
+    <text class="title t-new" x="358" y="743" text-anchor="middle">Amazon S3</text>
     <text class="sub t-new" x="358" y="765" text-anchor="middle">civil-request-photos</text>
     <text class="sub t-new" x="358" y="786" text-anchor="middle">現場写真（非公開）</text>
   </g>
@@ -136,7 +136,7 @@
   <!-- CloudWatch -->
   <g>
     <rect class="box-new" x="480" y="716" width="220" height="92" rx="8"/>
-    <text class="title t-new" x="590" y="741" text-anchor="middle">CloudWatch</text>
+    <text class="title t-new" x="590" y="741" text-anchor="middle">Amazon CloudWatch</text>
     <text class="sub t-new" x="590" y="762" text-anchor="middle">Logs /civil/app（30日保存）</text>
     <text class="sub t-new" x="590" y="781" text-anchor="middle">アラーム3種</text>
     <text class="sub t-new" x="590" y="799" text-anchor="middle">（エラー・停止・ディスク）</text>
@@ -145,9 +145,9 @@
   <!-- SNS -->
   <g>
     <rect class="box-new" x="722" y="716" width="200" height="92" rx="8"/>
-    <text class="title t-new" x="822" y="743" text-anchor="middle">SNS</text>
+    <text class="title t-new" x="822" y="743" text-anchor="middle">Amazon SNS（通知）</text>
     <text class="sub t-new" x="822" y="765" text-anchor="middle">civil-request-alerts</text>
-    <text class="sub t-new" x="822" y="786" text-anchor="middle">アラームを通知</text>
+    <text class="sub t-new" x="822" y="786" text-anchor="middle">アラームをメールで通知</text>
   </g>
 
   <!-- admin mail -->

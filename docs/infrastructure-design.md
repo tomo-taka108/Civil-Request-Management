@@ -44,15 +44,15 @@ flowchart TB
         end
       end
       subgraph prv["Private サブネット (1a / 1c)"]
-        rds[("RDS  famigo-mysql (MySQL 8.4)<br/>famigo DB ＋ civil_request_management スキーマ（新規）")]:::exist
+        rds[("RDS  famigo-mysql (MySQL 8.4)<br/>famigo の DB ＋ 本アプリの DB civil_request_management（新規）")]:::exist
       end
     end
 
     subgraph managed["AWS のマネージドサービス（VPC の外）"]
       direction LR
-      s3["S3  civil-request-photos<br/>現場写真（非公開）"]:::new
-      cw["CloudWatch<br/>Logs /civil/app（30日保存）<br/>アラーム3種（エラー・停止・ディスク）"]:::new
-      sns["SNS  civil-request-alerts"]:::new
+      s3["Amazon S3  civil-request-photos<br/>現場写真（非公開）"]:::new
+      cw["Amazon CloudWatch<br/>Logs /civil/app（30日保存）<br/>アラーム3種（エラー・停止・ディスク）"]:::new
+      sns["Amazon SNS（通知）  civil-request-alerts"]:::new
     end
     mail["管理者のメール"]:::net
 
