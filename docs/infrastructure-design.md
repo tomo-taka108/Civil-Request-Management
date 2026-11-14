@@ -181,12 +181,13 @@ SGルール（`famigo-sg-rds`）：3306/tcp を `famigo-sg-ec2`（EC2側SG）か
 ```sql
 CREATE DATABASE civil_request_management CHARACTER SET utf8mb4 COLLATE utf8mb4_ja_0900_as_cs;
 CREATE USER 'civil_request_app'@'%' IDENTIFIED BY '<発行するパスワード>';
-GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP, REFERENCES
   ON civil_request_management.* TO 'civil_request_app'@'%';
 ```
 
 - famigo用のDB・ユーザーとは完全に分離し、本システム用アプリケーションユーザーは自分のスキーマにしかアクセスできないようにする
-- 権限は`GRANT ALL`ではなく、Laravel（Eloquent・Migration）が実際に必要とする範囲（DML：SELECT/INSERT/UPDATE/DELETE、DDL：CREATE/ALTER/INDEX/DROP）に絞った最小権限とする。REFERENCES権限はMySQL 8では外部キー制約の作成に実質不要なため付与しない
+- 権限は`GRANT ALL`ではなく、Laravel（Eloquent・Migration）が実際に必要とする範囲（DML：SELECT/INSERT/UPDATE/DELETE、DDL：CREATE/ALTER/INDEX/DROP/REFERENCES）に絞った最小権限とする。REFERENCES は外部キー制約の作成に必要な権限（MySQL 8.0.22 以降は参照先テーブルに対する REFERENCES 権限が必須）のため付与する
+- 本番で付与されている権限は、アプリの接続ユーザーで `SHOW GRANTS` を実行して確認済み（2026-11-15。RDS は MySQL 8.4.8）。結果は上記と同じ9種類で、対象は `civil_request_management` スキーマのみ（ほかは `USAGE`＝接続のみ）
 - インスタンス自体（CPU・メモリ・IOPS・自動バックアップ設定）はfamigoと共用のため、パラメータグループ変更やバックアップ保持期間の変更は行わない（要件定義書4.3参照）
 - **データベース（`CREATE DATABASE`）・アプリケーションユーザー作成（`CREATE USER`/`GRANT`）はRDS上で事前に実施する作業であり、Laravel Migrationの管轄外**。Laravel Migrationが管理するのは、作成済みのデータベース内のテーブル・カラム・インデックス・外部キー制約のみ（いずれもTerraformの管轄外）
 
