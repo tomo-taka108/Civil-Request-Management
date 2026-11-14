@@ -285,55 +285,65 @@ Laravel のリソースルーティングに沿って、リソース単位で HT
 ## 操作画面（デモ動画）
 
 <!-- ▼ 動画の貼り付け方（撮影後の作業メモ）
-     1. GitHub の Issue コメント欄に MP4 をドラッグ&ドロップ（投稿は不要。URL だけ発行される）
+     1. GitHub の Issue コメント欄に動画ファイル（webm / MP4）をドラッグ&ドロップ（投稿は不要。URL だけ発行される）
      2. 生成された https://github.com/user-attachments/assets/xxxx の URL をコピー
-     3. 下表の「（未撮影）」を  https://... の URL に差し替える（URL を直書きするだけで再生される）
+     3. 各シーンの見出しの下に https://... の URL を書く（URL を直書きするだけで再生される）
      ※ 動画はリポジトリにコミットしない（理由は CLAUDE.md 8章）
-     ※ 推奨：1280x720 / 30秒〜1分 / 10MB以下 / 音声なし
+     ※ 目安：1024x576 / 20秒〜80秒 / 10MB以下 / 音声なし
 -->
 
 | # | シーン | 見どころ |
 |---|---|---|
 | 1 | ログイン → 初回パスワード変更 | 初回ログイン時は変更を強制（`must_change_password`） |
-| 2 | 案件一覧で条件検索 | 対応部署・対応状況・緊急性の**複数選択**＋キーワードでの絞り込み |
-| 3 | 案件の新規登録 | 受付番号が**事務所ごと・年ごとに自動採番**される |
-| 4 | 案件の編集・削除 | 担当部署の案件を更新／削除は論理削除（`deleted_at`）で、データ自体はDBに残る |
-| 5 | 地図表示 | 検索条件と連動してピンが絞り込まれ、ピンから詳細へ遷移 |
-| 6 | 権限の違い（一般職員） | 他部署の案件には編集ボタンが出ない／他事務所の案件は表示されない |
-| 7 | システム管理者の権限 | 全事務所を横断して閲覧・編集できる一方、**案件の新規登録はできない**（事務所に属さないため登録主体になれない） |
-| 8 | ユーザー管理（管理者のみ） | 全事務所のユーザーを横断表示。登録・編集・無効化・再有効化・完全削除・パスワード再発行 |
+| 2 | 進捗ダッシュボード → 件数から一覧へ | 件数をクリックすると、その条件で絞り込んだ一覧が開く |
+| 3 | 案件一覧で条件検索 | 対応部署・対応状況・緊急性の**複数選択**＋キーワードでの絞り込み |
+| 4 | 案件の新規登録 | 地図をクリックして要望箇所を指定。受付番号は**事務所ごと・年ごとに自動採番**される |
+| 5 | 案件の編集・削除 | 4 で登録した案件を更新／削除は論理削除（`deleted_at`）で、データ自体はDBに残る |
+| 6 | 対応履歴と現場写真 | 写真付きで履歴を追加。訂正すると「編集済み」が付く |
+| 7 | 地図表示 | 検索条件と連動してピンが絞り込まれ、ピンから詳細へ遷移 |
+| 8 | 権限の違い（一般職員） | 他部署の案件は閲覧のみ／自部署の案件は編集できる |
+| 9 | システム管理者の権限 | 全事務所を横断して閲覧・編集できる一方、**案件の新規登録はできない**（事務所に属さないため） |
+| 10 | ユーザー管理（管理者のみ） | 全事務所のユーザーを横断表示。登録・無効化・再有効化・完全削除・パスワード再発行 |
 
 ### 1. ログイン → 初回パスワード変更
 
-https://github.com/user-attachments/assets/538fab08-f014-46ff-abf3-2c29e7c832df
+https://github.com/user-attachments/assets/1aa94d90-c925-45e4-903d-e8edf585384b
 
-### 2. 案件一覧で条件検索
+### 2. 進捗ダッシュボード → 件数から一覧へ
 
-https://github.com/user-attachments/assets/4c7a95d5-1718-40e9-8380-f0d8ba8d6648
+https://github.com/user-attachments/assets/52db7a27-8f58-47d2-af00-6487d59c688e
 
-### 3. 案件の新規登録
+### 3. 案件一覧で条件検索
 
-https://github.com/user-attachments/assets/c4253be5-192e-407e-a392-0e27db48c2b6
+https://github.com/user-attachments/assets/1610415d-b9c9-48c5-9eb0-b92476ca2f10
 
-### 4. 案件の編集・削除
+### 4. 案件の新規登録
 
-https://github.com/user-attachments/assets/fa443aa5-7007-4616-84d8-290a1d0378d4
+https://github.com/user-attachments/assets/770ba87d-0a81-42f9-a0c8-90733dfe533d
 
-### 5. 地図表示
+### 5. 案件の編集・削除
 
-https://github.com/user-attachments/assets/56f22a28-778c-4bbd-a9d4-4261f1968414
+https://github.com/user-attachments/assets/42956f32-cbd4-4da5-b827-d86e1150fd9f
 
-### 6. 権限の違い（一般職員）
+### 6. 対応履歴と現場写真
 
-https://github.com/user-attachments/assets/4b4c4fd5-dc0c-48b9-9aee-ec35657d2fc6
+https://github.com/user-attachments/assets/2bc4020d-2266-4712-9000-c34e131b94b8
 
-### 7. システム管理者の権限（全事務所横断／案件の新規登録は不可）
+### 7. 地図表示
 
-https://github.com/user-attachments/assets/0f5ab6c2-6f25-42c9-af68-e63f65e3043a
+https://github.com/user-attachments/assets/e5d0a760-8830-4033-ab8e-8a0ca93f3570
 
-### 8. ユーザー管理（管理者のみ）
+### 8. 権限の違い（一般職員）
 
-https://github.com/user-attachments/assets/f9b984d4-b3ca-4c5d-8de5-594ce866e6a1
+https://github.com/user-attachments/assets/be446a4b-5758-432c-9533-0469c0104a62
+
+### 9. システム管理者の権限（全事務所横断／新規登録は不可）
+
+https://github.com/user-attachments/assets/222efcdf-f7fa-4bce-b048-8b7aaa5fdb5c
+
+### 10. ユーザー管理（管理者のみ）
+
+https://github.com/user-attachments/assets/2b55ee57-50ac-4374-8239-1d100aa02819
 
 ---
 
