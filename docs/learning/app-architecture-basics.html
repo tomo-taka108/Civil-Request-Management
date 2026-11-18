@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>アプリが動く仕組み</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #fafbfc;
+    --ink: #1b2130;
+    --ink-soft: #4b5464;
+    --ink-faint: #858da0;
+    --line: #e3e6ec;
+    --accent: #2f5bd6;
+    --accent-soft: #e7edfc;
+    --accent-ink: #1a2e63;
+    --exist: #6d7688;
+    --exist-soft: #eceef2;
+    --net: #0f9b8e;
+    --net-soft: #e2f4f1;
+    --warn: #c56636;
+    --warn-soft: #fbeee5;
+    --err: #c8384e;
+    --err-soft: #fbe8eb;
+    --radius: 14px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10131a; --surface: #191d26; --surface-2: #151922; --ink: #e9ebf1;
+      --ink-soft: #b3bbcb; --ink-faint: #7c8598; --line: #2a3040;
+      --accent: #7099f5; --accent-soft: #22304f; --accent-ink: #d9e4ff;
+      --exist: #8a93a5; --exist-soft: #242a36;
+      --net: #52c9bc; --net-soft: #153230;
+      --warn: #e0895e; --warn-soft: #2f2016;
+      --err: #ef7d8f; --err-soft: #34181e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10131a; --surface: #191d26; --surface-2: #151922; --ink: #e9ebf1;
+    --ink-soft: #b3bbcb; --ink-faint: #7c8598; --line: #2a3040;
+    --accent: #7099f5; --accent-soft: #22304f; --accent-ink: #d9e4ff;
+    --exist: #8a93a5; --exist-soft: #242a36; --net: #52c9bc; --net-soft: #153230;
+    --warn: #e0895e; --warn-soft: #2f2016;
+    --err: #ef7d8f; --err-soft: #34181e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 44px 16px 80px; }
+  @media (min-width: 600px) { .wrap { padding-left: 22px; padding-right: 22px; } }
+
+  .themebtn { position: fixed; top: 14px; right: 14px; z-index: 10; border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); border-radius: 20px; padding: 6px 14px; font: 600 13px var(--font); cursor: pointer; }
+  .themebtn:hover { color: var(--ink); }
+  .themebtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  header .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 8px; }
+  h1 { font-size: clamp(25px, 4.5vw, 36px); line-height: 1.2; margin: 0 0 10px; letter-spacing: -.02em; text-wrap: balance; }
+  header .lede { color: var(--ink-soft); font-size: 16px; margin: 0; }
+
+  nav.toc { margin-top: 26px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; }
+  nav.toc b { font-size: 13px; color: var(--ink-faint); }
+  nav.toc ol { margin: 6px 0 0; padding-left: 22px; columns: 2; column-gap: 28px; font-size: 14px; }
+  @media (max-width: 600px) { nav.toc ol { columns: 1; } }
+  nav.toc a { color: var(--accent); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  h2 { font-size: 21px; margin: 56px 0 4px; letter-spacing: -.01em; scroll-margin-top: 20px; }
+  h2 .num { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 10px; }
+  .h2sub { color: var(--ink-faint); font-size: 14px; margin: 0 0 18px; }
+  h3 { font-size: 17px; margin: 26px 0 6px; }
+  p { margin: 0 0 12px; color: var(--ink-soft); font-size: 15px; }
+  p b, li b, td b { color: var(--ink); }
+  ul, ol.body { margin: 0 0 12px; padding-left: 22px; color: var(--ink-soft); font-size: 15px; }
+  li { margin-bottom: 4px; }
+  a { color: var(--accent); }
+
+  code { font-family: var(--mono); font-size: .88em; background: var(--exist-soft); padding: 1px 6px; border-radius: 5px; overflow-wrap: anywhere; }
+  pre { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: 10px 0 14px; color: var(--ink); }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  pre .k { color: var(--accent); }
+  pre .s { color: var(--net); }
+  pre .e { color: var(--err); font-weight: 700; }
+  pre .c { color: var(--ink-faint); }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px; margin-top: 14px; }
+  .card h3 { margin: 0 0 4px; font-size: 17px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .card .role { font-size: 12.5px; color: var(--ink-faint); font-weight: 600; margin: 0; }
+  .card p { margin: 8px 0 0; font-size: 14.5px; }
+  .card ul { margin: 8px 0 0; font-size: 14.5px; }
+  .analogy { margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border-left: 3px solid var(--accent); border-radius: 6px; font-size: 13.5px; color: var(--ink-soft); }
+  .analogy b { color: var(--ink); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+  .grid2 .card { margin-top: 0; }
+
+  .tag { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px; white-space: nowrap; }
+  .tag-aws { background: var(--warn-soft); color: var(--warn); }
+  .tag-srv { background: var(--accent-soft); color: var(--accent); }
+  .tag-app { background: var(--net-soft); color: var(--net); }
+  .tag-ext { background: var(--exist-soft); color: var(--exist); }
+
+  .tablewrap { overflow-x: auto; margin: 12px 0 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-soft); }
+  th { background: var(--surface-2); color: var(--ink); font-size: 13px; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+
+  /* 横並びの流れ図 */
+  .pipe { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 14px 0; }
+  .pipe .box { flex: 1 1 130px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; color: var(--ink-soft); }
+  .pipe .box b { display: block; color: var(--ink); font-size: 14px; }
+  .pipe .box.hl { border-color: var(--accent); background: var(--accent-soft); }
+  .pipe .arrow { align-self: center; color: var(--ink-faint); font-weight: 700; }
+  @media (max-width: 600px) { .pipe { flex-direction: column; } .pipe .arrow { transform: rotate(90deg); align-self: center; } }
+
+  .note { display: flex; gap: 11px; align-items: flex-start; background: var(--warn-soft); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 8px; padding: 13px 15px; margin-top: 16px; font-size: 14px; color: var(--ink-soft); }
+  .note b { color: var(--ink); }
+  .note.ok { background: var(--net-soft); border-left-color: var(--net); }
+  .note.key { background: var(--accent-soft); border-left-color: var(--accent); }
+
+  .files { margin-top: 12px; padding: 10px 12px; background: var(--surface-2); border: 1px dashed var(--line); border-radius: 8px; font-size: 13.5px; color: var(--ink-soft); }
+  .files > b { display: block; color: var(--ink); font-size: 12.5px; margin-bottom: 4px; }
+  .files ul { margin: 0; padding-left: 18px; font-size: 13.5px; }
+  .files li { margin-bottom: 2px; }
+
+  /* 全体図（SVG） */
+  .diagram { margin: 16px 0 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 640px; height: auto; }
+  .diagram .cap { font-size: 12.5px; color: var(--ink-faint); margin: 8px 4px 0; }
+  svg .bx { fill: var(--surface-2); stroke: var(--line); stroke-width: 1.5; }
+  svg .bx-aws { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.2; }
+  svg .bx-srv { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+  svg .bx-app { fill: var(--net-soft); stroke: var(--net); stroke-width: 1.4; }
+  svg .bx-ext { fill: var(--exist-soft); stroke: var(--exist); stroke-width: 1.2; stroke-dasharray: 5 4; }
+  svg .frame { fill: none; stroke: var(--ink-faint); stroke-width: 1.3; stroke-dasharray: 6 5; }
+  svg .t { fill: var(--ink); font: 700 14px var(--font); }
+  svg .ts { fill: var(--ink-soft); font: 500 11.5px var(--font); }
+  svg .tf { fill: var(--ink-faint); font: 600 11px var(--font); }
+  svg .ln { stroke: var(--ink-soft); stroke-width: 1.6; fill: none; }
+  svg .ln-d { stroke: var(--ink-faint); stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+  svg .ah { fill: var(--ink-soft); }
+  svg .ah-d { fill: var(--ink-faint); }
+  svg .badge { fill: var(--accent); }
+  svg .badge-t { fill: #fff; font: 700 11px var(--font); }
+
+  /* タイムライン */
+  ol.steps { list-style: none; margin: 16px 0 0; padding: 0; counter-reset: st; }
+  ol.steps > li { position: relative; padding: 0 0 18px 46px; margin: 0; counter-increment: st; }
+  ol.steps > li::before { content: counter(st); position: absolute; left: 0; top: 2px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font: 700 13px var(--font); display: flex; align-items: center; justify-content: center; }
+  ol.steps > li::after { content: ""; position: absolute; left: 14px; top: 34px; bottom: 2px; width: 2px; background: var(--line); }
+  ol.steps > li:last-child::after { display: none; }
+  ol.steps .where { font-size: 12px; font-weight: 700; color: var(--ink-faint); letter-spacing: .04em; }
+  ol.steps h4 { margin: 0 0 4px; font-size: 16px; color: var(--ink); }
+  ol.steps p { font-size: 14.5px; margin-bottom: 8px; }
+  ol.steps ul { font-size: 14.5px; }
+
+  dl.glossary { margin: 12px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; font-size: 14.5px; }
+  dl.glossary dt { font-weight: 700; color: var(--ink); }
+  dl.glossary dd { margin: 0; color: var(--ink-soft); }
+  @media (max-width: 600px) { dl.glossary { grid-template-columns: 1fr; } dl.glossary dd { margin-bottom: 8px; } }
+
+  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 13px; }
+</style>
+</head>
+<body>
+<button class="themebtn" id="themebtn" type="button" aria-label="ライト・ダーク切替">🌓 テーマ切替</button>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Architecture · 全体の仕組み</p>
+    <h1>アプリが動く仕組み ── ブラウザから DB まで、1回のクリックを追いかける</h1>
+    <p class="lede">URL を開くと画面が出る。その数百ミリ秒のあいだに、DNS・ロードバランサー・Web サーバー・PHP・Laravel・MySQL・S3 が順番に仕事をしています。「案件一覧で検索する」という1回の操作を最初から最後まで追いかけながら、それぞれの技術が何を担当し、どうつながっているのかを、このアプリの実際のコードと設定に照らして説明します。</p>
+  </header>
+
+  <nav class="toc" aria-label="目次">
+    <b>目次</b>
+    <ol>
+      <li><a href="#s1">全体像（登場人物の地図）</a></li>
+      <li><a href="#s2">前提：HTTP というやりとりの形</a></li>
+      <li><a href="#s3">1回の検索を追いかける</a></li>
+      <li><a href="#s4">各技術の役割（担当表）</a></li>
+      <li><a href="#s5">Laravel の中で起きていること</a></li>
+      <li><a href="#s6">サーバーで HTML を作る方式（SPA との違い）</a></li>
+      <li><a href="#s7">ログインの状態をどう覚えているか</a></li>
+      <li><a href="#s8">登録ボタンを押したとき（POST の流れ）</a></li>
+      <li><a href="#s9">ブラウザが直接取りに行くもの</a></li>
+      <li><a href="#s10">コンテナと Docker Compose</a></li>
+      <li><a href="#s11">開発環境と本番環境の違い</a></li>
+      <li><a href="#s12">画面に出ない裏方の仕組み</a></li>
+      <li><a href="#s13">困ったとき、どこを見るか</a></li>
+      <li><a href="#s14">用語ミニ辞典</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1 -->
+  <h2 id="s1"><span class="num">1</span>全体像（登場人物の地図）</h2>
+  <p class="h2sub">ひとことで：ブラウザの依頼を、AWS の入口 → サーバーの中の2つのコンテナ → データの置き場 へと順に受け渡し、完成した HTML を同じ道で返している。</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 820 524" role="img" aria-label="全体構成図。ブラウザから Route53、ALB を経て EC2 上の nginx コンテナと php コンテナへ。php から RDS と S3 へ。ブラウザは S3、国土地理院、Google Fonts へ直接アクセスする。コンテナのログは CloudWatch へ送られる。">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+        <marker id="ard" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-d"/></marker>
+      </defs>
+
+      <!-- ブラウザ -->
+      <rect x="16" y="190" width="132" height="84" rx="12" class="bx"/>
+      <text x="82" y="224" text-anchor="middle" class="t">ブラウザ</text>
+      <text x="82" y="244" text-anchor="middle" class="ts">職員のPC</text>
+      <text x="82" y="260" text-anchor="middle" class="ts">HTML を表示する</text>
+
+      <!-- Route53 -->
+      <rect x="186" y="40" width="140" height="62" rx="10" class="bx-aws"/>
+      <text x="256" y="66" text-anchor="middle" class="t">Route53</text>
+      <text x="256" y="86" text-anchor="middle" class="ts">名前 → 場所（DNS）</text>
+
+      <!-- ALB -->
+      <rect x="196" y="190" width="130" height="84" rx="12" class="bx-aws"/>
+      <text x="261" y="222" text-anchor="middle" class="t">ALB</text>
+      <text x="261" y="242" text-anchor="middle" class="ts">HTTPS を受ける</text>
+      <text x="261" y="258" text-anchor="middle" class="ts">証明書は ACM</text>
+
+      <!-- EC2 枠 -->
+      <rect x="360" y="132" width="262" height="248" rx="14" class="frame"/>
+      <text x="374" y="152" class="tf">EC2（t3.micro）・Docker Compose</text>
+      <text x="374" y="168" class="tf">ネットワーク civil-network</text>
+
+      <!-- nginx -->
+      <rect x="374" y="186" width="106" height="92" rx="10" class="bx-srv"/>
+      <text x="427" y="216" text-anchor="middle" class="t">nginx</text>
+      <text x="427" y="236" text-anchor="middle" class="ts">受付係</text>
+      <text x="427" y="252" text-anchor="middle" class="ts">CSS 等は自分で返す</text>
+      <text x="427" y="268" text-anchor="middle" class="ts">:8081 → :80</text>
+
+      <!-- php -->
+      <rect x="502" y="186" width="106" height="92" rx="10" class="bx-app"/>
+      <text x="555" y="216" text-anchor="middle" class="t">php</text>
+      <text x="555" y="236" text-anchor="middle" class="ts">PHP-FPM</text>
+      <text x="555" y="252" text-anchor="middle" class="ts">＋ Laravel</text>
+      <text x="555" y="268" text-anchor="middle" class="ts">:9000</text>
+
+      <!-- famigo -->
+      <rect x="374" y="300" width="234" height="62" rx="10" class="bx-ext"/>
+      <text x="491" y="326" text-anchor="middle" class="ts" font-weight="700">famigo（別アプリ・8080）</text>
+      <text x="491" y="344" text-anchor="middle" class="ts">同じ EC2 に同居。ネットワークは別</text>
+
+      <!-- RDS -->
+      <rect x="664" y="150" width="140" height="66" rx="10" class="bx-aws"/>
+      <text x="734" y="177" text-anchor="middle" class="t">RDS（MySQL）</text>
+      <text x="734" y="198" text-anchor="middle" class="ts">案件・ユーザー等</text>
+
+      <!-- S3 -->
+      <rect x="664" y="246" width="140" height="66" rx="10" class="bx-aws"/>
+      <text x="734" y="273" text-anchor="middle" class="t">S3</text>
+      <text x="734" y="294" text-anchor="middle" class="ts">現場写真</text>
+
+      <!-- CloudWatch -->
+      <rect x="402" y="408" width="146" height="58" rx="10" class="bx-aws"/>
+      <text x="475" y="432" text-anchor="middle" class="t">CloudWatch</text>
+      <text x="475" y="452" text-anchor="middle" class="ts">ログ・アラーム</text>
+
+      <!-- 外部 -->
+      <rect x="16" y="380" width="196" height="76" rx="10" class="bx-ext"/>
+      <text x="114" y="408" text-anchor="middle" class="ts" font-weight="700">外部のサーバー</text>
+      <text x="114" y="428" text-anchor="middle" class="ts">国土地理院（地図タイル）</text>
+      <text x="114" y="444" text-anchor="middle" class="ts">Google Fonts（文字の形）</text>
+
+      <!-- 矢印 -->
+      <path d="M82,190 L82,72 L184,72" class="ln" marker-end="url(#ar)"/>
+      <path d="M150,232 L194,232" class="ln" marker-end="url(#ar)"/>
+      <path d="M328,232 L372,232" class="ln" marker-end="url(#ar)"/>
+      <path d="M482,232 L500,232" class="ln" marker-end="url(#ar)"/>
+      <path d="M610,212 L662,190" class="ln" marker-end="url(#ar)"/>
+      <path d="M610,254 L662,272" class="ln" marker-end="url(#ar)"/>
+      <path d="M82,276 L82,378" class="ln-d" marker-end="url(#ard)"/>
+      <path d="M150,262 C 210,330 230,490 330,490 L640,490 L640,290 L662,290" class="ln-d" marker-end="url(#ard)"/>
+      <path d="M475,380 L475,406" class="ln-d" marker-end="url(#ard)"/>
+
+      <!-- 番号バッジ -->
+      <circle cx="120" cy="72" r="10" class="badge"/><text x="120" y="76" text-anchor="middle" class="badge-t">1</text>
+      <circle cx="172" cy="232" r="10" class="badge"/><text x="172" y="236" text-anchor="middle" class="badge-t">2</text>
+      <circle cx="350" cy="232" r="10" class="badge"/><text x="350" y="236" text-anchor="middle" class="badge-t">3</text>
+      <circle cx="491" cy="214" r="10" class="badge"/><text x="491" y="218" text-anchor="middle" class="badge-t">4</text>
+      <circle cx="636" cy="190" r="10" class="badge"/><text x="636" y="194" text-anchor="middle" class="badge-t">5</text>
+
+      <text x="330" y="510" class="tf">写真はブラウザが S3 から直接取る（署名付き URL）</text>
+      <text x="483" y="398" class="tf">ログ</text>
+    </svg>
+    <p class="cap">実線＝1回のページ表示で必ず通る道（番号は順番）。点線＝ブラウザが直接取りに行くもの・裏で流れるもの。オレンジ＝AWS のサービス、青・緑＝EC2 の中のコンテナ。</p>
+  </div>
+
+  <ol class="body">
+    <li><b>Route53</b> に「<code>civil-track.com</code> はどこ？」と聞く（DNS）</li>
+    <li><b>ALB</b> に HTTPS でつなぎ、依頼を送る</li>
+    <li>ALB が依頼を <b>EC2 の 8081番</b>（nginx コンテナ）へ回す</li>
+    <li><b>nginx</b> が PHP の処理を <b>php コンテナ</b>（PHP-FPM ＋ Laravel）へ頼む</li>
+    <li>Laravel が <b>RDS</b>（MySQL）からデータを読み、HTML を組み立てる → 来た道を戻ってブラウザへ</li>
+  </ol>
+
+  <div class="analogy">たとえ：<b>役所の窓口</b>。Route53 は「〇〇課は何階？」に答える<b>案内板</b>、ALB は建物の<b>正面受付</b>（どの課の用事か見て振り分ける）、nginx は課の<b>カウンター係</b>（パンフレットならその場で渡し、相談なら奥へ回す）、Laravel は奥で書類を作る<b>担当者</b>、RDS は<b>書庫</b>、S3 は<b>写真の保管庫</b>です。</div>
+
+  <!-- 2 -->
+  <h2 id="s2"><span class="num">2</span>前提：HTTP というやりとりの形</h2>
+  <p class="h2sub">ひとことで：ブラウザとサーバーは「リクエスト（依頼）を1通送る → レスポンス（返事）が1通返る」を、ページを開くたびに何十回も繰り返している。</p>
+
+  <p>ブラウザとサーバーの会話は、すべて <b>HTTP</b> という決まった形式の手紙でやりとりされます。HTTPS は、その手紙を暗号化して送る版です。中身は実はただの文字です。</p>
+
+  <pre><span class="c"># ブラウザ → サーバー（リクエスト）</span>
+<span class="k">GET</span> /requests?response_status[]=in_progress&amp;department[]=road HTTP/1.1
+Host: civil-track.com
+Cookie: civil_track_session=eyJpdiI6...（ログインの合言葉）
+Accept: text/html
+
+<span class="c"># サーバー → ブラウザ（レスポンス）</span>
+HTTP/1.1 <span class="s">200 OK</span>
+Content-Type: text/html; charset=UTF-8
+X-Request-Id: 3f1c9a2e-...（このアプリが付ける問い合わせ番号）
+Set-Cookie: civil_track_session=...; secure; httponly
+
+&lt;!DOCTYPE html&gt;&lt;html lang="ja"&gt; ...（画面の中身）</pre>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>リクエストの部品</h3>
+      <ul>
+        <li><b>メソッド</b>：何をしたいか。<code>GET</code>＝見せて、<code>POST</code>＝登録して、<code>PUT</code>＝更新して、<code>DELETE</code>＝消して</li>
+        <li><b>パス</b>：どのページか（<code>/requests</code>）</li>
+        <li><b>クエリ文字列</b>：<code>?</code> の後ろ。検索条件など</li>
+        <li><b>ヘッダ</b>：付属情報。Host（宛先のドメイン）、Cookie など</li>
+        <li><b>ボディ</b>：POST で送るフォームの中身</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>レスポンスの部品</h3>
+      <ul>
+        <li><b>ステータスコード</b>：結果の番号（下の表）</li>
+        <li><b>ヘッダ</b>：中身の種類（Content-Type）、Cookie の発行（Set-Cookie）、移動先（Location）など</li>
+        <li><b>ボディ</b>：HTML・CSS・画像などの本体</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>このアプリで出会うステータスコード</h3>
+  <div class="tablewrap"><table>
+    <tr><th>番号</th><th>意味</th><th>このアプリで起きる場面</th></tr>
+    <tr><td><b>200</b></td><td>成功</td><td>画面が普通に表示された</td></tr>
+    <tr><td><b>302</b></td><td>別の場所へ移動して</td><td>ログイン後にダッシュボードへ／登録後に一覧へ／未ログインでログイン画面へ</td></tr>
+    <tr><td><b>403</b></td><td>権限がない</td><td>他部署の案件の編集画面を URL 直打ちで開こうとした（Policy が拒否）</td></tr>
+    <tr><td><b>404</b></td><td>見つからない</td><td>存在しない案件／一般職員が<b>他事務所の</b>案件 ID を指定した（事務所スコープで「無いもの」扱い）</td></tr>
+    <tr><td><b>419</b></td><td>ページの有効期限切れ（Laravel 独自）</td><td>フォームを開いたまま長時間放置してから送信した（CSRF トークン・セッション切れ）</td></tr>
+    <tr><td><b>422</b></td><td>入力内容が不正</td><td>入力チェックに引っかかった（画面ではリダイレクトして赤字のエラーを出す）</td></tr>
+    <tr><td><b>500</b></td><td>サーバー内部のエラー</td><td>プログラムの想定外のエラー。問い合わせ番号（request_id）つきのエラー画面を出す</td></tr>
+    <tr><td><b style="white-space:nowrap">502〜504</b></td><td>奥のサーバーが応答しない</td><td>ALB や nginx が出す。コンテナが止まっている、処理が時間切れ、など</td></tr>
+  </table></div>
+
+  <div class="note key"><span>🔑</span><span><b>HTTP は「1往復で忘れる」仕組み。</b>サーバーは、前のリクエストを誰が送ったのか覚えていません（ステートレス）。それでもログイン状態が続くのは、ブラウザが毎回 Cookie で「さっきの者です」と名乗っているからです（<a href="#s7">7章</a>）。</span></div>
+
+  <!-- 3 -->
+  <h2 id="s3"><span class="num">3</span>1回の検索を追いかける</h2>
+  <p class="h2sub">例：ログイン済みの職員が、案件一覧で「対応状況＝対応中」「対応部署＝道路」にチェックして［検索］を押す。</p>
+
+  <p>検索フォームは <code>method="GET"</code> なので、押した瞬間にブラウザは次の URL を開きに行きます。ここから画面が出るまでを、通る場所の順に追いかけます。</p>
+  <pre>https://civil-track.com/requests?response_status[]=in_progress&amp;department[]=road</pre>
+
+  <ol class="steps">
+    <li>
+      <div class="where">ブラウザ</div>
+      <h4>URL を分解し、送る準備をする</h4>
+      <p><code>https</code>（暗号化して送る）・<code>civil-track.com</code>（宛先）・<code>/requests</code>（ページ）・<code>?response_status[]=…</code>（条件）に分けます。このサイト用に保存してある Cookie（<code>civil_track_session</code> など）を添えます。</p>
+    </li>
+    <li>
+      <div class="where">Route53（DNS）</div>
+      <h4>「civil-track.com はどこ？」を調べる</h4>
+      <p>インターネット上の住所は IP アドレス（数字）なので、名前を数字に変換します。Route53 の <b>エイリアス A レコード</b>が「ALB のアドレス」を答えます。結果はしばらくブラウザや PC に記憶（キャッシュ）されるので、毎回聞くわけではありません。</p>
+    </li>
+    <li>
+      <div class="where">ALB（HTTPS の終端）</div>
+      <h4>暗号化の握手をして、中身を読む</h4>
+      <p>ブラウザと ALB の間で <b>TLS ハンドシェイク</b>（暗号の鍵を決める握手）をします。ALB は famigo 用と Civil Track 用の2枚の証明書を持っていて、ブラウザが最初に名乗るドメイン名（<b>SNI</b>）を見て <code>civil-track.com</code> の証明書（<b>ACM</b> が発行・自動更新）を出します。ここで暗号が解かれ、ALB は HTTP の中身を読めるようになります。</p>
+      <ul>
+        <li>http://（80番）で来た場合は、443番（https://）へリダイレクトさせます。</li>
+      </ul>
+    </li>
+    <li>
+      <div class="where">ALB（振り分け）</div>
+      <h4>どちらのアプリ宛てか見て、EC2 の 8081番へ回す</h4>
+      <p>ALB は famigo と共有です。443 リスナーに<b>ホスト名が <code>civil-track.com</code> なら <code>civil-request-tg-8081</code> へ</b>というルール（優先度100）を足してあり、それ以外は今までどおり famigo の 8080 番へ流れます。</p>
+      <ul>
+        <li>ALB から EC2 へは<b>暗号化しない HTTP</b>で送ります（AWS の中の通信のため）。代わりに <code>X-Forwarded-Proto: https</code> などのヘッダで「元は HTTPS だった」と伝えます。</li>
+        <li>EC2 のセキュリティグループは、<b>ALB からの 8081番だけ</b>を通します。インターネットから直接 8081 にはつながりません。</li>
+        <li>ALB は 30 秒ごとに <code>/health</code> を叩き、3回続けて失敗したらそのサーバーを「異常」として切り離します（ヘルスチェック）。</li>
+      </ul>
+    </li>
+    <li>
+      <div class="where">EC2 → nginx コンテナ</div>
+      <h4>Docker が 8081番を nginx コンテナの 80番につなぐ</h4>
+      <p><code>docker-compose.prod.yml</code> の <code>ports: "8081:80"</code> により、EC2 の 8081番に来た通信がコンテナの 80番へ渡ります。nginx は <a href="../../docker/nginx/default.conf"><code>default.conf</code></a> のルールで行き先を決めます。</p>
+      <pre><span class="k">root</span> /var/www/html/public;            <span class="c"># 公開してよいファイルの置き場</span>
+<span class="k">location</span> / {
+    try_files $uri $uri/ /index.php?$query_string;   <span class="c"># ① ファイルがあれば返す ② 無ければ index.php へ</span>
+}
+<span class="k">location</span> ~ \.php$ {
+    fastcgi_pass php:9000;                <span class="c"># PHP の処理は php コンテナへ頼む</span>
+}</pre>
+      <p><code>/requests</code> というファイルは無いので、<code>/index.php</code> に回されます。一方 <code>/css/common.css</code> は実在するので、nginx がその場で返します（PHP は動きません）。</p>
+    </li>
+    <li>
+      <div class="where">nginx → php コンテナ（FastCGI）</div>
+      <h4>「この PHP を実行して」と頼む</h4>
+      <p>nginx 自身は PHP を実行できません。<b>FastCGI</b> という取り決めで、php コンテナの 9000番で待っている <b>PHP-FPM</b> に依頼します。宛先の <code>php</code> はコンテナの<b>サービス名</b>で、同じ Docker ネットワーク（<code>civil-network</code>）の中では名前で相手を呼べます。</p>
+      <p>PHP-FPM は PHP を実行する作業員（ワーカープロセス）を何人か待機させていて、空いている1人が <code>public/index.php</code> を実行します。<b>リクエストが終わると、そのリクエスト用に作ったものはすべて捨てられます</b>（PHP は毎回まっさらな状態から始まる）。</p>
+    </li>
+    <li>
+      <div class="where">Laravel：起動</div>
+      <h4>index.php → bootstrap/app.php でアプリを組み立てる</h4>
+      <p>Laravel は毎回、設定を読み、部品を用意し、ルートを登録します。本番では起動時（<code>entrypoint.prod.sh</code>）に <code>config:cache</code>・<code>route:cache</code>・<code>view:cache</code> を済ませているので、毎回の組み立ては1つのファイルを読むだけで速く終わります。</p>
+    </li>
+    <li>
+      <div class="where">Laravel：ミドルウェア（関所）</div>
+      <h4>コントローラに届く前に、順番にチェックを通る</h4>
+      <ul>
+        <li><b>TrustProxies</b>：ALB が付けた <code>X-Forwarded-Proto</code> を信じ、「自分は HTTPS で動いている」と認識する（これが無いと、作るリンクが http:// になる）</li>
+        <li><b>TraceRequest</b>（自作）：このリクエストの問い合わせ番号（request_id）を決める。以降のログ行に自動で付く</li>
+        <li><b>セッション開始</b>：Cookie の番号から、サーバーに保存したセッションファイルを読み込む</li>
+        <li><b>CSRF チェック</b>：POST などの書き込み系だけ。GET の検索では素通り</li>
+        <li><b>auth</b>：ログインしていなければ、ここで <code>/login</code> へ 302 リダイレクト</li>
+        <li><b>force.password.change</b>（自作）：初期パスワードのままならパスワード変更画面へ</li>
+      </ul>
+    </li>
+    <li>
+      <div class="where">Laravel：ルーティング</div>
+      <h4>URL から担当のコントローラを決める</h4>
+      <pre>Route::get(<span class="s">'/requests'</span>, [RequestController::class, <span class="s">'index'</span>])->name(<span class="s">'requests.index'</span>);</pre>
+      <p><a href="../../routes/web.php"><code>routes/web.php</code></a> の対応表で「<code>GET /requests</code> は <code>RequestController</code> の <code>index</code>」と決まります。</p>
+    </li>
+    <li>
+      <div class="where">Laravel：FormRequest（入力チェック）</div>
+      <h4>検索条件が正しい値か確かめる</h4>
+      <p><code>index(SearchRequestRequest $request)</code> と書くだけで、コントローラの中身が動く前に <code>SearchRequestRequest</code> のルールで検査されます。<code>response_status</code> に <code>in_progress</code> のような決まった値以外が入っていれば、ここで弾かれます。</p>
+    </li>
+    <li>
+      <div class="where">Laravel：コントローラ → モデル</div>
+      <h4>検索条件を SQL にして、RDS に問い合わせる</h4>
+      <pre>$requests = RequestSearch::query($filters, $isAdmin)   <span class="c">// 条件を組み立てる（app/Support）</span>
+    ->with(<span class="s">'office'</span>)                                 <span class="c">// 事務所名もまとめて取る</span>
+    ->paginate(self::PER_PAGE);                       <span class="c">// 1ページ分だけ取る</span></pre>
+      <p>Eloquent（Laravel の DB 係）が、PHP のコードを SQL に翻訳します。ここで、<code>Request</code> モデルに付けてある <b>OfficeScope</b> が、一般職員なら自動で「自分の事務所だけ」の条件を足します。</p>
+      <pre><span class="k">select</span> * <span class="k">from</span> requests
+ <span class="k">where</span> response_status <span class="k">in</span> (?) <span class="k">and</span> department <span class="k">in</span> (?)
+   <span class="k">and</span> requests.office_id = ?        <span class="c">-- ← OfficeScope が自動で足す</span>
+   <span class="k">and</span> requests.deleted_at <span class="k">is null</span>   <span class="c">-- ← SoftDeletes が自動で足す（削除済みを除く）</span>
+ <span class="k">order by</span> reception_date <span class="k">desc</span>, reception_time <span class="k">desc</span>
+ <span class="k">limit</span> 20 <span class="k">offset</span> 0</pre>
+      <p>php コンテナは RDS の 3306番に接続して SQL を送ります。RDS は<b>パブリックアクセス不可</b>で、セキュリティグループで <b>EC2 からの 3306番だけ</b>を受け付けます。<code>?</code> の部分には値が別送りで入るので、入力値が SQL として実行されることはありません（SQL インジェクション対策。プリペアドステートメント）。</p>
+    </li>
+    <li>
+      <div class="where">Laravel：Blade（画面を組み立てる）</div>
+      <h4>データを HTML のひな形に流し込む</h4>
+      <p>コントローラは <code>view('requests.index', [...])</code> で、取れた案件を <a href="../../resources/views/requests/index.blade.php"><code>resources/views/requests/index.blade.php</code></a> に渡します。Blade は共通レイアウト（<code>layouts/app.blade.php</code>：ヘッダー・メニュー）に、一覧の表を差し込んで、<b>1枚の完成した HTML</b> にします。</p>
+      <ul>
+        <li><code>{{ $value }}</code> で出した値は自動で<b>エスケープ</b>されます（<code>&lt;script&gt;</code> のような文字が入っていても、ただの文字として表示される。XSS 対策）。</li>
+        <li>メニューの「新規登録」「ユーザー管理」は <code>@can</code> で、権限がある人にだけ HTML に出します。</li>
+      </ul>
+    </li>
+    <li>
+      <div class="where">php → nginx → ALB → ブラウザ</div>
+      <h4>完成した HTML を来た道で返す</h4>
+      <p>レスポンスには <code>X-Request-Id</code> ヘッダが付きます。処理が終わった直後に、TraceRequest がアクセスログを1行出します（メソッド・パス・ステータス・処理時間。<b>検索語が入りうるクエリ文字列は出さない</b>）。nginx も自分のアクセスログを1行出し、どちらも CloudWatch に送られます。</p>
+    </li>
+    <li>
+      <div class="where">ブラウザ</div>
+      <h4>HTML を読みながら、足りない部品を追加で取りに行く</h4>
+      <p>HTML の中に書かれた <code>&lt;link&gt;</code> や <code>&lt;script&gt;</code> を見つけるたびに、それぞれ<b>別のリクエスト</b>を送ります。</p>
+      <ul>
+        <li><code>/css/common.css?v=1730…</code>：nginx が直接返す（<code>?v=</code> は更新日時。CSS を直したら番号が変わり、古いキャッシュを使わせない仕組み＝<code>versioned_asset()</code>）</li>
+        <li>Google Fonts の CSS とフォントファイル：Google のサーバーから直接</li>
+      </ul>
+      <p>すべてそろうと、画面が完成します。ここまでで、だいたい数百ミリ秒です。</p>
+    </li>
+  </ol>
+
+  <div class="note ok"><span>✅</span><span><b>まとめると、HTML 1枚のために動くのは「Route53 → ALB → nginx → PHP-FPM → Laravel → RDS」。</b>CSS・画像・フォントは別のリクエストで、そのほとんどは PHP まで届かず nginx や外部サーバーが返しています。</span></div>
+
+  <!-- 4 -->
+  <h2 id="s4"><span class="num">4</span>各技術の役割（担当表）</h2>
+  <p class="h2sub">ひとことで：README の「使用技術」の表を、「どこで・何を担当しているか」で並べ直したもの。</p>
+
+  <h3>ブラウザで動くもの</h3>
+  <div class="grid2">
+    <div class="card">
+      <h3>HTML / CSS <span class="tag tag-ext">ブラウザ</span></h3>
+      <p class="role">画面の中身と見た目</p>
+      <p>HTML は Blade がサーバーで作ったもの。CSS は <code>public/css/common.css</code> の<b>1ファイル</b>だけで、全画面の見た目を決めています。ビルド（変換）の工程はありません。</p>
+    </div>
+    <div class="card">
+      <h3>JavaScript <span class="tag tag-ext">ブラウザ</span></h3>
+      <p class="role">画面の一部を動かす</p>
+      <p>React などのフレームワークは使わず、必要な画面にだけ<b>素の JavaScript</b> を書いています。地図の操作、緯度経度の入力欄への反映、削除前の確認ダイアログなど。</p>
+    </div>
+    <div class="card">
+      <h3>Leaflet <span class="tag tag-ext">ブラウザ</span></h3>
+      <p class="role">地図を描く JavaScript ライブラリ</p>
+      <p><code>public/vendor/leaflet/</code> に同梱。地図の画像（タイル）を並べ、ピンを立て、クリック位置の緯度経度を返します。</p>
+    </div>
+    <div class="card">
+      <h3>国土地理院の地図タイル <span class="tag tag-ext">外部</span></h3>
+      <p class="role">地図の画像そのもの</p>
+      <p>ブラウザが国土地理院のサーバーから直接取得します。無料・API キー不要。</p>
+    </div>
+  </div>
+
+  <h3>AWS の入口（ネットワーク）</h3>
+  <div class="grid2">
+    <div class="card">
+      <h3>Route53 <span class="tag tag-aws">AWS</span></h3>
+      <p class="role">DNS（名前 → 場所）</p>
+      <p><code>civil-track.com</code> のホストゾーンを持ち、ALB を指すエイリアスレコードと、証明書の確認用 CNAME を置いています。</p>
+    </div>
+    <div class="card">
+      <h3>ACM <span class="tag tag-aws">AWS</span></h3>
+      <p class="role">SSL/TLS 証明書</p>
+      <p>「このサイトは本物の civil-track.com です」と証明する証明書を無料で発行し、期限前に自動で更新します。ALB に取り付けて使います。</p>
+    </div>
+    <div class="card">
+      <h3>ALB <span class="tag tag-aws">AWS</span></h3>
+      <p class="role">ロードバランサー（入口・振り分け）</p>
+      <p>HTTPS を受けて暗号を解き、ホスト名で famigo と Civil Track に振り分け、ヘルスチェックで生死を見張ります。famigo と<b>共有</b>。</p>
+    </div>
+    <div class="card">
+      <h3>セキュリティグループ <span class="tag tag-aws">AWS</span></h3>
+      <p class="role">サーバーごとのファイアウォール</p>
+      <p>「EC2 の 8081 は ALB からだけ」「RDS の 3306 は EC2 からだけ」のように、通ってよい通信を決めています。</p>
+    </div>
+  </div>
+
+  <h3>サーバー（EC2 の中）</h3>
+  <div class="grid2">
+    <div class="card">
+      <h3>EC2 <span class="tag tag-aws">AWS</span></h3>
+      <p class="role">仮想サーバー1台</p>
+      <p>t3.micro（メモリ約1GB）・Amazon Linux 2023。famigo と同居。ログインは SSH ではなく <b>SSM</b>（AWS コンソールやコマンドから入る仕組み）。</p>
+    </div>
+    <div class="card">
+      <h3>Docker / Docker Compose <span class="tag tag-srv">サーバー</span></h3>
+      <p class="role">アプリを「箱」に入れて動かす</p>
+      <p>nginx と php を別々のコンテナとして動かし、専用ネットワーク <code>civil-network</code> でつなぎます（<a href="#s10">10章</a>）。</p>
+    </div>
+    <div class="card">
+      <h3>nginx 1.30 <span class="tag tag-srv">サーバー</span></h3>
+      <p class="role">Web サーバー（受付係）</p>
+      <p>静的ファイル（CSS・JS・画像）を返し、それ以外を PHP-FPM へ渡します。アップロードの上限（<code>client_max_body_size 30m</code>）や、隠しファイル（<code>.env</code> など）を見せない設定もここ。</p>
+    </div>
+    <div class="card">
+      <h3>PHP 8.3 / PHP-FPM <span class="tag tag-app">サーバー</span></h3>
+      <p class="role">PHP を実行する作業員</p>
+      <p>FPM＝FastCGI Process Manager。PHP の実行役を何人か待機させ、nginx から来た依頼を順に処理します。<code>pdo_mysql</code>（MySQL 接続）や <code>gd</code>（画像処理）などの拡張を Dockerfile で入れています。</p>
+    </div>
+  </div>
+
+  <h3>アプリ（Laravel）とデータ</h3>
+  <div class="grid2">
+    <div class="card">
+      <h3>Laravel 12 <span class="tag tag-app">アプリ</span></h3>
+      <p class="role">Web アプリの骨組み（フレームワーク）</p>
+      <p>ルーティング・認証・入力チェック・DB 操作・画面テンプレートなど、Web アプリに毎回必要な部品がそろっていて、業務のルールを書くことに集中できます（<a href="#s5">5章</a>）。</p>
+    </div>
+    <div class="card">
+      <h3>Blade <span class="tag tag-app">アプリ</span></h3>
+      <p class="role">HTML のひな形</p>
+      <p>HTML の中に <code>@foreach</code> や <code>{{ }}</code> を書けるテンプレート。サーバー側で実行され、ブラウザには完成した HTML だけが届きます。</p>
+    </div>
+    <div class="card">
+      <h3>RDS（MySQL 8.4） <span class="tag tag-aws">AWS</span></h3>
+      <p class="role">データベース</p>
+      <p>AWS が管理する MySQL。famigo と同じインスタンスの中に、Civil Track 専用のデータベースと、必要な権限だけを持つ専用ユーザーを作って分けています。</p>
+    </div>
+    <div class="card">
+      <h3>S3 <span class="tag tag-aws">AWS</span></h3>
+      <p class="role">ファイル置き場（現場写真）</p>
+      <p>公開はすべてブロック。書き込みは EC2 の <b>IAM ロール</b>の権限で行い、表示は期限付きの署名付き URL で行います（<a href="#s9">9章</a>）。</p>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <h2 id="s5"><span class="num">5</span>Laravel の中で起きていること</h2>
+  <p class="h2sub">ひとことで：「関所（ミドルウェア）→ 案内板（ルート）→ 検査（FormRequest・Policy）→ 司令塔（コントローラ）→ DB 係（モデル）→ 画面係（Blade）」の流れ作業。</p>
+
+  <div class="pipe">
+    <div class="box"><b>ミドルウェア</b>ログイン・CSRF・ID 付与</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>ルート</b>URL → 担当を決める</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>FormRequest / Policy</b>入力・権限の検査</div>
+    <div class="arrow">→</div>
+    <div class="box hl"><b>コントローラ</b>処理の指揮</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>モデル</b>DB の読み書き</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>Blade</b>HTML を作る</div>
+  </div>
+
+  <p>この分け方を <b>MVC</b>（Model・View・Controller）と呼びます。「どこに何を書くか」が決まっているので、あとから読む人が迷いにくく、テストもしやすくなります。</p>
+
+  <h3>フォルダと役割の対応</h3>
+  <div class="tablewrap"><table>
+    <tr><th>場所</th><th>役割</th><th>このアプリの例</th></tr>
+    <tr><td><code>public/</code></td><td>外から見える唯一のフォルダ。入口の <code>index.php</code> と静的ファイル</td><td><code>index.php</code>、<code>css/common.css</code>、<code>vendor/leaflet/</code></td></tr>
+    <tr><td><code>bootstrap/app.php</code></td><td>アプリの組み立て。ミドルウェアや例外処理の登録</td><td>TrustProxies、TraceRequest、DB エラーのログから個人情報を除く処理</td></tr>
+    <tr><td><code>routes/web.php</code></td><td>URL と担当の対応表</td><td>全画面のルート。<code>auth</code> などのミドルウェアの割り当て</td></tr>
+    <tr><td><code>app/Http/Middleware/</code></td><td>自作の関所</td><td><code>ForcePasswordChange</code>、<code>TraceRequest</code></td></tr>
+    <tr><td><code>app/Http/Requests/</code></td><td>入力チェックのルール（FormRequest）</td><td><code>StoreRequestRequest</code>（案件登録）、<code>SearchRequestRequest</code>（検索）</td></tr>
+    <tr><td><code>app/Policies/</code></td><td>「誰が何をしてよいか」のルール</td><td><code>RequestPolicy</code>（編集は担当部署が一致する職員か管理者だけ）</td></tr>
+    <tr><td><code>app/Http/Controllers/</code></td><td>処理の指揮</td><td><code>RequestController</code>、<code>DashboardController</code>、<code>MapController</code> など8つ</td></tr>
+    <tr><td><code>app/Models/</code></td><td>テーブル1つ＝モデル1つ。DB とのやりとり</td><td><code>Request</code>・<code>User</code>・<code>Office</code>・<code>RequestLog</code>・<code>RequestPhoto</code>、<code>Scopes/OfficeScope</code></td></tr>
+    <tr><td><code>app/Support/</code></td><td>複数の画面で使う処理のまとまり</td><td><code>RequestSearch</code>（一覧・CSV・地図で同じ検索）、<code>DashboardStats</code>、<code>RequestPhotoStore</code></td></tr>
+    <tr><td><code>resources/views/</code></td><td>Blade テンプレート</td><td><code>layouts/</code>（共通の枠）、<code>requests/</code>、<code>map/</code> など</td></tr>
+    <tr><td><code>database/migrations/</code></td><td>テーブルの作り方の履歴</td><td>起動時の <code>migrate --force</code> で本番 DB に反映</td></tr>
+    <tr><td><code>config/</code></td><td>設定（値の多くは <code>.env</code> から読む）</td><td><code>logging.php</code>、<code>filesystems.php</code>（写真の置き場）</td></tr>
+    <tr><td><code>storage/</code></td><td>アプリが書き込む場所</td><td>セッション、キャッシュ、ローカルのログ・写真</td></tr>
+  </table></div>
+
+  <h3>権限チェックは3段構え</h3>
+  <div class="tablewrap"><table>
+    <tr><th>段</th><th>仕組み</th><th>守っていること</th></tr>
+    <tr><td><b>1. ログイン</b></td><td><code>auth</code> ミドルウェア</td><td>ログインしていない人は、どの画面も見られない</td></tr>
+    <tr><td><b>2. 見える範囲</b></td><td><code>OfficeScope</code>（モデル）</td><td>一般職員は他事務所の案件を<b>取得すらできない</b>。コントローラで条件を書き忘れても漏れない</td></tr>
+    <tr><td><b>3. 操作の権限</b></td><td><code>RequestPolicy</code>＋ルートの <code>can:update,request</code></td><td>見える案件でも、担当部署が違えば編集・削除できない（403）</td></tr>
+  </table></div>
+  <div class="note key"><span>🔑</span><span><b>画面からボタンを消すだけでは守れない。</b>メニューやボタンを <code>@can</code> で隠すのは「使いやすさ」のため。URL を直接打たれても止められるよう、本当の守りはサーバー側（ルート・Policy・Scope）に置いています。</span></div>
+
+  <!-- 6 -->
+  <h2 id="s6"><span class="num">6</span>サーバーで HTML を作る方式（SPA との違い）</h2>
+  <p class="h2sub">ひとことで：このアプリは、クリックのたびにサーバーが「1ページ丸ごと」作って返す方式。React などの SPA ではない。</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>サーバーサイドレンダリング（このアプリ）</h3>
+      <p class="role">Laravel ＋ Blade</p>
+      <ul>
+        <li>サーバーが <b>HTML を完成させて</b>返す</li>
+        <li>リンクやボタンを押すと、ページ全体が切り替わる</li>
+        <li>作るのは「画面を返すサーバー」1つだけ</li>
+        <li>JavaScript が少なくて済む。検索結果の URL をそのまま共有・ブックマークできる</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>SPA（シングルページアプリケーション）</h3>
+      <p class="role">React・Vue など＋ API</p>
+      <ul>
+        <li>最初に JavaScript のアプリを丸ごと読み込む</li>
+        <li>以降はデータ（JSON）だけを取りに行き、ブラウザ側で画面を描き替える</li>
+        <li>「画面側のアプリ」と「API サーバー」の<b>2つ</b>を作る必要がある</li>
+        <li>画面遷移がなめらか。地図や表計算のような、操作が多い画面に向く</li>
+      </ul>
+    </div>
+  </div>
+
+  <p style="margin-top:14px">このアプリは「入力フォーム・検索・一覧」が中心の業務システムで、ページ単位で切り替わっても困らないため、構成をシンプルに保てるサーバーサイドレンダリングを選びました（README の選定理由）。</p>
+
+  <div class="note"><span>⚠️</span><span><b>Vite・Tailwind の設定ファイルは残っているが使っていない。</b><code>resources/js/app.js</code> や <code>package.json</code> は Laravel の初期状態のまま残っているもので、画面は <code>public/css/common.css</code> と各画面の <code>&lt;script&gt;</code> だけで動いています（ビルド不要）。</span></div>
+
+  <!-- 7 -->
+  <h2 id="s7"><span class="num">7</span>ログインの状態をどう覚えているか</h2>
+  <p class="h2sub">ひとことで：サーバーにメモ（セッション）を残し、ブラウザにはそのメモの番号札（Cookie）だけを渡す。</p>
+
+  <ol class="steps">
+    <li>
+      <div class="where">ログイン画面で［ログイン］</div>
+      <h4>ID とパスワードを POST で送る</h4>
+      <p><code>AuthController@login</code> が、ID を小文字にそろえ、<code>Auth::attempt()</code> で「有効な（status=active）アカウントで、パスワードが合うか」を確かめます。DB にはパスワードそのものではなく、<b>ハッシュ</b>（元に戻せない変換をした値）が入っていて、入力値を同じように変換して比べます。</p>
+    </li>
+    <li>
+      <div class="where">成功</div>
+      <h4>セッションを作り直し、番号札を渡す</h4>
+      <p><code>session()->regenerate()</code> で<b>セッション ID を新しくします</b>（ログイン前の ID を盗まれていても使えなくする＝セッション固定攻撃の対策）。サーバーの <code>storage/framework/sessions/</code> に「この番号の人はユーザー○番」と書いたファイルを置き、ブラウザには <code>Set-Cookie: civil_track_session=…</code> で番号札を渡します。</p>
+      <ul>
+        <li>Cookie は <code>secure</code>（HTTPS のときだけ送る）・<code>httponly</code>（JavaScript から読めない）の設定</li>
+        <li>何も操作しないまま <b>120分</b>たつと、セッションは期限切れ（<code>SESSION_LIFETIME=120</code>）</li>
+      </ul>
+    </li>
+    <li>
+      <div class="where">以降のすべてのリクエスト</div>
+      <h4>ブラウザが毎回 Cookie を添える → ミドルウェアが本人を特定</h4>
+      <p>セッション開始のミドルウェアが番号からファイルを読み、<code>auth()->user()</code> で「今の操作者」が分かるようになります。OfficeScope や Policy は、この情報を使って判断しています。</p>
+    </li>
+    <li>
+      <div class="where">初回ログインのとき</div>
+      <h4>パスワード変更を強制する</h4>
+      <p><code>users.must_change_password</code> が true の間は、<code>ForcePasswordChange</code> ミドルウェアが、パスワード変更とログアウト以外の画面をすべて変更画面へリダイレクトします。</p>
+    </li>
+  </ol>
+
+  <div class="card">
+    <h3>CSRF 対策（なりすまし送信を防ぐ）</h3>
+    <p>Cookie はブラウザが自動で送るので、悪いサイトに仕込まれたフォームから「勝手に削除ボタンを押した」ことにされる危険があります（CSRF）。Laravel はフォームに <code>@csrf</code> で<b>そのページを開いた人だけが知っている合言葉</b>（トークン）を埋め込み、POST・PUT・DELETE のときに照合します。合わなければ <b>419</b> エラーになります。</p>
+    <div class="analogy">たとえ：Cookie は<b>会員証</b>、CSRF トークンは<b>その日の整理券</b>。会員証だけでは窓口の手続きはできず、受付で渡された整理券も一緒に出す必要がある。</div>
+  </div>
+
+  <div class="note"><span>⚠️</span><span><b>セッションはコンテナの中のファイル。</b>本番は <code>SESSION_DRIVER=file</code> で、php コンテナの中に保存しています。デプロイでコンテナを作り直すとファイルが消えるので、<b>デプロイすると全員ログアウトされます</b>。利用の少ない時間に手動デプロイする運用で受け入れています（台数を増やすなら、DB や Redis に保存する方式に変える必要がある）。</span></div>
+
+  <!-- 8 -->
+  <h2 id="s8"><span class="num">8</span>登録ボタンを押したとき（POST の流れ）</h2>
+  <p class="h2sub">ひとことで：POST で送る → 検査 → 保存 → 「一覧へ移動して」と返す（PRG パターン）。</p>
+
+  <div class="pipe">
+    <div class="box"><b>POST /requests</b>フォームの中身をボディに入れて送る</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>CSRF・権限</b>合言葉と、登録できる人か</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>StoreRequestRequest</b>必須・形式・選択肢の検査</div>
+    <div class="arrow">→</div>
+    <div class="box hl"><b>保存</b>トランザクションで採番＋INSERT</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>302 → GET /requests</b>一覧で「登録しました」</div>
+  </div>
+
+  <h3>入力に誤りがあったとき</h3>
+  <p>FormRequest の検査で引っかかると、コントローラは動かず、<b>元のフォームへリダイレクト</b>されます。このとき入力した値（<code>old()</code>）とエラーメッセージ（<code>@error</code>）を一時的にセッションに入れて渡すので、入力し直さずに赤字の箇所だけ直せます。</p>
+
+  <h3>受付番号の採番（同時に押されても重ならない）</h3>
+  <pre>DB::transaction(<span class="k">function</span> () {
+    $maxSeq = Request::withTrashed()                       <span class="c">// 論理削除した番号も数える</span>
+        ->withoutGlobalScope(OfficeScope::class)
+        ->where(<span class="s">'office_id'</span>, $officeId)->where(<span class="s">'reception_year'</span>, $year)
+        ->lockForUpdate()                                  <span class="c">// 終わるまで他の人を待たせる</span>
+        ->max(<span class="s">'reception_seq'</span>);
+    <span class="c">// 最大値 + 1 で "2026-0028" のような番号を作って保存</span>
+});</pre>
+  <p>「今の最大番号を読む → +1 して保存」の間に別の人が同じことをすると、同じ番号ができてしまいます。<b>トランザクション＋行ロック</b>でその間を一人ずつにし、最後の守りとして DB の <b>UNIQUE 制約</b>も置いています。</p>
+
+  <h3>なぜ保存後に「移動して」と返すのか（PRG）</h3>
+  <p>POST の結果をそのまま画面として返すと、ブラウザの再読み込みで<b>同じ POST がもう一度送られ、二重登録</b>になります。保存後は 302 で一覧（GET）へ移動させることで、再読み込みしても一覧を開き直すだけになります。これを <b>Post / Redirect / Get</b> パターンと呼びます。</p>
+
+  <div class="note key"><span>🔑</span><span><b>HTML のフォームは GET と POST しか送れない。</b>更新（PUT）や削除（DELETE）のフォームでは、<code>@method('PUT')</code> で隠し項目 <code>_method=PUT</code> を入れて POST で送り、Laravel が「本当は PUT」と読み替えています。</span></div>
+
+  <!-- 9 -->
+  <h2 id="s9"><span class="num">9</span>ブラウザが直接取りに行くもの</h2>
+  <p class="h2sub">ひとことで：地図の画像・フォント・現場写真は、このアプリのサーバーを通らず、ブラウザがそれぞれの置き場から直接もらう。</p>
+
+  <div class="tablewrap"><table>
+    <tr><th>もの</th><th>どこから</th><th>アプリが関わる部分</th></tr>
+    <tr><td><b>地図のタイル画像</b></td><td>国土地理院（<code>cyberjapandata.gsi.go.jp</code>）</td><td>Blade が案件の緯度経度を HTML に埋め込み、Leaflet がそれを読んで必要なタイルを取りに行く</td></tr>
+    <tr><td><b>フォント</b></td><td>Google Fonts</td><td>レイアウトの <code>&lt;link&gt;</code> に書いてあるだけ</td></tr>
+    <tr><td><b>現場写真</b></td><td><b>S3</b></td><td>Laravel が<b>30分だけ有効な署名付き URL</b> を作って HTML の <code>&lt;img src&gt;</code> に入れる</td></tr>
+  </table></div>
+
+  <h3>現場写真の保存と表示</h3>
+  <div class="grid2">
+    <div class="card">
+      <h3>保存（アップロード）</h3>
+      <ul>
+        <li>ブラウザ → nginx → Laravel にファイルが届く（上限は nginx と PHP の設定で決めている）</li>
+        <li>Laravel が入力チェック（画像か、サイズは大丈夫か）</li>
+        <li>Laravel が S3 の <code>request-photos/{案件ID}/</code> に保存</li>
+        <li>S3 に書き込む権限は、EC2 に付けた <b>IAM ロール</b>から自動で受け取る。<b>アクセスキーはどこにも置いていない</b></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>表示</h3>
+      <ul>
+        <li>S3 は公開をすべてブロックしているので、普通の URL では見られない</li>
+        <li>Laravel が「この写真を30分だけ見てよい」という<b>署名付き URL</b> を発行</li>
+        <li>ブラウザはその URL で S3 から<b>直接</b>画像を取る（EC2 の負担にならない）</li>
+        <li>URL が漏れても、30分たてば使えなくなる</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note"><span>⚠️</span><span><b>写真をコンテナの中に置かない理由。</b>本番のコンテナはデプロイのたびに作り直すので、中に保存したファイルは消えてしまいます。消えては困るデータは、コンテナの外（RDS・S3）に置くのが基本です。ローカルでは S3 の代わりに PC のディスク（<code>storage/app/private</code>）を使い、Laravel 自身が署名付き URL で配信しています（<code>PHOTO_DISK</code> の切り替え）。</span></div>
+
+  <!-- 10 -->
+  <h2 id="s10"><span class="num">10</span>コンテナと Docker Compose</h2>
+  <p class="h2sub">ひとことで：「動かすのに必要なもの一式」を箱（イメージ）に詰め、どこでも同じように動かす仕組み。Compose は複数の箱をまとめて動かす指示書。</p>
+
+  <dl class="glossary">
+    <dt>イメージ</dt><dd>コンテナの元になる「型」。OS の一部・PHP・拡張・アプリのソースなどが入っている。<code>Dockerfile</code> に作り方を書く</dd>
+    <dt>コンテナ</dt><dd>イメージから起動した「実物」。止めて作り直すと、中で書き込んだものは消える</dd>
+    <dt>ネットワーク</dt><dd>コンテナ同士をつなぐ専用の線。同じネットワークならサービス名（<code>php</code>）で相手を呼べる</dd>
+    <dt>ポート公開</dt><dd><code>"8081:80"</code>＝EC2 の 8081番をコンテナの 80番につなぐ。php は公開せず、nginx からしか届かない</dd>
+    <dt>ボリューム</dt><dd>コンテナの外に置く保存場所。作り直しても消えない（ローカルの MySQL のデータなど）</dd>
+  </dl>
+
+  <h3>本番のイメージの作り方</h3>
+  <div class="grid2">
+    <div class="card">
+      <h3>php（<code>docker/php/Dockerfile.prod</code>）</h3>
+      <ul>
+        <li><code>php:8.3.36-fpm</code> を元にする（脆弱性対応のため細かい版まで固定）</li>
+        <li>MySQL 接続・画像処理などの PHP 拡張を入れる</li>
+        <li><code>composer install --no-dev</code> で、本番に必要なライブラリだけ入れる</li>
+        <li>アプリのソースを<b>イメージの中にコピー</b>（焼き込む）</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>nginx（<code>docker/nginx/Dockerfile.prod</code>）</h3>
+      <ul>
+        <li><code>nginx:1.30.6-alpine</code> を元にする</li>
+        <li>設定ファイル <code>default.conf</code> を入れる</li>
+        <li><code>public/</code> だけをコピー（静的ファイルを自分で返すため）</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>php コンテナが起動するとき（<code>entrypoint.prod.sh</code>）</h3>
+  <pre>php artisan migrate --force   <span class="c"># DB のテーブルを最新の形にする（足りない変更だけ）</span>
+php artisan config:cache      <span class="c"># 設定を1ファイルにまとめる（以降 .env は読まない）</span>
+php artisan route:cache       <span class="c"># ルート表をまとめる</span>
+php artisan view:cache        <span class="c"># Blade を PHP に変換しておく</span>
+exec php-fpm                  <span class="c"># ここから PHP-FPM が依頼を待ち始める</span></pre>
+
+  <div class="note ok"><span>✅</span><span><b>famigo との分離。</b>Civil Track は専用のネットワーク（<code>civil-network</code>）・専用の Compose ファイル（<code>-f docker-compose.prod.yml</code>）・専用のポート（8081）を使います。同じ EC2 の上にいても、famigo のコンテナとは直接つながらず、Civil Track のデプロイで famigo を巻き込みません。異常終了したときは <code>restart: unless-stopped</code> で自動的に再起動します。</span></div>
+
+  <!-- 11 -->
+  <h2 id="s11"><span class="num">11</span>開発環境と本番環境の違い</h2>
+  <p class="h2sub">ひとことで：「nginx が受けて、Laravel が処理して、MySQL から読む」流れは同じ。周りの部品が、本番では AWS のサービスに置き換わっている。</p>
+
+  <div class="tablewrap"><table>
+    <tr><th></th><th>ローカル（自分の PC）</th><th>本番（AWS）</th></tr>
+    <tr><td><b>入口</b></td><td><code>http://localhost:8081</code> に直接</td><td>Route53 → ALB（HTTPS）→ EC2:8081</td></tr>
+    <tr><td><b>コンテナ</b></td><td>nginx・php・<b>mysql</b> の3つ（<code>docker-compose.yml</code>）</td><td>nginx・php の2つ（<code>docker-compose.prod.yml</code>）</td></tr>
+    <tr><td><b>ソースの置き方</b></td><td>PC のフォルダを<b>共有（バインドマウント）</b>。保存するとすぐ反映</td><td>イメージに<b>焼き込む</b>。変更はビルドし直して反映</td></tr>
+    <tr><td><b>DB</b></td><td>MySQL コンテナ（データはボリュームに保存）。テスト用の DB も別にある</td><td>RDS（MySQL 8.4）</td></tr>
+    <tr><td><b>写真</b></td><td>PC のディスク</td><td>S3</td></tr>
+    <tr><td><b>設定</b></td><td><code>.env</code></td><td><code>.env.production</code>（EC2 上にだけ置く。コミットしない）</td></tr>
+    <tr><td><b>ログ</b></td><td><code>storage/logs/laravel.log</code>（読みやすい文章形式）</td><td>標準エラー出力に JSON で出し → CloudWatch Logs</td></tr>
+    <tr><td><b>エラー表示</b></td><td>詳しいエラー画面（<code>APP_DEBUG=true</code>）</td><td>問い合わせ番号つきの簡単な画面（中身を見せない）</td></tr>
+  </table></div>
+
+  <!-- 12 -->
+  <h2 id="s12"><span class="num">12</span>画面に出ない裏方の仕組み</h2>
+  <p class="h2sub">ひとことで：作るとき（CI・テスト）、置くとき（デプロイ・Terraform）、動いている間（ログ・監視）を支える仕組み。</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>ログと監視</h3>
+      <p class="role">動いている間の見張り役</p>
+      <p>コンテナの出力を Docker（<code>awslogs</code> ドライバ）が CloudWatch Logs の <code>/civil/app</code> へ送ります。ERROR のログ・サイト停止・ディスク逼迫でアラームが鳴り、SNS がメールで知らせます。詳しくは <a href="logging-monitoring-basics.html">ログと監視の基礎</a>。</p>
+    </div>
+    <div class="card">
+      <h3>CI（GitHub Actions）</h3>
+      <p class="role">作るときの安全網</p>
+      <p>PR を出すたびに、Pint（整形）・PHPStan（静的解析）・PHPUnit（テスト）を GitHub 上で自動実行します。本番への自動デプロイ（CD）はしていません。詳しくは <a href="ci-basics.html">CI の基礎</a>・<a href="testing-basics.html">テストの基礎</a>。</p>
+    </div>
+    <div class="card">
+      <h3>デプロイ（手動）</h3>
+      <p class="role">新しい版を本番に置く</p>
+      <p>SSM で EC2 に入り、<code>/opt/civil</code> で最新のソースを取得 → <code>docker compose -f docker-compose.prod.yml up -d --build</code> でイメージを作り直して起動。起動時に entrypoint がマイグレーションを流します。詳しくは <a href="deploy-recap-technical.html">デプロイ振り返り（技術版）</a>。</p>
+    </div>
+    <div class="card">
+      <h3>Terraform</h3>
+      <p class="role">AWS の設定をコードで残す</p>
+      <p>Civil Track のために追加した AWS リソース（証明書・Route53 のレコード・ALB のリスナールール・写真用の S3・CloudWatch のロググループやアラーム・SNS など）を <code>infra/</code> のコードで管理します。famigo の既存リソースは読み取るだけで、手を加えません。</p>
+    </div>
+  </div>
+
+  <!-- 13 -->
+  <h2 id="s13"><span class="num">13</span>困ったとき、どこを見るか</h2>
+  <p class="h2sub">ひとことで：「どこまで届いたか」で原因の場所を絞る。この章の地図（1章）を上から順にたどるのが近道。</p>
+
+  <div class="tablewrap"><table>
+    <tr><th>症状</th><th>止まっている場所の候補</th><th>まず見るもの</th></tr>
+    <tr><td>サイトにつながらない・名前が見つからない</td><td>DNS／EC2・RDS が停止中</td><td>EC2・RDS が起動しているか（普段は止めている）。Route53 のレコード</td></tr>
+    <tr><td><b>502 / 503</b>（ALB の画面）</td><td>ALB の先のサーバーが応答しない</td><td>ターゲットグループのヘルスチェックが healthy か。<code>docker ps</code> でコンテナが動いているか</td></tr>
+    <tr><td><b>504</b></td><td>処理が時間切れ</td><td>重い処理・DB の応答。CloudWatch の php のログ</td></tr>
+    <tr><td><b>500</b>（問い合わせ番号つきの画面）</td><td>Laravel の中のエラー</td><td>画面の番号（request_id）で CloudWatch Logs を検索し、ERROR の行を見る</td></tr>
+    <tr><td>画面は出るが<b>見た目が崩れる</b></td><td>CSS が届いていない</td><td>ブラウザの開発者ツール（F12）の Network タブで <code>common.css</code> が 200 か</td></tr>
+    <tr><td><b>地図だけ</b>出ない</td><td>Leaflet か国土地理院のタイル</td><td>開発者ツールの Console のエラー、タイル画像のリクエスト</td></tr>
+    <tr><td><b>写真だけ</b>出ない</td><td>S3・署名付き URL・IAM ロール</td><td>画像の URL が 403 になっていないか（期限切れ・権限）</td></tr>
+    <tr><td>ログインしてもすぐログイン画面に戻る</td><td>Cookie が保存されない・送られない</td><td>HTTPS で開いているか（<code>secure</code> Cookie）、TrustProxies の設定</td></tr>
+    <tr><td><b>419</b></td><td>セッション切れ・CSRF</td><td>ページを開き直してから送信し直す。デプロイ直後なら全員ログアウトされている</td></tr>
+  </table></div>
+
+  <div class="note key"><span>🔑</span><span><b>ブラウザの開発者ツールは最初の味方。</b>F12 → Network タブを開いてから操作すると、1回のページ表示で何本のリクエストが飛び、どれが何番で返ったかが一覧で見えます。この章の「HTML 1本＋CSS・フォント・地図・写真の別リクエスト」を、自分の目で確かめてみてください。</span></div>
+
+  <!-- 14 -->
+  <h2 id="s14"><span class="num">14</span>用語ミニ辞典</h2>
+  <dl class="glossary">
+    <dt>DNS</dt><dd>ドメイン名（civil-track.com）を IP アドレスに変換する仕組み。Route53 が担当</dd>
+    <dt>TLS / HTTPS</dt><dd>通信を暗号化する仕組み／それを使った HTTP。証明書で相手が本物か確かめる</dd>
+    <dt>SNI</dt><dd>暗号化の握手の最初に「どのドメインに用があるか」を伝える仕組み。1つの ALB で複数の証明書を使い分けられる</dd>
+    <dt>ロードバランサー</dt><dd>入口で通信を受け、後ろのサーバーに振り分ける装置。ALB は HTTP の中身（ホスト名・パス）で振り分けられる</dd>
+    <dt>ターゲットグループ</dt><dd>ALB の振り分け先のまとまり。ヘルスチェックの設定もここ</dd>
+    <dt>リバースプロキシ</dt><dd>利用者の代わりに奥のサーバーへ取り次ぐ役。ALB や nginx がこれにあたる</dd>
+    <dt>FastCGI</dt><dd>Web サーバーが、PHP などの実行役に処理を頼むときの取り決め</dd>
+    <dt>PHP-FPM</dt><dd>FastCGI で依頼を受けて PHP を実行するプログラム。作業員を何人か待機させる</dd>
+    <dt>フレームワーク</dt><dd>アプリの骨組みと定番の部品をまとめたもの。Laravel</dd>
+    <dt>ミドルウェア</dt><dd>コントローラの前後で、すべて（または一部）のリクエストに共通の処理をはさむ仕組み</dd>
+    <dt>MVC</dt><dd>Model（データ）・View（画面）・Controller（指揮）に役割を分ける考え方</dd>
+    <dt>ORM（Eloquent）</dt><dd>テーブルを PHP のクラスとして扱い、SQL を書かずに DB を操作できる仕組み</dd>
+    <dt>グローバルスコープ</dt><dd>モデルの検索すべてに自動で足される条件。OfficeScope・SoftDeletes</dd>
+    <dt>論理削除</dt><dd>行を消さず、<code>deleted_at</code> に日時を入れて「削除済み」扱いにすること</dd>
+    <dt>トランザクション</dt><dd>複数の DB 操作を「全部成功か、全部なかったことに」する仕組み</dd>
+    <dt>セッション</dt><dd>サーバー側に保存する、利用者ごとのメモ。ログイン状態など</dd>
+    <dt>Cookie</dt><dd>ブラウザが保存し、同じサイトへのリクエストに毎回添える小さなデータ</dd>
+    <dt>CSRF</dt><dd>他のサイトから、ログイン中の利用者になりすまして送信させる攻撃。トークンで防ぐ</dd>
+    <dt>XSS</dt><dd>入力欄に仕込んだスクリプトを、他の人の画面で実行させる攻撃。出力時のエスケープで防ぐ</dd>
+    <dt>SQL インジェクション</dt><dd>入力値で SQL の意味を書き換える攻撃。プリペアドステートメント（値の別送り）で防ぐ</dd>
+    <dt>署名付き URL</dt><dd>「この URL は期限まで有効」という署名を付けた URL。非公開の S3 のファイルを一時的に見せられる</dd>
+    <dt>IAM ロール</dt><dd>AWS のサービス（EC2 など）に付ける権限のセット。キーを置かずに S3 などを操作できる</dd>
+    <dt>イメージ／コンテナ</dt><dd>アプリを動かす一式の「型」／そこから起動した「実物」</dd>
+    <dt>マイグレーション</dt><dd>テーブルの作成・変更を PHP のコードで書き、順番に DB へ反映する仕組み</dd>
+    <dt>ステートレス</dt><dd>前のやりとりを覚えていないこと。HTTP や PHP の1リクエストはこの性質を持つ</dd>
+  </dl>
+
+  <footer>
+    要望管理システム（CivilRequestManagement）／アプリ全体の仕組みの学習用まとめ（2026-11-18 時点）。インフラの設定値は <a href="../infrastructure-design.md">インフラ設計書</a>、画面とルートは <a href="../screen-design.md">画面設計書</a>、ログは <a href="../logging-and-monitoring.md">ログ・監視設計書</a> を参照。
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themebtn');
+    var root = document.documentElement;
+    btn.addEventListener('click', function () {
+      var mqDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var current = root.getAttribute('data-theme') || (mqDark ? 'dark' : 'light');
+      root.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    });
+  })();
+</script>
+</body>
+</html>
