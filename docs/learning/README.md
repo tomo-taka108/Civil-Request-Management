@@ -10,7 +10,7 @@
 
 | ファイル | 内容 |
 |---|---|
-| [app-architecture-basics.html](app-architecture-basics.html) | **アプリが動く仕組み（全体像）**。「案件一覧で検索する」1回の操作を、ブラウザ → Route53 → ALB → nginx → PHP-FPM → Laravel（ミドルウェア・ルート・FormRequest・コントローラ・モデル・Blade）→ RDS まで追いかけ、各技術の役割と連携、HTTP の基本、ログインの状態の持ち方、POST の流れ、写真・地図の取得、コンテナ、開発と本番の違い、困ったときの見どころを解説 |
+| [app-architecture-basics.html](app-architecture-basics.html) | **アプリが動く仕組み（全体像）**。「案件一覧で検索する」1回の操作を、ブラウザ → Route53 → ALB → nginx → PHP-FPM → Laravel（ミドルウェア・ルート・FormRequest・コントローラ・モデル・Blade）→ RDS まで追いかけ、各技術の役割と連携、HTTP の基本、入口の通信の詳細（DNS・HTTPS・証明書・セキュリティグループ・ポートの設定場所）、ログインの状態の持ち方、POST の流れ、写真・地図の取得、コンテナ、開発と本番の違い、困ったときの見どころを解説 |
 | [aws-deploy-basics.html](aws-deploy-basics.html) | **AWSデプロイの仕組み**。「ブラウザ → ALB → EC2 → RDS」の流れと、Route53・ACM・リスナー・ターゲットグループ・セキュリティグループ等の各技術の役割を、たとえ話で解説 |
 | [deploy-recap-image.html](deploy-recap-image.html) | **デプロイ振り返り（イメージ版）**。実際のデプロイ作業を「インフラ構築／本番設定／デプロイ」の3幕に分け、目的とやったことを直感的にたどる |
 | [deploy-recap-technical.html](deploy-recap-technical.html) | **デプロイ振り返り（技術版）**。上記の各ステップに、実際のコマンド・作成ファイル・要点コード・「再実行が必要か早見表」を添えた技術寄りの版 |

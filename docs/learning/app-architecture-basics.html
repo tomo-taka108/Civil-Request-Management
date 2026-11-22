@@ -182,17 +182,18 @@
       <li><a href="#s1">全体像（登場人物の地図）</a></li>
       <li><a href="#s2">前提：HTTP というやりとりの形</a></li>
       <li><a href="#s3">1回の検索を追いかける</a></li>
-      <li><a href="#s4">各技術の役割（担当表）</a></li>
-      <li><a href="#s5">Laravel の中で起きていること</a></li>
-      <li><a href="#s6">サーバーで HTML を作る方式（SPA との違い）</a></li>
-      <li><a href="#s7">ログインの状態をどう覚えているか</a></li>
-      <li><a href="#s8">登録ボタンを押したとき（POST の流れ）</a></li>
-      <li><a href="#s9">ブラウザが直接取りに行くもの</a></li>
-      <li><a href="#s10">コンテナと Docker Compose</a></li>
-      <li><a href="#s11">開発環境と本番環境の違い</a></li>
-      <li><a href="#s12">画面に出ない裏方の仕組み</a></li>
-      <li><a href="#s13">困ったとき、どこを見るか</a></li>
-      <li><a href="#s14">用語ミニ辞典</a></li>
+      <li><a href="#s4">入口の通信を詳しく（DNS・HTTPS・証明書・門番・ポート）</a></li>
+      <li><a href="#s5">各技術の役割（担当表）</a></li>
+      <li><a href="#s6">Laravel の中で起きていること</a></li>
+      <li><a href="#s7">サーバーで HTML を作る方式（SPA との違い）</a></li>
+      <li><a href="#s8">ログインの状態をどう覚えているか</a></li>
+      <li><a href="#s9">登録ボタンを押したとき（POST の流れ）</a></li>
+      <li><a href="#s10">ブラウザが直接取りに行くもの</a></li>
+      <li><a href="#s11">コンテナと Docker Compose</a></li>
+      <li><a href="#s12">開発環境と本番環境の違い</a></li>
+      <li><a href="#s13">画面に出ない裏方の仕組み</a></li>
+      <li><a href="#s14">困ったとき、どこを見るか</a></li>
+      <li><a href="#s15">用語ミニ辞典</a></li>
     </ol>
   </nav>
 
@@ -294,7 +295,7 @@
   </div>
 
   <ol class="body">
-    <li><b>Route53</b> に「<code>civil-track.com</code> はどこ？」と聞く（DNS）</li>
+    <li>DNS で「<code>civil-track.com</code> はどこ？」を調べ、最終的に <b>Route53</b> が答える（途中の DNS サーバーは図では省略。<a href="#dns">4章</a>）</li>
     <li><b>ALB</b> に HTTPS でつなぎ、依頼を送る</li>
     <li>ALB が依頼を <b>EC2 の 8081番</b>（nginx コンテナ）へ回す</li>
     <li><b>nginx</b> が PHP の処理を <b>php コンテナ</b>（PHP-FPM ＋ Laravel）へ頼む</li>
@@ -357,7 +358,7 @@ Set-Cookie: civil_track_session=...; secure; httponly
     <tr><td><b style="white-space:nowrap">502〜504</b></td><td>奥のサーバーが応答しない</td><td>ALB や nginx が出す。コンテナが止まっている、処理が時間切れ、など</td></tr>
   </table></div>
 
-  <div class="note key"><span>🔑</span><span><b>HTTP は「1往復で忘れる」仕組み。</b>サーバーは、前のリクエストを誰が送ったのか覚えていません（ステートレス）。それでもログイン状態が続くのは、ブラウザが毎回 Cookie で「さっきの者です」と名乗っているからです（<a href="#s7">7章</a>）。</span></div>
+  <div class="note key"><span>🔑</span><span><b>HTTP は「1往復で忘れる」仕組み。</b>サーバーは、前のリクエストを誰が送ったのか覚えていません（ステートレス）。それでもログイン状態が続くのは、ブラウザが毎回 Cookie で「さっきの者です」と名乗っているからです（<a href="#s8">8章</a>）。</span></div>
 
   <!-- 3 -->
   <h2 id="s3"><span class="num">3</span>1回の検索を追いかける</h2>
@@ -375,12 +376,12 @@ Set-Cookie: civil_track_session=...; secure; httponly
     <li>
       <div class="where">Route53（DNS）</div>
       <h4>「civil-track.com はどこ？」を調べる</h4>
-      <p>インターネット上の住所は IP アドレス（数字）なので、名前を数字に変換します。Route53 の <b>エイリアス A レコード</b>が「ALB のアドレス」を答えます。結果はしばらくブラウザや PC に記憶（キャッシュ）されるので、毎回聞くわけではありません。</p>
+      <p>インターネット上の住所は IP アドレス（数字）なので、名前を数字に変換します。PC は DNS サーバーを順にたどって Route53 にたどり着き、Route53 の <b>エイリアス A レコード</b>が「<b>ALB の今の IP アドレス</b>」を答えます。結果はしばらくブラウザや PC に記憶（キャッシュ）されるので、毎回聞くわけではありません（たどり方と実際の答えは <a href="#dns">4章</a>）。</p>
     </li>
     <li>
       <div class="where">ALB（HTTPS の終端）</div>
       <h4>暗号化の握手をして、中身を読む</h4>
-      <p>ブラウザと ALB の間で <b>TLS ハンドシェイク</b>（暗号の鍵を決める握手）をします。ALB は famigo 用と Civil Track 用の2枚の証明書を持っていて、ブラウザが最初に名乗るドメイン名（<b>SNI</b>）を見て <code>civil-track.com</code> の証明書（<b>ACM</b> が発行・自動更新）を出します。ここで暗号が解かれ、ALB は HTTP の中身を読めるようになります。</p>
+      <p>ブラウザは教えてもらった IP アドレスの <b>443番</b>につなぎ、ALB との間で <b>TLS ハンドシェイク</b>（暗号の鍵を決める握手）をします。ALB は famigo 用と Civil Track 用の2枚の証明書を持っていて、ブラウザが最初に名乗るドメイン名（<b>SNI</b>）を見て <code>civil-track.com</code> の証明書（<b>ACM</b> が発行・自動更新）を出します。ここで暗号が解かれ、ALB は HTTP の中身を読めるようになります（<a href="#https">HTTPS の順番</a>・<a href="#certs">証明書の見方</a>は 4章）。</p>
       <ul>
         <li>http://（80番）で来た場合は、443番（https://）へリダイレクトさせます。</li>
       </ul>
@@ -391,14 +392,14 @@ Set-Cookie: civil_track_session=...; secure; httponly
       <p>ALB は famigo と共有です。443 リスナーに<b>ホスト名が <code>civil-track.com</code> なら <code>civil-request-tg-8081</code> へ</b>というルール（優先度100）を足してあり、それ以外は今までどおり famigo の 8080 番へ流れます。</p>
       <ul>
         <li>ALB から EC2 へは<b>暗号化しない HTTP</b>で送ります（AWS の中の通信のため）。代わりに <code>X-Forwarded-Proto: https</code> などのヘッダで「元は HTTPS だった」と伝えます。</li>
-        <li>EC2 のセキュリティグループは、<b>ALB からの 8081番だけ</b>を通します。インターネットから直接 8081 にはつながりません。</li>
+        <li>EC2 のセキュリティグループは、<b>8081番を ALB からだけ</b>通します。インターネットから直接 8081 にはつながりません（EC2 のほかの許可ルールは <a href="#sg">4章</a>）。</li>
         <li>ALB は 30 秒ごとに <code>/health</code> を叩き、3回続けて失敗したらそのサーバーを「異常」として切り離します（ヘルスチェック）。</li>
       </ul>
     </li>
     <li>
       <div class="where">EC2 → nginx コンテナ</div>
       <h4>Docker が 8081番を nginx コンテナの 80番につなぐ</h4>
-      <p><code>docker-compose.prod.yml</code> の <code>ports: "8081:80"</code> により、EC2 の 8081番に来た通信がコンテナの 80番へ渡ります。nginx は <a href="../../docker/nginx/default.conf"><code>default.conf</code></a> のルールで行き先を決めます。</p>
+      <p><code>docker-compose.prod.yml</code> の <code>ports: "8081:80"</code> により、EC2 の 8081番に来た通信がコンテナの 80番へ渡ります（各番号の設定場所は <a href="#ports">4章</a>）。nginx は <a href="../../docker/nginx/default.conf"><code>default.conf</code></a> のルールで行き先を決めます。</p>
       <pre><span class="k">root</span> /var/www/html/public;            <span class="c"># 公開してよいファイルの置き場</span>
 <span class="k">location</span> / {
     try_files $uri $uri/ /index.php?$query_string;   <span class="c"># ① ファイルがあれば返す ② 無ければ index.php へ</span>
@@ -486,7 +487,122 @@ Set-Cookie: civil_track_session=...; secure; httponly
   <div class="note ok"><span>✅</span><span><b>まとめると、HTML 1枚のために動くのは「Route53 → ALB → nginx → PHP-FPM → Laravel → RDS」。</b>CSS・画像・フォントは別のリクエストで、そのほとんどは PHP まで届かず nginx や外部サーバーが返しています。</span></div>
 
   <!-- 4 -->
-  <h2 id="s4"><span class="num">4</span>各技術の役割（担当表）</h2>
+  <h2 id="s4"><span class="num">4</span>入口の通信を詳しく（DNS・HTTPS・証明書・門番・ポート）</h2>
+  <p class="h2sub">ひとことで：名前を IP に変え、暗号化してつなぎ、門番を通り、番号（ポート）を頼りにコンテナまで届く。その一つひとつが、どこで設定されているかを見ていく。</p>
+
+  <h3 id="dns">DNS：Route53 にたどり着くまで</h3>
+  <p>ブラウザが最初から Route53 の場所を知っているわけではありません。<b>アプリのコードにも「Route53 へ行く」とは書かれていません。</b>インターネット共通の DNS の仕組みで、次のように順にたどります。</p>
+  <pre>ブラウザ・PC              <span class="c">覚えていれば、それを使って終わり</span>
+  ↓
+自宅ルーターなど
+  ↓
+プロバイダ等の DNS サーバー <span class="c">代わりに調べてくれる係</span>
+  ↓
+ルート DNS                <span class="c">「.com の担当はあちらです」</span>
+  ↓
+.com の DNS               <span class="c">「civil-track.com の担当は ns-1403.awsdns-47.org などです」</span>
+  ↓
+Route53                   <span class="c">「IP アドレスはこれです」</span></pre>
+
+  <p>Route53 に直接問い合わせると、次の答えが返ります（2026-11-23 に確認した値）。</p>
+  <pre><span class="c">名前              タイプ  TTL   IP アドレス</span>
+civil-track.com   A       60    3.114.175.58
+civil-track.com   A       60    54.178.253.11</pre>
+  <ul>
+    <li><b>TTL 60</b>：「この答えは60秒間覚えていて構いません」という意味</li>
+    <li><b>IP が2つ</b>：ALB が2つのアベイラビリティゾーン（1a・1c）にいるため</li>
+    <li><b>IP は変わる</b>：11/18 に調べたときは <code>54.95.241.127</code> などでした。ALB の IP は固定ではないので、IP を直接書かず、ALB を指す<b>エイリアス</b>にしています</li>
+    <li>Route53 のコンソールの「値/トラフィックのルーティング先」には <b>ALB の名前</b>が表示されますが、問い合わせへの返事は <b>ALB の今の IP</b> です</li>
+  </ul>
+  <div class="tablewrap"><table>
+    <tr><th>何を</th><th>どこで決めているか</th></tr>
+    <tr><td>Route53 に置く内容（ALB を指す A レコード）</td><td><a href="../../infra/route53.tf"><code>infra/route53.tf</code></a>（Terraform）</td></tr>
+    <tr><td>「このドメインの担当は Route53」という登録（NS）</td><td>ドメインを取得したレジストラの設定</td></tr>
+  </table></div>
+
+  <h3 id="https">HTTPS：ALB につなぐ順番</h3>
+  <ol class="body">
+    <li><b>接続</b>：DNS で分かった IP アドレスの <b>443番</b>につなぐ</li>
+    <li><b>TLS の握手</b>：「civil-track.com に用があります」（<b>SNI</b>）と伝え、ALB が出した証明書を確認して、暗号の鍵を決める</li>
+    <li><b>HTTP を暗号化して送る</b>：下の内容が、暗号の中に入って届く</li>
+  </ol>
+  <pre><span class="k">GET</span> /requests HTTP/1.1
+Host: civil-track.com
+Cookie: civil_track_session=...</pre>
+  <p>IP アドレスは「届け先」にだけ使い、<b>ドメイン名は SNI と Host ヘッダで別に伝えます</b>。SNI は「どの証明書を出すか」、Host は「どのアプリへ回すか」の判断に使われるので、同じ IP でも famigo と Civil Track を見分けられます。</p>
+  <div class="note"><span>⚠️</span><span><b>IP アドレスを直接入力しても、Civil Track のログイン画面には来ません。</b>SNI が無いので ALB はデフォルトの famigo の証明書を出し、ブラウザは名前が合わないと警告します。警告を無視して進んでも、Host が <code>civil-track.com</code> ではないのでルールに当たらず、famigo 側へ流れます。</span></div>
+
+  <h3 id="certs">証明書：名前がたくさんあるが、実物は2枚</h3>
+  <p>コンソールに出てくる証明書の名前は、このアプリではすべて <b>ACM が発行したサーバー証明書</b>のことです（2枚とも種類は <code>AMAZON_ISSUED</code>）。名前の違いは、証明書の種類ではなく<b>「どこに置いてあるか・ALB がどの場面で使うか」</b>の違いです。</p>
+  <div class="tablewrap"><table>
+    <tr><th>名前</th><th>立場</th><th>今の設定</th></tr>
+    <tr><td><b>ACM の証明書</b></td><td>証明書の本体（発行・保管・更新）</td><td><code>api.famigo-odekake.com</code>、<code>civil-track.com</code> の2枚</td></tr>
+    <tr><td><b>デフォルトの SSL/TLS 証明書</b></td><td>ALB の設定。名前が分からない・一致しないときに出す1枚</td><td>famigo</td></tr>
+    <tr><td><b>リスナー証明書（SNI）</b></td><td>ALB の設定。SNI の名前で選ぶ候補の一覧</td><td>famigo、civil-track</td></tr>
+  </table></div>
+  <div class="analogy">たとえ：ACM は証明書をしまう<b>金庫</b>、ALB の設定は「このお客さんにはこれを見せる」という<b>担当表</b>。famigo の証明書は担当表の「デフォルト」と「SNI の一覧」の両方に載っているので画面では3行に見えますが、実物は2枚です。</div>
+  <div class="grid2">
+    <div class="card">
+      <h3>ACM で本体を見る</h3>
+      <ol class="body">
+        <li>コンソール右上のリージョンを<b>東京</b>にする</li>
+        <li>検索欄に <code>Certificate Manager</code> と入力して開く</li>
+        <li>左メニューの<b>証明書を一覧表示</b>を開く</li>
+        <li>ドメイン名をクリックすると、状態・有効期限などが見られる</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>ALB での使われ方を見る</h3>
+      <ol class="body">
+        <li><b>EC2</b> → 左メニューの<b>ロードバランサー</b></li>
+        <li><code>famigo-alb</code> を選ぶ</li>
+        <li><b>リスナーとルール</b> → <code>HTTPS:443</code></li>
+        <li><b>証明書</b>のタブを開く</li>
+      </ol>
+    </div>
+  </div>
+  <p style="margin-top:12px">証明書の中身は、ブラウザで <code>https://civil-track.com</code> を開き、アドレスバー左のアイコンからも確認できます。証明書を出すのは ALB なので、EC2 が停止中で 503 の画面でも見られます。なお一般には、他社で発行した証明書を ACM に持ち込むこともでき、その場合の種類は <code>IMPORTED</code> になります。</p>
+
+  <h3 id="sg">セキュリティグループ：3段の門番</h3>
+  <p>ALB・EC2・RDS に1つずつ門番が付いていて、それぞれ「誰からの、何番への通信を通すか」を決めています。</p>
+  <pre>インターネット
+  │ 80 / 443 は誰でも可
+  ▼
+<span class="k">famigo-sg-alb</span>（ALB）
+  │ 8080 / 8081 は ALB からだけ可
+  ▼
+<span class="k">famigo-sg-ec2</span>（EC2）
+  │ 3306 は EC2 からだけ可
+  ▼
+<span class="k">famigo-sg-rds</span>（RDS）</pre>
+  <p>EC2 の門番の受信ルールは、実際には次の3つです。</p>
+  <div class="tablewrap"><table>
+    <tr><th>ポート</th><th>許可する相手</th><th>用途</th></tr>
+    <tr><td><b>8080</b></td><td>ALB のセキュリティグループ</td><td>famigo</td></tr>
+    <tr><td><b>8081</b></td><td>ALB のセキュリティグループ</td><td>Civil Track（<a href="../../infra/security_group.tf"><code>infra/security_group.tf</code></a> で追加）</td></tr>
+    <tr><td><b>22</b></td><td>登録された1つの IP アドレス</td><td>SSH（既存のルール。Civil Track の作業は SSM を使う）</td></tr>
+  </table></div>
+  <p>許可する相手に IP アドレスではなく<b>セキュリティグループそのもの</b>を指定しているので、ALB の IP が変わっても設定を直す必要がありません。一覧に <code>default</code> という名前が見える場合、それは VPC に自動で作られるもので、ALB・EC2・RDS では使っていません。</p>
+
+  <h3 id="ports">ポート：各番号はどこで設定しているか</h3>
+  <p><b>ポート</b>は、1つのコンピュータやコンテナの中で「どのプログラム宛てか」を区別する番号です。IP アドレスが建物の住所なら、ポートは部屋番号にあたります。</p>
+  <div class="tablewrap"><table>
+    <tr><th>区間</th><th>書いてある設定</th><th>場所</th></tr>
+    <tr><td>ALB → EC2 の <b>8081</b></td><td><code>port = var.app_port</code></td><td><a href="../../infra/target_group.tf"><code>infra/target_group.tf</code></a></td></tr>
+    <tr><td>上の変数の中身</td><td><code>default = 8081</code></td><td><a href="../../infra/variables.tf"><code>infra/variables.tf</code></a></td></tr>
+    <tr><td>EC2 の <b>8081</b> → nginx の <b>80</b></td><td><code>"8081:80"</code>（左が EC2、右がコンテナ）</td><td><a href="../../docker-compose.prod.yml"><code>docker-compose.prod.yml</code></a></td></tr>
+    <tr><td>nginx が <b>80</b> で待つ</td><td><code>listen 80;</code></td><td><a href="../../docker/nginx/default.conf"><code>docker/nginx/default.conf</code></a></td></tr>
+    <tr><td>nginx → php の <b>9000</b></td><td><code>fastcgi_pass php:9000;</code></td><td>同じ <code>default.conf</code></td></tr>
+    <tr><td>PHP-FPM が <b>9000</b> で待つ</td><td><code>listen = 9000</code></td><td>PHP 公式イメージの中の <code>/usr/local/etc/php-fpm.d/docker.conf</code>（このリポジトリには無い）</td></tr>
+  </table></div>
+  <ul>
+    <li><code>var.app_port</code> は Terraform の<b>変数</b>です。ターゲットグループの名前・転送先ポート・EC2 の登録・セキュリティグループの許可で同じ変数を使っているので、番号を変えるときは <code>variables.tf</code> の1か所で済みます</li>
+    <li><code>php:9000</code> の <code>php</code> は Compose の<b>サービス名</b>で、Docker が同じネットワーク内の php コンテナに変換します</li>
+    <li>php には <code>ports:</code> の指定がないので、外からは届かず、同じネットワークの nginx からだけ届きます</li>
+  </ul>
+
+  <!-- 5 -->
+  <h2 id="s5"><span class="num">5</span>各技術の役割（担当表）</h2>
   <p class="h2sub">ひとことで：README の「使用技術」の表を、「どこで・何を担当しているか」で並べ直したもの。</p>
 
   <h3>ブラウザで動くもの</h3>
@@ -542,12 +658,12 @@ Set-Cookie: civil_track_session=...; secure; httponly
     <div class="card">
       <h3>EC2 <span class="tag tag-aws">AWS</span></h3>
       <p class="role">仮想サーバー1台</p>
-      <p>t3.micro（メモリ約1GB）・Amazon Linux 2023。famigo と同居。ログインは SSH ではなく <b>SSM</b>（AWS コンソールやコマンドから入る仕組み）。</p>
+      <p>t3.micro（メモリ約1GB）・Amazon Linux 2023。famigo と同居。Civil Track の作業で入るときは SSH ではなく <b>SSM</b>（AWS コンソールやコマンドから入る仕組み）を使います。</p>
     </div>
     <div class="card">
       <h3>Docker / Docker Compose <span class="tag tag-srv">サーバー</span></h3>
       <p class="role">アプリを「箱」に入れて動かす</p>
-      <p>nginx と php を別々のコンテナとして動かし、専用ネットワーク <code>civil-network</code> でつなぎます（<a href="#s10">10章</a>）。</p>
+      <p>nginx と php を別々のコンテナとして動かし、専用ネットワーク <code>civil-network</code> でつなぎます（<a href="#s11">11章</a>）。</p>
     </div>
     <div class="card">
       <h3>nginx 1.30 <span class="tag tag-srv">サーバー</span></h3>
@@ -566,7 +682,7 @@ Set-Cookie: civil_track_session=...; secure; httponly
     <div class="card">
       <h3>Laravel 12 <span class="tag tag-app">アプリ</span></h3>
       <p class="role">Web アプリの骨組み（フレームワーク）</p>
-      <p>ルーティング・認証・入力チェック・DB 操作・画面テンプレートなど、Web アプリに毎回必要な部品がそろっていて、業務のルールを書くことに集中できます（<a href="#s5">5章</a>）。</p>
+      <p>ルーティング・認証・入力チェック・DB 操作・画面テンプレートなど、Web アプリに毎回必要な部品がそろっていて、業務のルールを書くことに集中できます（<a href="#s6">6章</a>）。</p>
     </div>
     <div class="card">
       <h3>Blade <span class="tag tag-app">アプリ</span></h3>
@@ -581,12 +697,12 @@ Set-Cookie: civil_track_session=...; secure; httponly
     <div class="card">
       <h3>S3 <span class="tag tag-aws">AWS</span></h3>
       <p class="role">ファイル置き場（現場写真）</p>
-      <p>公開はすべてブロック。書き込みは EC2 の <b>IAM ロール</b>の権限で行い、表示は期限付きの署名付き URL で行います（<a href="#s9">9章</a>）。</p>
+      <p>公開はすべてブロック。書き込みは EC2 の <b>IAM ロール</b>の権限で行い、表示は期限付きの署名付き URL で行います（<a href="#s10">10章</a>）。</p>
     </div>
   </div>
 
-  <!-- 5 -->
-  <h2 id="s5"><span class="num">5</span>Laravel の中で起きていること</h2>
+  <!-- 6 -->
+  <h2 id="s6"><span class="num">6</span>Laravel の中で起きていること</h2>
   <p class="h2sub">ひとことで：「関所（ミドルウェア）→ 案内板（ルート）→ 検査（FormRequest・Policy）→ 司令塔（コントローラ）→ DB 係（モデル）→ 画面係（Blade）」の流れ作業。</p>
 
   <div class="pipe">
@@ -632,8 +748,8 @@ Set-Cookie: civil_track_session=...; secure; httponly
   </table></div>
   <div class="note key"><span>🔑</span><span><b>画面からボタンを消すだけでは守れない。</b>メニューやボタンを <code>@can</code> で隠すのは「使いやすさ」のため。URL を直接打たれても止められるよう、本当の守りはサーバー側（ルート・Policy・Scope）に置いています。</span></div>
 
-  <!-- 6 -->
-  <h2 id="s6"><span class="num">6</span>サーバーで HTML を作る方式（SPA との違い）</h2>
+  <!-- 7 -->
+  <h2 id="s7"><span class="num">7</span>サーバーで HTML を作る方式（SPA との違い）</h2>
   <p class="h2sub">ひとことで：このアプリは、クリックのたびにサーバーが「1ページ丸ごと」作って返す方式。React などの SPA ではない。</p>
 
   <div class="grid2">
@@ -663,8 +779,8 @@ Set-Cookie: civil_track_session=...; secure; httponly
 
   <div class="note"><span>⚠️</span><span><b>Vite・Tailwind の設定ファイルは残っているが使っていない。</b><code>resources/js/app.js</code> や <code>package.json</code> は Laravel の初期状態のまま残っているもので、画面は <code>public/css/common.css</code> と各画面の <code>&lt;script&gt;</code> だけで動いています（ビルド不要）。</span></div>
 
-  <!-- 7 -->
-  <h2 id="s7"><span class="num">7</span>ログインの状態をどう覚えているか</h2>
+  <!-- 8 -->
+  <h2 id="s8"><span class="num">8</span>ログインの状態をどう覚えているか</h2>
   <p class="h2sub">ひとことで：サーバーにメモ（セッション）を残し、ブラウザにはそのメモの番号札（Cookie）だけを渡す。</p>
 
   <ol class="steps">
@@ -702,8 +818,8 @@ Set-Cookie: civil_track_session=...; secure; httponly
 
   <div class="note"><span>⚠️</span><span><b>セッションはコンテナの中のファイル。</b>本番は <code>SESSION_DRIVER=file</code> で、php コンテナの中に保存しています。デプロイでコンテナを作り直すとファイルが消えるので、<b>デプロイすると全員ログアウトされます</b>。利用の少ない時間に手動デプロイする運用で受け入れています（台数を増やすなら、DB や Redis に保存する方式に変える必要がある）。</span></div>
 
-  <!-- 8 -->
-  <h2 id="s8"><span class="num">8</span>登録ボタンを押したとき（POST の流れ）</h2>
+  <!-- 9 -->
+  <h2 id="s9"><span class="num">9</span>登録ボタンを押したとき（POST の流れ）</h2>
   <p class="h2sub">ひとことで：POST で送る → 検査 → 保存 → 「一覧へ移動して」と返す（PRG パターン）。</p>
 
   <div class="pipe">
@@ -737,16 +853,25 @@ Set-Cookie: civil_track_session=...; secure; httponly
 
   <div class="note key"><span>🔑</span><span><b>HTML のフォームは GET と POST しか送れない。</b>更新（PUT）や削除（DELETE）のフォームでは、<code>@method('PUT')</code> で隠し項目 <code>_method=PUT</code> を入れて POST で送り、Laravel が「本当は PUT」と読み替えています。</span></div>
 
-  <!-- 9 -->
-  <h2 id="s9"><span class="num">9</span>ブラウザが直接取りに行くもの</h2>
+  <!-- 10 -->
+  <h2 id="s10"><span class="num">10</span>ブラウザが直接取りに行くもの</h2>
   <p class="h2sub">ひとことで：地図の画像・フォント・現場写真は、このアプリのサーバーを通らず、ブラウザがそれぞれの置き場から直接もらう。</p>
 
   <div class="tablewrap"><table>
     <tr><th>もの</th><th>どこから</th><th>アプリが関わる部分</th></tr>
-    <tr><td><b>地図のタイル画像</b></td><td>国土地理院（<code>cyberjapandata.gsi.go.jp</code>）</td><td>Blade が案件の緯度経度を HTML に埋め込み、Leaflet がそれを読んで必要なタイルを取りに行く</td></tr>
+    <tr><td><b>地図のタイル画像</b></td><td>国土地理院（<code>cyberjapandata.gsi.go.jp</code>）</td><td>画面の JavaScript にタイルの URL の形が書いてあり、Leaflet が表示範囲に必要なタイルを取りに行く</td></tr>
     <tr><td><b>フォント</b></td><td>Google Fonts</td><td>レイアウトの <code>&lt;link&gt;</code> に書いてあるだけ</td></tr>
     <tr><td><b>現場写真</b></td><td><b>S3</b></td><td>Laravel が<b>30分だけ有効な署名付き URL</b> を作って HTML の <code>&lt;img src&gt;</code> に入れる</td></tr>
   </table></div>
+
+  <h3>地図の「ピンの位置」は、画面によって受け取り方が違う</h3>
+  <p>地図の画像は国土地理院から直接もらいますが、<b>ピンの位置は案件のデータなので Laravel から受け取ります</b>。受け取り方は2通りあります。</p>
+  <div class="tablewrap"><table>
+    <tr><th>画面</th><th>ピンの位置の受け取り方</th></tr>
+    <tr><td><b>案件の詳細・登録・編集</b></td><td>Blade が緯度経度を <b>HTML の中の JavaScript に埋め込む</b>（追加のリクエストなし）</td></tr>
+    <tr><td><b>地図表示</b></td><td>画面を開いたあと、JavaScript の <code>fetch</code> が <code>GET /map/pins</code> に検索条件を付けて送り、Laravel が <b>JSON（GeoJSON）</b>で返す。Leaflet がそれを読んでピンを立てる</td></tr>
+  </table></div>
+  <p><code>/map/pins</code> は一覧と同じ <code>RequestSearch</code> を使うので、検索条件と事務所スコープが一覧とそろいます。</p>
 
   <h3>現場写真の保存と表示</h3>
   <div class="grid2">
@@ -771,8 +896,8 @@ Set-Cookie: civil_track_session=...; secure; httponly
   </div>
   <div class="note"><span>⚠️</span><span><b>写真をコンテナの中に置かない理由。</b>本番のコンテナはデプロイのたびに作り直すので、中に保存したファイルは消えてしまいます。消えては困るデータは、コンテナの外（RDS・S3）に置くのが基本です。ローカルでは S3 の代わりに PC のディスク（<code>storage/app/private</code>）を使い、Laravel 自身が署名付き URL で配信しています（<code>PHOTO_DISK</code> の切り替え）。</span></div>
 
-  <!-- 10 -->
-  <h2 id="s10"><span class="num">10</span>コンテナと Docker Compose</h2>
+  <!-- 11 -->
+  <h2 id="s11"><span class="num">11</span>コンテナと Docker Compose</h2>
   <p class="h2sub">ひとことで：「動かすのに必要なもの一式」を箱（イメージ）に詰め、どこでも同じように動かす仕組み。Compose は複数の箱をまとめて動かす指示書。</p>
 
   <dl class="glossary">
@@ -813,8 +938,8 @@ exec php-fpm                  <span class="c"># ここから PHP-FPM が依頼�
 
   <div class="note ok"><span>✅</span><span><b>famigo との分離。</b>Civil Track は専用のネットワーク（<code>civil-network</code>）・専用の Compose ファイル（<code>-f docker-compose.prod.yml</code>）・専用のポート（8081）を使います。同じ EC2 の上にいても、famigo のコンテナとは直接つながらず、Civil Track のデプロイで famigo を巻き込みません。異常終了したときは <code>restart: unless-stopped</code> で自動的に再起動します。</span></div>
 
-  <!-- 11 -->
-  <h2 id="s11"><span class="num">11</span>開発環境と本番環境の違い</h2>
+  <!-- 12 -->
+  <h2 id="s12"><span class="num">12</span>開発環境と本番環境の違い</h2>
   <p class="h2sub">ひとことで：「nginx が受けて、Laravel が処理して、MySQL から読む」流れは同じ。周りの部品が、本番では AWS のサービスに置き換わっている。</p>
 
   <div class="tablewrap"><table>
@@ -829,8 +954,8 @@ exec php-fpm                  <span class="c"># ここから PHP-FPM が依頼�
     <tr><td><b>エラー表示</b></td><td>詳しいエラー画面（<code>APP_DEBUG=true</code>）</td><td>問い合わせ番号つきの簡単な画面（中身を見せない）</td></tr>
   </table></div>
 
-  <!-- 12 -->
-  <h2 id="s12"><span class="num">12</span>画面に出ない裏方の仕組み</h2>
+  <!-- 13 -->
+  <h2 id="s13"><span class="num">13</span>画面に出ない裏方の仕組み</h2>
   <p class="h2sub">ひとことで：作るとき（CI・テスト）、置くとき（デプロイ・Terraform）、動いている間（ログ・監視）を支える仕組み。</p>
 
   <div class="grid2">
@@ -856,31 +981,37 @@ exec php-fpm                  <span class="c"># ここから PHP-FPM が依頼�
     </div>
   </div>
 
-  <!-- 13 -->
-  <h2 id="s13"><span class="num">13</span>困ったとき、どこを見るか</h2>
-  <p class="h2sub">ひとことで：「どこまで届いたか」で原因の場所を絞る。この章の地図（1章）を上から順にたどるのが近道。</p>
+  <!-- 14 -->
+  <h2 id="s14"><span class="num">14</span>困ったとき、どこを見るか</h2>
+  <p class="h2sub">ひとことで：「どこまで届いたか」で原因の場所を絞る。1章の地図を上から順にたどるのが近道。</p>
 
   <div class="tablewrap"><table>
     <tr><th>症状</th><th>止まっている場所の候補</th><th>まず見るもの</th></tr>
-    <tr><td>サイトにつながらない・名前が見つからない</td><td>DNS／EC2・RDS が停止中</td><td>EC2・RDS が起動しているか（普段は止めている）。Route53 のレコード</td></tr>
-    <tr><td><b>502 / 503</b>（ALB の画面）</td><td>ALB の先のサーバーが応答しない</td><td>ターゲットグループのヘルスチェックが healthy か。<code>docker ps</code> でコンテナが動いているか</td></tr>
+    <tr><td><b>名前が見つからない</b>（DNS のエラー）</td><td>DNS</td><td><code>nslookup civil-track.com</code> で IP が返るか。Route53 のレコード、レジストラの NS 設定</td></tr>
+    <tr><td><b>証明書の警告</b>が出る</td><td>URL の間違い・証明書</td><td>IP アドレスで開いていないか。ACM の状態と ALB の証明書の設定</td></tr>
+    <tr><td><b style="white-space:nowrap">502 / 503</b>（ALB の画面）</td><td>ALB の先のサーバーが応答しない。<b>EC2 を止めている間は 503</b>（DNS と ALB は動いている）</td><td>EC2 が起動しているか（普段は止めている）。ターゲットグループのヘルスチェックが healthy か。<code>docker ps</code> でコンテナが動いているか</td></tr>
     <tr><td><b>504</b></td><td>処理が時間切れ</td><td>重い処理・DB の応答。CloudWatch の php のログ</td></tr>
-    <tr><td><b>500</b>（問い合わせ番号つきの画面）</td><td>Laravel の中のエラー</td><td>画面の番号（request_id）で CloudWatch Logs を検索し、ERROR の行を見る</td></tr>
+    <tr><td><b>500</b>（問い合わせ番号つきの画面）</td><td>Laravel の中のエラー。<b>RDS だけ止まっている</b>場合も、DB を使う画面はここ</td><td>画面の番号（request_id）で CloudWatch Logs を検索し、ERROR の行を見る。RDS が起動しているか（<code>/health</code> は DB を見ないので、RDS だけ止まっていても ALB は healthy のまま）</td></tr>
     <tr><td>画面は出るが<b>見た目が崩れる</b></td><td>CSS が届いていない</td><td>ブラウザの開発者ツール（F12）の Network タブで <code>common.css</code> が 200 か</td></tr>
-    <tr><td><b>地図だけ</b>出ない</td><td>Leaflet か国土地理院のタイル</td><td>開発者ツールの Console のエラー、タイル画像のリクエスト</td></tr>
+    <tr><td><b>地図だけ</b>出ない</td><td>Leaflet か国土地理院のタイル</td><td>開発者ツールの Console のエラー、タイル画像のリクエスト。ピンだけ出ないなら <code>/map/pins</code> の応答</td></tr>
     <tr><td><b>写真だけ</b>出ない</td><td>S3・署名付き URL・IAM ロール</td><td>画像の URL が 403 になっていないか（期限切れ・権限）</td></tr>
     <tr><td>ログインしてもすぐログイン画面に戻る</td><td>Cookie が保存されない・送られない</td><td>HTTPS で開いているか（<code>secure</code> Cookie）、TrustProxies の設定</td></tr>
     <tr><td><b>419</b></td><td>セッション切れ・CSRF</td><td>ページを開き直してから送信し直す。デプロイ直後なら全員ログアウトされている</td></tr>
   </table></div>
 
-  <div class="note key"><span>🔑</span><span><b>ブラウザの開発者ツールは最初の味方。</b>F12 → Network タブを開いてから操作すると、1回のページ表示で何本のリクエストが飛び、どれが何番で返ったかが一覧で見えます。この章の「HTML 1本＋CSS・フォント・地図・写真の別リクエスト」を、自分の目で確かめてみてください。</span></div>
+  <div class="note key"><span>🔑</span><span><b>ブラウザの開発者ツールは最初の味方。</b>F12 → Network タブを開いてから操作すると、1回のページ表示で何本のリクエストが飛び、どれが何番で返ったかが一覧で見えます。3章で見た「HTML 1本＋CSS・フォント・地図・写真の別リクエスト」を、自分の目で確かめてみてください。</span></div>
 
-  <!-- 14 -->
-  <h2 id="s14"><span class="num">14</span>用語ミニ辞典</h2>
+  <!-- 15 -->
+  <h2 id="s15"><span class="num">15</span>用語ミニ辞典</h2>
   <dl class="glossary">
     <dt>DNS</dt><dd>ドメイン名（civil-track.com）を IP アドレスに変換する仕組み。Route53 が担当</dd>
+    <dt>ネームサーバー（NS）</dt><dd>そのドメインの DNS の答えを持っているサーバー。このアプリでは Route53 の <code>ns-1403.awsdns-47.org</code> など4つ</dd>
+    <dt>エイリアスレコード</dt><dd>Route53 独自の機能。ALB などの AWS リソースを名前で指定すると、その時点の IP を答えてくれる</dd>
+    <dt>TTL</dt><dd>DNS の答えを覚えていてよい秒数</dd>
+    <dt>ポート</dt><dd>1つのコンピュータやコンテナの中で、どのプログラム宛てかを区別する番号</dd>
     <dt>TLS / HTTPS</dt><dd>通信を暗号化する仕組み／それを使った HTTP。証明書で相手が本物か確かめる</dd>
     <dt>SNI</dt><dd>暗号化の握手の最初に「どのドメインに用があるか」を伝える仕組み。1つの ALB で複数の証明書を使い分けられる</dd>
+    <dt>デフォルト証明書</dt><dd>SNI の名前が無い・一致しないときに ALB が出す証明書。このアプリの ALB では famigo のもの</dd>
     <dt>ロードバランサー</dt><dd>入口で通信を受け、後ろのサーバーに振り分ける装置。ALB は HTTP の中身（ホスト名・パス）で振り分けられる</dd>
     <dt>ターゲットグループ</dt><dd>ALB の振り分け先のまとまり。ヘルスチェックの設定もここ</dd>
     <dt>リバースプロキシ</dt><dd>利用者の代わりに奥のサーバーへ取り次ぐ役。ALB や nginx がこれにあたる</dd>
@@ -906,7 +1037,7 @@ exec php-fpm                  <span class="c"># ここから PHP-FPM が依頼�
   </dl>
 
   <footer>
-    要望管理システム（CivilRequestManagement）／アプリ全体の仕組みの学習用まとめ（2026-11-18 時点）。インフラの設定値は <a href="../infrastructure-design.md">インフラ設計書</a>、画面とルートは <a href="../screen-design.md">画面設計書</a>、ログは <a href="../logging-and-monitoring.md">ログ・監視設計書</a> を参照。
+    要望管理システム（CivilRequestManagement）／アプリ全体の仕組みの学習用まとめ（2026-11-23 時点）。インフラの設定値は <a href="../infrastructure-design.md">インフラ設計書</a>、画面とルートは <a href="../screen-design.md">画面設計書</a>、ログは <a href="../logging-and-monitoring.md">ログ・監視設計書</a> を参照。
   </footer>
 </div>
 
